@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- SPEC §5.1: scans live under Documents/ so the Files app can reach them
+	     without a cable. UIFileSharingEnabled is not one of the keys Xcode's
+	     INFOPLIST_KEY_* generator supports, so it is declared here and merged
+	     with the generated keys. -->
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+</dict>
+</plist>
