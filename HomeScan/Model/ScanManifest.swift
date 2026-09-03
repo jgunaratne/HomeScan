@@ -145,9 +145,23 @@ enum DeviceInfo {
 /// One shared JSON configuration so every file HomeScan writes is ISO8601-dated
 /// and diffable.
 enum ScanJSON {
+
+    /// JSON has no literal for NaN or infinity, and `JSONEncoder` throws rather
+    /// than guess. RoomPlan's captured geometry does contain them — an unbounded
+    /// surface extent, a degenerate transform — so without this the archive of a
+    /// perfectly good scan fails to write. The two strategies must stay in sync.
+    private static let nan = "NaN"
+    private static let positiveInfinity = "Infinity"
+    private static let negativeInfinity = "-Infinity"
+
     static func encoder(prettyPrinted: Bool = true) -> JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
+        encoder.nonConformingFloatEncodingStrategy = .convertToString(
+            positiveInfinity: positiveInfinity,
+            negativeInfinity: negativeInfinity,
+            nan: nan
+        )
         if prettyPrinted {
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         }
@@ -157,6 +171,11 @@ enum ScanJSON {
     static func decoder() -> JSONDecoder {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
+        decoder.nonConformingFloatDecodingStrategy = .convertFromString(
+            positiveInfinity: positiveInfinity,
+            negativeInfinity: negativeInfinity,
+            nan: nan
+        )
         return decoder
     }
 }

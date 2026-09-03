@@ -125,8 +125,8 @@ actor ScanStore {
             try raw.write(to: ScanPaths.roomFile(scanID, segmentID, roomID, .raw), options: .atomic)
             ScanLog.store.info("Archived raw capture data: \(raw.count) bytes")
         } catch {
-            archiveError = error.localizedDescription
-            ScanLog.store.error("Archiving raw capture data failed: \(error.localizedDescription, privacy: .public)")
+            archiveError = Self.diagnostic(for: error)
+            ScanLog.store.error("Archiving raw capture data failed: \(Self.diagnostic(for: error), privacy: .public)")
         }
 
         // 2. Derived artefacts.
@@ -339,6 +339,44 @@ actor ScanStore {
 
     func totalSizeOnDisk() -> Int64 {
         Self.directorySize(ScanPaths.scansRoot)
+    }
+
+    /// `localizedDescription` on an `EncodingError` is always "The data couldn’t be
+    /// written because it isn’t in the correct format", which names neither the
+    /// offending value nor where it sat. The debug description names both, and this
+    /// string is the only account of the failure the user ever sees.
+    nonisolated static func diagnostic(for error: any Error) -> String {
+        switch error {
+        case let error as EncodingError:
+            switch error {
+            case .invalidValue(_, let context): return describe(context)
+            @unknown default: return error.localizedDescription
+            }
+        case let error as DecodingError:
+            switch error {
+            case .dataCorrupted(let context),
+                 .keyNotFound(_, let context),
+                 .typeMismatch(_, let context),
+                 .valueNotFound(_, let context):
+                return describe(context)
+            @unknown default: return error.localizedDescription
+            }
+        default:
+            return error.localizedDescription
+        }
+    }
+
+    private nonisolated static func describe(_ context: DecodingError.Context) -> String {
+        describe(path: context.codingPath, context.debugDescription)
+    }
+
+    private nonisolated static func describe(_ context: EncodingError.Context) -> String {
+        describe(path: context.codingPath, context.debugDescription)
+    }
+
+    private nonisolated static func describe(path: [any CodingKey], _ description: String) -> String {
+        let path = path.map(\.stringValue).joined(separator: ".")
+        return path.isEmpty ? description : "\(description) (at \(path))"
     }
 
     nonisolated static func directorySize(_ url: URL) -> Int64 {
