@@ -237,27 +237,45 @@ struct ScanDetailView: View {
         do {
             guard let manifest else { return }
             let exportOptions = settings.exportOptions
+            var rebuilt = 0
+            var unarchived = 0
+            var failed = 0
             for segment in manifest.segments {
                 for record in segment.rooms {
-                    let data = try await store.loadRawRoomData(
+                    // One room that cannot be re-derived must not take the rooms that
+                    // can down with it: this loop used to throw out of the whole scan
+                    // on the first missing archive.
+                    guard let data = try? await store.loadRawRoomData(
                         scanID: scanID, segmentID: segment.id, roomID: record.id
-                    )
-                    let room = try await RoomPlanProcessing.buildRoom(from: data)
-                    _ = try await store.saveRoom(
-                        scanID: scanID,
-                        segmentID: segment.id,
-                        roomID: record.id,
-                        label: record.label,
-                        rawData: data,
-                        room: room,
-                        exportOptions: exportOptions,
-                        bumpsVersion: false
-                    )
+                    ) else {
+                        unarchived += 1
+                        continue
+                    }
+                    do {
+                        let room = try await RoomPlanProcessing.buildRoom(from: data)
+                        _ = try await store.saveRoom(
+                            scanID: scanID,
+                            segmentID: segment.id,
+                            roomID: record.id,
+                            label: record.label,
+                            rawArchive: nil,
+                            room: room,
+                            exportOptions: exportOptions,
+                            bumpsVersion: false
+                        )
+                        rebuilt += 1
+                    } catch {
+                        failed += 1
+                        ScanLog.store.error("Re-derive failed for room \(record.id, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    }
                 }
             }
             _ = try await store.deriveMeasurements(scanID: scanID)
             await reload()
-            message = "Re-derived \(manifest.roomCount) room\(manifest.roomCount == 1 ? "" : "s") from the archived capture data."
+            var parts = ["Re-derived \(rebuilt) room\(rebuilt == 1 ? "" : "s") from the archived capture data."]
+            if unarchived > 0 { parts.append("\(unarchived) had no archive.") }
+            if failed > 0 { parts.append("\(failed) could not be rebuilt.") }
+            message = parts.joined(separator: " ")
         } catch {
             message = error.localizedDescription
         }

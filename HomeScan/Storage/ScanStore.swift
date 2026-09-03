@@ -97,6 +97,15 @@ actor ScanStore {
 
     // MARK: - Rooms
 
+    /// Encodes the intermediate ahead of the write, off the main actor.
+    ///
+    /// Called the moment RoomPlan hands the capture over rather than at save time:
+    /// the encode is the fragile half, and by save time the user has spent minutes
+    /// naming the room and `RoomBuilder` has already consumed the capture.
+    func archive(_ rawData: CapturedRoomData) -> RawRoomArchive {
+        RawRoomArchive.make(from: rawData)
+    }
+
     /// Persists one captured room. The raw intermediate lands first; the derived
     /// artefacts are best-effort so a USDZ export failure never costs the capture.
     func saveRoom(
@@ -104,7 +113,9 @@ actor ScanStore {
         segmentID: UUID,
         roomID: UUID,
         label: String,
-        rawData: CapturedRoomData,
+        /// The already-encoded intermediate, or nil to leave whatever is on disk —
+        /// and the record's verdict on it — untouched, as a re-derive must.
+        rawArchive: RawRoomArchive?,
         room: CapturedRoom,
         exportOptions: ExportOptionSet,
         /// False when rewriting derived artefacts for a room that was not re-scanned,
@@ -120,14 +131,21 @@ actor ScanStore {
         // failure is recorded on the record instead of thrown: a room the user can
         // still open and measure beats a room that vanished.
         var archiveError: String?
-        do {
-            let raw = try ScanJSON.encoder(prettyPrinted: false).encode(rawData)
-            try raw.write(to: ScanPaths.roomFile(scanID, segmentID, roomID, .raw), options: .atomic)
-            ScanLog.store.info("Archived raw capture data: \(raw.count) bytes")
-        } catch {
-            archiveError = Self.diagnostic(for: error)
-            ScanLog.store.error("Archiving raw capture data failed: \(Self.diagnostic(for: error), privacy: .public)")
+        switch rawArchive {
+        case .encoded(let raw):
+            do {
+                try raw.write(to: ScanPaths.roomFile(scanID, segmentID, roomID, .raw), options: .atomic)
+                ScanLog.store.info("Archived raw capture data: \(raw.count) bytes")
+            } catch {
+                archiveError = Self.diagnostic(for: error)
+                ScanLog.store.error("Writing raw capture data failed: \(Self.diagnostic(for: error), privacy: .public)")
+            }
+        case .failed(let reason):
+            archiveError = reason
+        case nil:
+            break
         }
+        let preservesExistingArchive = rawArchive == nil
 
         // 2. Derived artefacts.
         let roomJSON = try ScanJSON.encoder().encode(room)
@@ -157,6 +175,7 @@ actor ScanStore {
                     var updated = record
                     updated.version = existing.version + (bumpsVersion ? 1 : 0)
                     if !bumpsVersion { updated.capturedAt = existing.capturedAt }
+                    if preservesExistingArchive { updated.archiveError = existing.archiveError }
                     manifest.segments[segmentIndex].rooms[roomIndex] = updated
                 } else {
                     manifest.segments[segmentIndex].rooms.append(record)
@@ -202,7 +221,7 @@ actor ScanStore {
     func loadRawRoomData(scanID: UUID, segmentID: UUID, roomID: UUID) throws -> CapturedRoomData {
         let url = ScanPaths.roomFile(scanID, segmentID, roomID, .raw)
         guard let data = try? Data(contentsOf: url) else { throw ScanStoreError.roomDataMissing(roomID) }
-        return try ScanJSON.decoder().decode(CapturedRoomData.self, from: data)
+        return try RawRoomArchive.decode(data)
     }
 
     /// Every room of a scan, in manifest order, skipping any whose JSON is missing.

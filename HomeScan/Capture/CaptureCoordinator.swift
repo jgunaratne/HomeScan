@@ -78,7 +78,7 @@ final class CaptureCoordinator {
     @ObservationIgnored private var dataContinuation: CheckedContinuation<CapturedRoomData, any Error>?
     /// Rooms held in memory for the merge, keyed by segment.
     @ObservationIgnored private var capturedRooms: [UUID: [CapturedRoom]] = [:]
-    @ObservationIgnored private var pendingRoomData: CapturedRoomData?
+    @ObservationIgnored private var pendingArchive: RawRoomArchive?
     @ObservationIgnored private var pendingRoom: CapturedRoom?
     /// Set when the user tapped Finish House mid-room: the house is finished once
     /// the label for that last room has been given.
@@ -203,8 +203,12 @@ final class CaptureCoordinator {
                     self?.timeOutHandoff()
                 }
             }
+            // Archive before building. This is the only moment the intermediate is
+            // certain to be intact — `RoomBuilder` consumes it, and the encode used
+            // to be deferred until the user had finished typing a label.
+            let archive = await store.archive(data)
             let room = try await RoomPlanProcessing.buildRoom(from: data)
-            pendingRoomData = data
+            pendingArchive = archive
             pendingRoom = room
             pendingLabelRoom = PendingLabel(
                 id: UUID(),
@@ -222,7 +226,7 @@ final class CaptureCoordinator {
     func commitPendingRoom(label: String) async {
         guard let pending = pendingLabelRoom,
               let room = pendingRoom,
-              let data = pendingRoomData,
+              let archive = pendingArchive,
               let scanID
         else {
             clearPending()
@@ -239,7 +243,7 @@ final class CaptureCoordinator {
                 segmentID: pending.segmentID,
                 roomID: pending.id,
                 label: finalLabel,
-                rawData: data,
+                rawArchive: archive,
                 room: room,
                 exportOptions: exportOptions
             )
@@ -283,7 +287,7 @@ final class CaptureCoordinator {
     private func clearPending() {
         pendingLabelRoom = nil
         pendingRoom = nil
-        pendingRoomData = nil
+        pendingArchive = nil
     }
 
     /// RoomPlan's own section labels are a decent first guess for the text field.
