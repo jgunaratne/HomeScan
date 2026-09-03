@@ -50,7 +50,17 @@ final class CaptureCoordinator {
     var pendingLabelRoom: PendingLabel?
     /// Raised once when the world frame breaks, so the UI can offer a new segment.
     var trackingLossNeedsDecision = false
+    /// The last failure, held until the user acknowledges it. A capture failure that
+    /// only gets logged reads to the user as "the app silently lost my room", so
+    /// every one of them has to reach the screen.
+    var failure: Failure?
     private(set) var lastError: String?
+
+    struct Failure: Identifiable, Sendable {
+        let id = UUID()
+        var title: String
+        var message: String
+    }
 
     let tracking = TrackingMonitor()
 
@@ -109,7 +119,9 @@ final class CaptureCoordinator {
             segmentIDs = []
             lastError = nil
             startNewSegment(isFirst: true)
+            ScanLog.capture.info("Started scan \(manifest.id, privacy: .public)")
         } catch {
+            ScanLog.capture.error("Could not create the scan: \(error.localizedDescription, privacy: .public)")
             phase = .failed(error.localizedDescription)
         }
     }
@@ -169,6 +181,11 @@ final class CaptureCoordinator {
         phase = .scanningRoom
     }
 
+    /// How long to wait for RoomPlan to hand the capture back after `stop`. Generous:
+    /// the handoff is normally immediate, and the slow part (`RoomBuilder`) happens
+    /// after it.
+    private static let handoffTimeout: Duration = .seconds(60)
+
     /// Ends the current room *without* pausing ARKit, then builds it.
     func finishRoom() async {
         guard phase == .scanningRoom, let captureView else { return }
@@ -178,6 +195,13 @@ final class CaptureCoordinator {
                 dataContinuation = continuation
                 // The crux of multi-room continuity: stop the room, keep the frame.
                 captureView.captureSession.stop(pauseARSession: false)
+                // If the delegate callback never arrives, the screen would sit on
+                // "Building room…" indefinitely — which reads as a silent failure.
+                // Time it out into an error the user can actually act on.
+                Task { @MainActor [weak self] in
+                    try? await Task.sleep(for: Self.handoffTimeout)
+                    self?.timeOutHandoff()
+                }
             }
             let room = try await RoomPlanProcessing.buildRoom(from: data)
             pendingRoomData = data
@@ -189,7 +213,7 @@ final class CaptureCoordinator {
             )
             phase = .ready
         } catch {
-            lastError = error.localizedDescription
+            report("Could not build that room", error)
             phase = .ready
         }
     }
@@ -223,8 +247,16 @@ final class CaptureCoordinator {
                 DraftRoom(id: record.id, label: record.label, segmentID: pending.segmentID, room: room)
             )
             capturedRooms[pending.segmentID, default: []].append(room)
+            if let archiveError = record.archiveError {
+                // The room is saved and measurable, but it can never be re-derived.
+                // Worth interrupting for: the archive is the master asset.
+                failure = Failure(
+                    title: "Saved without its archive",
+                    message: "\(record.label) was saved and measured, but the raw capture data could not be archived, so it cannot be re-processed later. \(archiveError)"
+                )
+            }
         } catch {
-            lastError = error.localizedDescription
+            report("Could not save that room", error)
         }
         clearPending()
 
@@ -239,6 +271,13 @@ final class CaptureCoordinator {
     func discardPendingRoom() {
         shouldFinishAfterLabel = false
         clearPending()
+    }
+
+    private func report(_ title: String, _ error: any Error) {
+        let message = error.localizedDescription
+        lastError = message
+        failure = Failure(title: title, message: message)
+        ScanLog.capture.error("\(title, privacy: .public): \(message, privacy: .public)")
     }
 
     private func clearPending() {
@@ -290,13 +329,14 @@ final class CaptureCoordinator {
                 // archived intermediates are already on disk, and the schedule falls
                 // back to measuring them directly.
                 lastError = "Merge failed for one segment: \(error.localizedDescription)"
+                ScanLog.capture.error("Merge failed for segment \(segmentID, privacy: .public): \(error.localizedDescription, privacy: .public)")
             }
         }
 
         do {
             _ = try await store.deriveMeasurements(scanID: scanID)
         } catch {
-            lastError = error.localizedDescription
+            report("Could not derive the measurements", error)
         }
 
         phase = .finished(scanID: scanID)
@@ -305,12 +345,16 @@ final class CaptureCoordinator {
     /// Abandons an in-progress scan and removes anything already written for it.
     func cancel() async {
         teardownSession(pauseAR: true)
-        if let scanID, draftRooms.isEmpty {
+        // Only an empty scan that failed at nothing is safe to throw away. If a save
+        // errored, whatever did land on disk is the only evidence of what went wrong.
+        if let scanID, draftRooms.isEmpty, lastError == nil {
             try? await store.delete(scanID: scanID)
         }
         clearPending()
         shouldFinishAfterLabel = false
         phase = .idle
+        failure = nil
+        lastError = nil
         scanID = nil
         draftRooms = []
         capturedRooms = [:]
@@ -343,6 +387,25 @@ final class CaptureCoordinator {
     }
 
     // MARK: - Internals
+
+    /// Fails a handoff that never completed. No-op once the data has arrived, since
+    /// ``receive(data:error:)`` clears the continuation as it resumes it.
+    private func timeOutHandoff() {
+        guard let continuation = dataContinuation else { return }
+        dataContinuation = nil
+        continuation.resume(throwing: HandoffError.timedOut)
+    }
+
+    enum HandoffError: LocalizedError {
+        case timedOut
+
+        var errorDescription: String? {
+            switch self {
+            case .timedOut:
+                "RoomPlan did not return the captured room after the session was stopped. Nothing was saved for this room. If this keeps happening, run Settings ▸ Diagnostics ▸ Capture Smoke Test to check RoomPlan itself on this OS build."
+            }
+        }
+    }
 
     private func receive(data: CapturedRoomData, error: (any Error)?) {
         guard let continuation = dataContinuation else { return }

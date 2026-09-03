@@ -55,6 +55,7 @@ struct ScanManifest: Codable, Sendable, Identifiable, Equatable {
 
     var allRooms: [RoomRecord] { segments.flatMap(\.rooms) }
     var roomCount: Int { allRooms.count }
+    var roomsMissingArchive: [RoomRecord] { allRooms.filter { !$0.hasArchive } }
 
     /// Net interior floor area across every room, in square metres.
     var totalFloorAreaSqM: Double { allRooms.reduce(0) { $0 + $1.floorAreaSqM } }
@@ -88,6 +89,13 @@ struct RoomRecord: Codable, Sendable, Identifiable, Equatable {
     /// Bumped when a room is re-scanned in place. Archived intermediates make
     /// versioning cheap; see SPEC §10.
     var version: Int
+    /// Set when `raw.capturedroomdata` could not be written. The room is still
+    /// saved and usable — but it cannot be re-derived, so the failure is recorded
+    /// rather than swallowed. Optional so manifests written before this existed
+    /// still decode.
+    var archiveError: String?
+
+    var hasArchive: Bool { archiveError == nil }
 
     init(
         id: UUID = UUID(),
@@ -97,16 +105,20 @@ struct RoomRecord: Codable, Sendable, Identifiable, Equatable {
         objectCount: Int,
         capturedRoomIdentifier: UUID? = nil,
         capturedAt: Date = Date(),
-        version: Int = 1
+        version: Int = 1,
+        archiveError: String? = nil
     ) {
         self.id = id
         self.label = label
         self.confidence = confidence
-        self.floorAreaSqM = floorAreaSqM
+        // JSONEncoder throws on NaN/infinity; a single bad surface must not be able
+        // to take the manifest write - and with it the room - down.
+        self.floorAreaSqM = floorAreaSqM.isFinite ? floorAreaSqM : 0
         self.objectCount = objectCount
         self.capturedRoomIdentifier = capturedRoomIdentifier
         self.capturedAt = capturedAt
         self.version = version
+        self.archiveError = archiveError
     }
 }
 

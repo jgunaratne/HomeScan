@@ -66,7 +66,7 @@ struct SettingsView: View {
 
                 Section("Storage") {
                     LabeledContent("Scans on disk", value: UnitFormatter.bytes(storageUsed))
-                    Text("Scans live in Documents and are visible in the Files app. The archived capture data is the master asset — everything else can be re-derived from it.")
+                    Text("Scans live in the app's Documents folder: Files ▸ Browse ▸ On My iPhone ▸ HomeScan ▸ Scans ▸ <scan id>. The folder only appears there once a scan has actually been written. The archived capture data is the master asset — everything else can be re-derived from it.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

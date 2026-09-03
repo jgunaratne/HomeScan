@@ -45,6 +45,18 @@ struct ScanFlowView: View {
             }
             .interactiveDismissDisabled()
         }
+        .alert(
+            coordinator.failure?.title ?? "Capture problem",
+            isPresented: Binding(
+                get: { coordinator.failure != nil },
+                set: { if !$0 { coordinator.failure = nil } }
+            ),
+            presenting: coordinator.failure
+        ) { _ in
+            Button("OK") { coordinator.failure = nil }
+        } message: { failure in
+            Text(failure.message)
+        }
         .alert("Tracking lost", isPresented: $coordinator.trackingLossNeedsDecision) {
             Button("Start a new segment") { coordinator.startNewSegment() }
             Button("Continue anyway", role: .destructive) { coordinator.dismissTrackingLoss() }
@@ -65,8 +77,8 @@ struct ScanFlowView: View {
             Button("Keep scanning", role: .cancel) {}
         } message: {
             Text(coordinator.roomCount > 0
-                 ? "\(coordinator.roomCount) captured room\(coordinator.roomCount == 1 ? " stays" : "s stay") on disk; the house will not be merged."
-                 : "Nothing has been captured yet.")
+                 ? "\(coordinator.roomCount) saved room\(coordinator.roomCount == 1 ? " stays" : "s stay") on disk; the house will not be merged."
+                 : "No room has been saved yet.")
         }
     }
 

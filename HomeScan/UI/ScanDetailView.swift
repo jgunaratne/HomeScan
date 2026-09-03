@@ -131,6 +131,13 @@ struct ScanDetailView: View {
                                 .foregroundStyle(.secondary)
                         }
                         Spacer()
+                        if !room.hasArchive {
+                            // Re-derive cannot help this room; say so where the room is,
+                            // not only where the button is.
+                            Image(systemName: "archivebox.badge.xmark")
+                                .foregroundStyle(.orange)
+                                .accessibilityLabel("Raw capture data missing")
+                        }
                         if measurement(for: room.id)?.isEstimated == true {
                             EstimatedBadge()
                         }
@@ -144,8 +151,14 @@ struct ScanDetailView: View {
                     Text("Rooms\(segment.hasStructure ? " · merged" : "")")
                 }
             } footer: {
-                if manifest.segments.count > 1, index == manifest.segments.count - 1 {
-                    Text("Segments were captured in separate ARKit frames — after tracking was lost — and are merged independently.")
+                VStack(alignment: .leading, spacing: 4) {
+                    if manifest.segments.count > 1, index == manifest.segments.count - 1 {
+                        Text("Segments were captured in separate ARKit frames — after tracking was lost — and are merged independently.")
+                    }
+                    if segment.rooms.contains(where: { !$0.hasArchive }) {
+                        Label("A room here has no archived capture data, so it cannot be re-derived.", systemImage: "archivebox.badge.xmark")
+                            .foregroundStyle(.orange)
+                    }
                 }
             }
         }

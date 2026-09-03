@@ -1,5 +1,13 @@
 import Foundation
+import OSLog
 import RoomPlan
+
+/// One subsystem for everything on the capture-and-save path, so a failed scan can
+/// be read back out of Console.app or the Xcode debug console without a debugger.
+enum ScanLog {
+    static let store = Logger(subsystem: "com.homescan.HomeScan", category: "store")
+    static let capture = Logger(subsystem: "com.homescan.HomeScan", category: "capture")
+}
 
 enum ScanStoreError: LocalizedError {
     case scanNotFound(UUID)
@@ -31,6 +39,7 @@ actor ScanStore {
 
     func createScan(name: String) throws -> ScanManifest {
         let manifest = ScanManifest(name: name)
+        ScanLog.store.info("Creating scan \(manifest.id, privacy: .public) at \(ScanPaths.scan(manifest.id).path(percentEncoded: false), privacy: .public)")
         try fileManager.createDirectory(at: ScanPaths.segments(manifest.id), withIntermediateDirectories: true)
         try write(manifest: manifest)
         return manifest
@@ -78,6 +87,7 @@ actor ScanStore {
     }
 
     func delete(scanID: UUID) throws {
+        ScanLog.store.notice("Deleting scan \(scanID, privacy: .public)")
         try fileManager.removeItem(at: ScanPaths.scan(scanID))
     }
 
@@ -103,10 +113,21 @@ actor ScanStore {
     ) throws -> RoomRecord {
         let roomDir = ScanPaths.room(scanID, segmentID, roomID)
         try fileManager.createDirectory(at: roomDir, withIntermediateDirectories: true)
+        ScanLog.store.info("Saving room \(roomID, privacy: .public) to scan \(scanID, privacy: .public)")
 
-        // 1. The master asset. If this fails, the whole save fails.
-        let raw = try ScanJSON.encoder(prettyPrinted: false).encode(rawData)
-        try raw.write(to: ScanPaths.roomFile(scanID, segmentID, roomID, .raw), options: .atomic)
+        // 1. The master asset, written first (SPEC §5.3). Losing it costs the ability
+        // to re-derive — but it must not cost the capture itself, which is why the
+        // failure is recorded on the record instead of thrown: a room the user can
+        // still open and measure beats a room that vanished.
+        var archiveError: String?
+        do {
+            let raw = try ScanJSON.encoder(prettyPrinted: false).encode(rawData)
+            try raw.write(to: ScanPaths.roomFile(scanID, segmentID, roomID, .raw), options: .atomic)
+            ScanLog.store.info("Archived raw capture data: \(raw.count) bytes")
+        } catch {
+            archiveError = error.localizedDescription
+            ScanLog.store.error("Archiving raw capture data failed: \(error.localizedDescription, privacy: .public)")
+        }
 
         // 2. Derived artefacts.
         let roomJSON = try ScanJSON.encoder().encode(room)
@@ -125,7 +146,8 @@ actor ScanStore {
             confidence: measurement.confidence,
             floorAreaSqM: measurement.floorArea,
             objectCount: room.objects.count,
-            capturedRoomIdentifier: room.identifier
+            capturedRoomIdentifier: room.identifier,
+            archiveError: archiveError
         )
 
         try updateManifest(scanID) { manifest in
@@ -144,6 +166,7 @@ actor ScanStore {
             }
         }
 
+        ScanLog.store.info("Room \(roomID, privacy: .public) saved and written into the manifest")
         return record
     }
 

@@ -9,6 +9,15 @@ import simd
 /// recorded in the output rather than left implicit.
 enum MeasurementEngine {
 
+    /// Metres, guaranteed finite. RoomPlan very occasionally hands back a NaN
+    /// dimension on a degenerate surface, and JSONEncoder throws on NaN — which
+    /// would take down the manifest write and lose the room (SPEC §6.7 files must
+    /// always be writable).
+    static func metres(_ value: Float) -> Double {
+        let d = Double(value)
+        return d.isFinite ? d : 0
+    }
+
     /// One room's worth of input: RoomPlan's geometry plus HomeScan's identity for it.
     struct Input: Sendable {
         var id: UUID
@@ -29,8 +38,8 @@ enum MeasurementEngine {
         let walls = room.walls.map {
             WallMeasurement(
                 id: $0.identifier,
-                length: Double($0.dimensions.x),
-                height: Double($0.dimensions.y),
+                length: metres($0.dimensions.x),
+                height: metres($0.dimensions.y),
                 confidence: $0.confidence.level
             )
         }
@@ -40,14 +49,16 @@ enum MeasurementEngine {
             + room.windows.map { opening($0, kind: .window) }
             + room.openings.map { opening($0, kind: .opening) }
 
-        let (area, areaMethod, footprintPolygon) = floorArea(of: room)
+        var (area, areaMethod, footprintPolygon) = floorArea(of: room)
+        if !area.isFinite { area = 0 }
 
         // Perimeter follows the same source as the area so the two numbers always
         // describe the same outline.
         let perimeter: Double
         let perimeterMethod: PerimeterMethod
         if areaMethod == .floorPolygon, let polygon = footprintPolygon, polygon.count >= 3 {
-            perimeter = Geometry.perimeter(of: polygon)
+            let measured = Geometry.perimeter(of: polygon)
+            perimeter = measured.isFinite ? measured : 0
             perimeterMethod = .floorPolygon
         } else {
             perimeter = walls.reduce(0) { $0 + $1.length }
@@ -85,8 +96,8 @@ enum MeasurementEngine {
         OpeningMeasurement(
             id: surface.identifier,
             type: kind,
-            width: Double(surface.dimensions.x),
-            height: Double(surface.dimensions.y),
+            width: metres(surface.dimensions.x),
+            height: metres(surface.dimensions.y),
             confidence: surface.confidence.level
         )
     }
@@ -112,7 +123,7 @@ enum MeasurementEngine {
             guard corners.count >= 3 else { continue }
             let plan = corners.map { Geometry.planProject($0, by: floor.transform) }
             let area = Geometry.area(of: plan)
-            guard area > 0 else { continue }
+            guard area > 0, area.isFinite else { continue }
             polygonArea += area
             if area > largestOutlineArea {
                 largestOutlineArea = area
@@ -131,7 +142,7 @@ enum MeasurementEngine {
             for floor in room.floors {
                 let w = floor.dimensions.x, d = floor.dimensions.y
                 guard w > 0, d > 0 else { continue }
-                boundsArea += Double(w * d)
+                boundsArea += metres(w * d)
                 if outline == nil {
                     let hw = w / 2, hd = d / 2
                     outline = [
