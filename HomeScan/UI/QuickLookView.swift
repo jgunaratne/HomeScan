@@ -5,8 +5,12 @@ import UIKit
 /// QuickLook preview of an exported USDZ (SPEC §8, Scan detail).
 struct QuickLookView: UIViewControllerRepresentable {
     let url: URL
+    /// Shown in QuickLook's own title bar. Without it every merged segment
+    /// previews as "structure.usdz", which tells the user nothing about which
+    /// floor they are looking at.
+    var title: String?
 
-    func makeCoordinator() -> Coordinator { Coordinator(url: url) }
+    func makeCoordinator() -> Coordinator { Coordinator(url: url, title: title) }
 
     func makeUIViewController(context: Context) -> QLPreviewController {
         let controller = QLPreviewController()
@@ -15,20 +19,37 @@ struct QuickLookView: UIViewControllerRepresentable {
     }
 
     func updateUIViewController(_ controller: QLPreviewController, context: Context) {
-        context.coordinator.url = url
+        context.coordinator.update(url: url, title: title)
         controller.reloadData()
     }
 
     @MainActor
     final class Coordinator: NSObject, QLPreviewControllerDataSource {
-        var url: URL
+        private var item: Item
 
-        init(url: URL) { self.url = url }
+        init(url: URL, title: String?) {
+            item = Item(url: url, title: title)
+        }
+
+        func update(url: URL, title: String?) {
+            item = Item(url: url, title: title)
+        }
 
         func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
 
         func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> any QLPreviewItem {
-            url as NSURL
+            item
+        }
+
+        /// `QLPreviewItem` needs an `NSObject`; a `URL` alone cannot carry a title.
+        private final class Item: NSObject, QLPreviewItem {
+            let previewItemURL: URL?
+            let previewItemTitle: String?
+
+            init(url: URL, title: String?) {
+                previewItemURL = url
+                previewItemTitle = title
+            }
         }
     }
 }

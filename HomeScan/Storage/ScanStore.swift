@@ -23,6 +23,37 @@ enum ScanStoreError: LocalizedError {
     }
 }
 
+/// One previewable USDZ on disk — a merged segment, or a single room.
+///
+/// Carries its own display name because the files themselves cannot be told
+/// apart: every merged segment is called `structure.usdz`, so a picker built on
+/// filenames would show a second floor as an indistinguishable second row.
+struct ScanPreviewItem: Identifiable, Sendable, Equatable {
+    enum Kind: String, Sendable, Equatable {
+        case structure
+        case room
+    }
+
+    /// The segment's id for `.structure`, the room's for `.room`.
+    var id: UUID
+    var kind: Kind
+    var segmentID: UUID
+    /// Name of the owning segment, for grouping ("Segment 2", "Whole scan").
+    var segmentTitle: String
+    /// Standalone name, safe to show with no surrounding context.
+    var title: String
+    var subtitle: String?
+    var url: URL
+}
+
+extension [ScanPreviewItem] {
+    /// What the plain "Open 3D Preview" button should show: the first merged
+    /// structure, falling back to the first room of a scan never merged.
+    var primaryPreview: ScanPreviewItem? {
+        first { $0.kind == .structure } ?? first
+    }
+}
+
 /// All scan file I/O, off the main actor (SPEC §11).
 ///
 /// The store owns the invariant that matters: the archived `CapturedRoomData` is
@@ -333,23 +364,54 @@ actor ScanStore {
         return nil
     }
 
-    /// Best USDZ to preview for a scan: the merged structure if there is one,
-    /// otherwise the first room's parametric export.
-    func previewURL(scanID: UUID) -> URL? {
-        guard let manifest = try? manifest(for: scanID) else { return nil }
-        for segment in manifest.segments where segment.hasStructure {
-            let url = ScanPaths.structureUSDZ(scanID, segment.id)
-            if fileManager.fileExists(atPath: url.path(percentEncoded: false)) { return url }
-        }
-        for segment in manifest.segments {
+    /// Every USDZ a scan has on disk: the merged structure of each segment, then
+    /// each room of that segment, in manifest order.
+    ///
+    /// A scan is not one model. Two floors walked across a tracking loss are two
+    /// segments with two separate merges, and returning only the first — as this
+    /// used to — left the second floor on disk with nothing in the UI able to
+    /// open it (SPEC §8).
+    func previewItems(scanID: UUID) -> [ScanPreviewItem] {
+        guard let manifest = try? manifest(for: scanID) else { return [] }
+        let isSegmented = manifest.segments.count > 1
+        var items: [ScanPreviewItem] = []
+
+        for (index, segment) in manifest.segments.enumerated() {
+            let segmentName = isSegmented ? "Segment \(index + 1)" : "Whole scan"
+            let structureURL = ScanPaths.structureUSDZ(scanID, segment.id)
+            if exists(structureURL) {
+                items.append(ScanPreviewItem(
+                    id: segment.id,
+                    kind: .structure,
+                    segmentID: segment.id,
+                    segmentTitle: segmentName,
+                    title: "\(segmentName) · merged",
+                    subtitle: "\(segment.rooms.count) room\(segment.rooms.count == 1 ? "" : "s")",
+                    url: structureURL
+                ))
+            }
             for room in segment.rooms {
-                for file in [ScanPaths.RoomFile.parametricUSDZ, .meshUSDZ] {
-                    let url = ScanPaths.roomFile(scanID, segment.id, room.id, file)
-                    if fileManager.fileExists(atPath: url.path(percentEncoded: false)) { return url }
-                }
+                // Parametric first: it is the smaller, cleaner model. Mesh is the
+                // fallback for a room exported with .mesh only (ExportOptionSet).
+                let candidates = [ScanPaths.RoomFile.parametricUSDZ, .meshUSDZ]
+                    .map { ScanPaths.roomFile(scanID, segment.id, room.id, $0) }
+                guard let url = candidates.first(where: { exists($0) }) else { continue }
+                items.append(ScanPreviewItem(
+                    id: room.id,
+                    kind: .room,
+                    segmentID: segment.id,
+                    segmentTitle: segmentName,
+                    title: room.label,
+                    subtitle: nil,
+                    url: url
+                ))
             }
         }
-        return nil
+        return items
+    }
+
+    private func exists(_ url: URL) -> Bool {
+        fileManager.fileExists(atPath: url.path(percentEncoded: false))
     }
 
     func sizeOnDisk(scanID: UUID) -> Int64 {

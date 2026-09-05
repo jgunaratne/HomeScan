@@ -11,9 +11,9 @@ struct ScanDetailView: View {
 
     @State private var manifest: ScanManifest?
     @State private var schedule: MeasurementSchedule?
-    @State private var previewURL: URL?
+    @State private var previewItems: [ScanPreviewItem] = []
+    @State private var previewSelection: ScanPreviewItem?
     @State private var sizeOnDisk: Int64 = 0
-    @State private var isPresentingPreview = false
     @State private var shareItems: [Any]?
     @State private var busyMessage: String?
     @State private var message: String?
@@ -42,14 +42,12 @@ struct ScanDetailView: View {
                     .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
             }
         }
-        .sheet(isPresented: $isPresentingPreview) {
-            if let previewURL {
-                NavigationStack {
-                    QuickLookView(url: previewURL)
-                        .ignoresSafeArea()
-                        .navigationTitle("3D Preview")
-                        .navigationBarTitleDisplayMode(.inline)
-                }
+        .sheet(item: $previewSelection) { item in
+            NavigationStack {
+                QuickLookView(url: item.url, title: item.title)
+                    .ignoresSafeArea()
+                    .navigationTitle(item.title)
+                    .navigationBarTitleDisplayMode(.inline)
             }
         }
         .sheet(isPresented: Binding(get: { shareItems != nil }, set: { if !$0 { shareItems = nil } })) {
@@ -69,15 +67,26 @@ struct ScanDetailView: View {
     @ViewBuilder
     private func previewSection(_ manifest: ScanManifest) -> some View {
         Section {
-            if previewURL != nil {
+            if let primary = previewItems.primaryPreview {
                 Button {
-                    isPresentingPreview = true
+                    previewSelection = primary
                 } label: {
                     Label("Open 3D Preview", systemImage: "cube.transparent")
                 }
             } else {
                 Label("No USDZ export available", systemImage: "cube.transparent")
                     .foregroundStyle(.secondary)
+            }
+
+            // The preview opens exactly one model, so anything captured in a
+            // second segment — an upstairs walked after tracking was lost — is
+            // only reachable from here.
+            if previewItems.count > 1 {
+                NavigationLink {
+                    ScanModelsView(items: previewItems)
+                } label: {
+                    Label("All 3D Models (\(previewItems.count))", systemImage: "square.stack.3d.up")
+                }
             }
 
             NavigationLink {
@@ -90,6 +99,10 @@ struct ScanDetailView: View {
                 TapeCheckView(scanID: scanID)
             } label: {
                 Label("Tape Check", systemImage: "ruler")
+            }
+        } footer: {
+            if manifest.segments.count > 1 {
+                Text("The 3D preview shows one segment. Each segment was captured in its own world frame and merged on its own — a second floor is a separate model under All 3D Models, not part of the first.")
             }
         }
     }
@@ -223,7 +236,7 @@ struct ScanDetailView: View {
     private func reload() async {
         manifest = try? await store.manifest(for: scanID)
         schedule = await store.loadMeasurements(scanID: scanID)
-        previewURL = await store.previewURL(scanID: scanID)
+        previewItems = await store.previewItems(scanID: scanID)
         sizeOnDisk = await store.sizeOnDisk(scanID: scanID)
     }
 
