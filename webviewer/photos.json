@@ -1,0 +1,145 @@
+{
+  "_comment": [
+    "Photo -> room map for the walkthrough. build.py mounts each photo on a wall",
+    "of its room, so only 'at' and the photo list matter.",
+    "'at' is [x, z] in the scene frame build.py prints (metres, +X east, +Z south,",
+    "origin at the footprint centre). Levels are 0 = Downstairs, 1 = Upstairs.",
+    "Room names, and which bedroom a photo belongs to, are a reading of the scan,",
+    "not something RoomPlan recorded — edit freely.",
+    "Optional \"floorFrom\": \"<room>\" borrows another room's floor, for a room",
+    "photographed from its doorway that shows no floor of its own.",
+    "One photo may carry \"view\" and \"ground\" — [x, y, w, h] in 0..1 of that",
+    "picture — naming the crop the world outside the windows is built from."
+  ],
+  "dir": "3028-photos",
+  "rooms": [
+    {
+      "level": 0,
+      "name": "Living room",
+      "at": [4.2, -2.6],
+      "anchor": "section 0 (livingRoom)",
+      "photos": [
+        {"file": "living-room-1.webp", "caption": "Fireplace wall, with the stair rail beyond"},
+        {"file": "living-room-2.webp", "caption": "Fireplace between the two view windows"},
+        {"file": "living-room-3.webp", "caption": "Looking across to the lake windows"},
+        {"file": "living-room-4.webp", "caption": "From the fireplace back to the stair"}
+      ]
+    },
+    {
+      "level": 0,
+      "name": "Great room",
+      "at": [0.4, -5.6],
+      "anchor": "sofa and dining table cluster",
+      "photos": [
+        {"file": "great-room-1.webp", "caption": "Picture window, open through to the living room"},
+        {"file": "great-room-2.webp", "caption": "Dining end, looking into the kitchen"},
+        {"file": "great-room-3.webp", "caption": "Slider out to the lawn"}
+      ]
+    },
+    {
+      "level": 0,
+      "name": "Kitchen",
+      "at": [-2.6, -2.4],
+      "anchor": "section 4 (kitchen)",
+      "floorFrom": "Great room",
+      "photos": [
+        {"file": "kitchen-1.webp", "caption": "Range wall and the window over the sink"},
+        {"file": "kitchen-2.webp", "caption": "Island, from the dining side"},
+        {"file": "kitchen-3.webp", "caption": "Island and refrigerator, looking to the great room"}
+      ]
+    },
+    {
+      "level": 0,
+      "name": "Entry and stair",
+      "at": [2.4, 0.7],
+      "anchor": "front door to the stairwell",
+      "photos": [
+        {"file": "entry-and-stair-1.webp", "caption": "In at the front door, stair straight ahead"}
+      ]
+    },
+    {
+      "level": 0,
+      "name": "Hall bathroom",
+      "at": [-3.5, -0.1],
+      "anchor": "section 5 (bathroom)",
+      "photos": [
+        {"file": "hall-bathroom-1.webp", "caption": "Tub and vanity"}
+      ]
+    },
+    {
+      "level": 0,
+      "name": "Main-floor bedroom",
+      "at": [-4.8, 2.4],
+      "anchor": "section 2 (bedroom)",
+      "photos": [
+        {"file": "main-floor-bedroom-1.webp", "caption": "Closet wall, bathroom through the near door"},
+        {"file": "main-floor-bedroom-2.webp", "caption": "From the closet back toward the bathroom"}
+      ]
+    },
+    {
+      "level": 0,
+      "name": "Laundry",
+      "at": [-1.3, 2.3],
+      "anchor": "washer/dryer fitting",
+      "photos": [
+        {"file": "laundry-1.webp", "caption": "Washer and dryer"}
+      ]
+    },
+    {
+      "level": 1,
+      "name": "Upper family room",
+      "at": [-0.4, -5.4],
+      "anchor": "section 0 — clerestory band and the deck slider",
+      "photos": [
+        {"file": "upper-family-room-1.webp", "caption": "Clerestory windows and the slider to the deck"},
+        {"file": "upper-family-room-2.webp", "caption": "Slider out to the covered deck"},
+        {"file": "upper-family-room-3.webp", "caption": "Clerestory band, hall and closet doors"},
+        {"file": "upper-family-room-4.webp", "caption": "The deck, from outside the slider"},
+        {"file": "upper-family-room-5.webp", "caption": "Lake, from under the pergola", "view": [0.36, 0.35, 0.36, 0.22], "ground": [0.50, 0.70, 0.20, 0.08]}
+      ]
+    },
+    {
+      "level": 1,
+      "name": "East bedroom",
+      "at": [3.3, -3.0],
+      "anchor": "section 2 (bedroom)",
+      "photos": [
+        {"file": "east-bedroom-1.webp", "caption": "Sloped ceiling, both windows"},
+        {"file": "east-bedroom-2.webp", "caption": "Closet wall under the slope"},
+        {"file": "east-bedroom-3.webp", "caption": "Closet and window"}
+      ]
+    },
+    {
+      "level": 1,
+      "name": "South bedroom",
+      "at": [0.1, 2.9],
+      "anchor": "section 3 (bedroom)",
+      "photos": [
+        {"file": "south-bedroom-1.webp", "caption": "Under the slope, sconce wall"},
+        {"file": "south-bedroom-2.webp", "caption": "Sconce wall, door out to the landing"}
+      ]
+    },
+    {
+      "level": 1,
+      "name": "West bedroom",
+      "at": [-4.5, 2.4],
+      "anchor": "section 1 — the large corner room",
+      "photos": [
+        {"file": "west-bedroom-1.webp", "caption": "Glass door at the left, bathroom through the far door"},
+        {"file": "west-bedroom-2.webp", "caption": "Window wall, bathroom and hall beyond"},
+        {"file": "west-bedroom-3.webp", "caption": "Bathroom door and the hall"},
+        {"file": "west-bedroom-4.webp", "caption": "Window wall"}
+      ]
+    },
+    {
+      "level": 1,
+      "name": "Upstairs bathrooms",
+      "at": [-3.3, -0.7],
+      "anchor": "section 5 — two toilets, so two rooms merged",
+      "photos": [
+        {"file": "upstairs-bathrooms-1.webp", "caption": "Tiled shower and vessel basin"},
+        {"file": "upstairs-bathrooms-2.webp", "caption": "Granite vanity and glass shower"}
+      ]
+    }
+  ]
+}

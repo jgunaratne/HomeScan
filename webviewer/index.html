@@ -1,0 +1,2806 @@
+<title>Storeywalk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Single visual world on purpose: a first-person survey instrument reads as one
+   dark viewport in any host theme, so every colour is painted explicitly here
+   rather than inherited. */
+:root{
+  --ground:#0C0F14; --surface:#141A22; --surface-2:#1B222C;
+  --line:#2A3340; --line-soft:#1E2530;
+  --text:#E4EAF2; --muted:#8B98A9; --dim:#5C6775;
+  --down:#F2C230; --up:#54C7EC;
+  --good:#5FCB86; --warn:#E8A33D; --bad:#E4593F;
+  --ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
+  --label:"Barlow Condensed","IBM Plex Sans",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+  --accent:var(--down);
+}
+*{box-sizing:border-box}
+/* An author `display` beats the UA rule for [hidden], so panels that set one —
+   the gate, the two toolbars, the lightbox — need this to answer to .hidden. */
+[hidden]{display:none!important}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);overflow:hidden}
+#app{position:fixed;inset:0;background:var(--ground)}
+canvas#view{position:absolute;inset:0;display:block;width:100%;height:100%}
+
+#hud{position:absolute;inset:0;pointer-events:none;font-size:13px}
+#hud button,#hud input,#hud .hit{pointer-events:auto}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.eyebrow{font-family:var(--label);text-transform:uppercase;letter-spacing:.13em;
+  font-size:11px;font-weight:600;color:var(--dim)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+/* top rail — the survey's own metadata */
+.rail{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:18px;
+  padding:12px 18px;background:linear-gradient(180deg,rgba(12,15,20,.92),rgba(12,15,20,0));}
+.rail h1{margin:0;font-family:var(--label);font-weight:600;font-size:19px;letter-spacing:.04em;
+  text-transform:uppercase}
+.rail .meta{display:flex;gap:14px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.rail .meta b{color:var(--text);font-weight:500}
+.rail .grow{flex:1}
+.caveat{color:var(--dim);font-size:11.5px;max-width:30ch;line-height:1.35}
+
+/* section drawing = floor switcher */
+.section{position:absolute;left:18px;bottom:18px;width:210px;
+  background:rgba(20,26,34,.86);border:1px solid var(--line);backdrop-filter:blur(7px)}
+.section .cap{padding:9px 12px 7px;border-bottom:1px solid var(--line-soft);display:flex;
+  justify-content:space-between;align-items:baseline}
+.storeys{display:flex;flex-direction:column;padding:6px}
+.storey{display:grid;grid-template-columns:26px 1fr auto;gap:10px;align-items:center;
+  width:100%;padding:9px 8px;text-align:left;border:1px solid transparent;position:relative}
+.storey:hover{background:var(--surface-2)}
+.storey[aria-current="true"]{border-color:color-mix(in srgb,var(--tint) 55%,transparent);
+  background:color-mix(in srgb,var(--tint) 9%,transparent)}
+.storey .lvl{font-family:var(--mono);font-size:10.5px;color:var(--tint);text-align:right}
+.storey .nm{font-family:var(--label);text-transform:uppercase;letter-spacing:.09em;
+  font-size:14px;font-weight:600;line-height:1}
+.storey .sub{font-size:11px;color:var(--muted);margin-top:3px}
+.storey .ar{font-family:var(--mono);font-size:12px;color:var(--muted)}
+/* the section line: storeys sit at their true relative heights */
+.storey::before{content:"";position:absolute;left:30px;right:8px;height:1px;
+  background:var(--line);top:-3px}
+.storey:last-child::before{display:none}
+.rise{padding:7px 12px 9px;border-top:1px solid var(--line-soft);
+  display:flex;justify-content:space-between;color:var(--muted);font-size:11.5px}
+
+/* plan */
+.plan{position:absolute;right:18px;bottom:18px;width:206px;
+  background:rgba(20,26,34,.86);border:1px solid var(--line);backdrop-filter:blur(7px)}
+.plan .cap{padding:9px 12px 7px;border-bottom:1px solid var(--line-soft);display:flex;
+  justify-content:space-between;align-items:baseline}
+.plan canvas{display:block;width:100%;height:186px}
+.gap{padding:8px 12px;border-top:1px solid var(--line-soft);font-size:11.5px;
+  color:var(--warn);line-height:1.45}
+.gap b{font-family:var(--mono);color:var(--text);font-weight:500}
+
+/* location chip */
+.here{position:absolute;right:18px;top:58px;text-align:right}
+.here .room{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
+  font-size:22px;font-weight:600;line-height:1;color:var(--accent)}
+.here .co{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:5px}
+
+.cross{position:absolute;left:50%;top:50%;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;
+  opacity:.7}
+.cross i{position:absolute;background:var(--text)}
+.cross i:first-child{left:7px;top:0;width:1px;height:15px}
+.cross i:last-child{top:7px;left:0;height:1px;width:15px}
+
+.prompt{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);
+  padding:8px 14px;background:rgba(20,26,34,.92);border:1px solid var(--accent);
+  font-size:13px;letter-spacing:.01em;white-space:nowrap}
+.prompt kbd{font-family:var(--mono);background:var(--accent);color:#0C0F14;
+  padding:1px 6px;margin-right:8px;font-size:12px;font-weight:600}
+
+/* overview controls */
+.viewbar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+  display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;
+  flex-wrap:wrap;max-width:min(1120px,94vw);
+  background:rgba(20,26,34,.9);border:1px solid var(--line);backdrop-filter:blur(7px)}
+.viewbar label{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
+.viewbar input[type=range]{width:132px;accent-color:var(--accent)}
+.btn{padding:8px 14px;border:1px solid var(--line);font-family:var(--label);
+  text-transform:uppercase;letter-spacing:.1em;font-size:13px;font-weight:600}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.solid{background:var(--accent);border-color:var(--accent);color:#0C0F14}
+.btn.solid:hover{color:#0C0F14;filter:brightness(1.08)}
+
+/* what you are looking at */
+.shot{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);max-width:min(46ch,80vw);
+  padding:8px 14px;background:rgba(20,26,34,.92);border:1px solid var(--line);
+  display:flex;align-items:baseline;gap:10px;font-size:12.5px;color:var(--muted)}
+.shot b{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
+  font-size:13px;font-weight:600;color:var(--accent)}
+.shot i{font-style:normal;color:var(--dim);white-space:nowrap}
+
+/* lightbox — the photograph at full size, out of the world */
+.lb{position:fixed;inset:0;z-index:5;display:grid;place-items:center;
+  background:rgba(8,10,14,.975);pointer-events:auto}
+.lb figure{margin:0;max-width:min(1400px,92vw);max-height:88vh;display:flex;
+  flex-direction:column;gap:12px}
+.lb img{display:block;max-width:100%;max-height:78vh;object-fit:contain;
+  border:1px solid var(--line);background:var(--surface)}
+.lb figcaption{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
+.lb figcaption .rm{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
+  font-size:17px;font-weight:600;color:var(--accent)}
+.lb figcaption .cp{color:var(--muted);font-size:13px}
+.lb figcaption .of{margin-left:auto;color:var(--dim);font-size:12px}
+.lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:76px;
+  font-size:30px;line-height:1;color:var(--muted);background:rgba(20,26,34,.7);
+  border:1px solid var(--line)}
+.lb-nav:hover{color:var(--text);border-color:var(--accent)}
+.lb-nav.prev{left:16px}
+.lb-nav.next{right:16px}
+.lb-x{position:absolute;top:16px;right:16px;padding:7px 12px;border:1px solid var(--line);
+  font-family:var(--mono);font-size:12px;color:var(--muted)}
+.lb-x:hover{color:var(--text);border-color:var(--accent)}
+@media (max-width:760px){.lb-nav{width:40px;height:60px;font-size:24px}}
+
+/* gate / pause */
+.gate{position:absolute;inset:0;display:grid;place-items:center;
+  background:radial-gradient(120% 90% at 50% 42%,rgba(12,15,20,.35),rgba(12,15,20,.9));
+  pointer-events:auto}
+.card{width:min(452px,88vw);background:rgba(16,21,28,.94);border:1px solid var(--line);
+  padding:26px 28px 22px}
+.card h2{margin:0;font-family:var(--label);text-transform:uppercase;letter-spacing:.09em;
+  font-size:27px;font-weight:600;text-wrap:balance}
+.card p{margin:10px 0 0;color:var(--muted);line-height:1.55;font-size:13.5px}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:20px 0 22px;
+  padding-top:18px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--muted)}
+.keys b{font-family:var(--mono);font-size:11.5px;color:var(--text);font-weight:500}
+.gate .row{display:flex;gap:10px}
+.hint{margin-top:14px;font-size:11.5px;color:var(--dim)}
+@media (max-width:760px){
+  .rail .meta,.caveat{display:none}
+  .section,.plan{width:170px}
+  .plan canvas{height:150px}
+  .here .room{font-size:17px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app">
+  <canvas id="view"></canvas>
+
+  <div id="hud">
+    <div class="rail">
+      <h1>Storeywalk</h1>
+      <div class="meta">
+        <span><b id="m-name">Home</b></span>
+        <span id="m-dev"></span>
+        <span><b id="m-area">224.89 m²</b> net interior</span>
+        <span id="m-storeys" hidden><span id="m-nlev"></span> storeys · <b id="m-rise"></b> rise</span>
+        <span id="m-shots" hidden><b id="m-nshots"></b> photos</span>
+      </div>
+      <div class="grow"></div>
+      <p class="caveat">Sketch-grade LiDAR capture. Geometry is RoomPlan's parametric
+        output, not a measured survey.</p>
+      <button class="btn hit" id="units">m</button>
+    </div>
+
+    <div class="here" id="here" hidden>
+      <div class="room" id="here-room">Living Room</div>
+      <div class="co num" id="here-co">0.0, 0.0 · 000°</div>
+    </div>
+
+    <div class="cross" id="cross" hidden><i></i><i></i></div>
+    <div class="prompt" id="prompt" hidden><kbd>E</kbd><span id="prompt-t">Go upstairs</span></div>
+    <div class="shot" id="shot" hidden><b id="shot-room"></b><span id="shot-cap"></span><i>Click to enlarge</i></div>
+
+    <div class="section">
+      <div class="cap"><span class="eyebrow">Section</span><span class="eyebrow" id="sec-unit">metres</span></div>
+      <div class="storeys" id="storeys"></div>
+      <div class="rise" id="rise-row"><span>Storey rise</span><span class="num" id="rise-v"></span></div>
+    </div>
+
+    <div class="plan">
+      <div class="cap"><span class="eyebrow">Plan</span><span class="eyebrow" id="plan-name">Downstairs</span></div>
+      <canvas id="mini" width="412" height="372"></canvas>
+      <p class="gap" id="gap" hidden><b id="gap-a">0 m²</b> is walled off — the scan
+        recorded no doorway into it. Press <b>G</b> to pass through walls.</p>
+    </div>
+
+    <div class="viewbar" id="walkbar" hidden>
+      <label>Eye height
+        <input type="range" id="eyeh" min="1.15" max="1.80" step="0.01" value="1.38">
+        <span class="num" id="eyeh-v">1.38 m</span>
+      </label>
+      <button class="btn hit" id="ghosttog">Pass through walls</button>
+      <button class="btn hit" id="furntog">Hide furniture</button>
+      <button class="btn hit" id="surftog">Flat surfaces</button>
+      <button class="btn hit" id="printtog">Show prints</button>
+      <button class="btn hit" id="looktog">Mouse look</button>
+      <button class="btn hit" id="backview">Section view</button>
+    </div>
+
+    <div class="viewbar" id="viewbar">
+      <label>Separate storeys
+        <input type="range" id="explode" min="0" max="6" step="0.1" value="0">
+      </label>
+      <button class="btn hit" id="furntog2">Hide furniture</button>
+      <button class="btn hit" id="surftog2">Flat surfaces</button>
+      <button class="btn hit" id="printtog2">Show prints</button>
+      <button class="btn solid hit" id="walkbtn">Walk</button>
+    </div>
+  </div>
+
+  <div class="lb" id="lb" hidden>
+    <button class="lb-x hit" id="lb-x">Esc</button>
+    <button class="lb-nav prev hit" id="lb-prev" aria-label="Previous photo">&lsaquo;</button>
+    <button class="lb-nav next hit" id="lb-next" aria-label="Next photo">&rsaquo;</button>
+    <figure>
+      <img id="lb-img" alt="">
+      <figcaption>
+        <span class="rm" id="lb-room"></span>
+        <span class="cp" id="lb-cap"></span>
+        <span class="of num" id="lb-of"></span>
+      </figcaption>
+    </figure>
+  </div>
+
+  <div class="gate" id="gate">
+    <div class="card">
+      <h2>Walk the scan</h2>
+      <p><b id="g-name">This scan</b>, rebuilt from the parametric room data —
+        <span id="g-counts"></span>. Doorways are real gaps you walk through;
+        windows stop you.</p>
+      <div class="keys">
+        <b>Click</b><span>Walk to any spot on the floor</span>
+        <b>Drag</b><span>Look around · wheel steps forward</span>
+        <b>W A S D</b><span>Move · hold Shift to stride</span>
+        <b>F</b><span>Show or hide the furniture</span>
+        <b>P</b><span>Photographic surfaces, or the flat survey</span>
+        <b>O</b><span>Hang the photographs themselves · click a wall for its room's</span>
+        <b>Q</b><span>Turn the lens off — occlusion, bloom, focus and grain</span>
+        <b>G</b><span>Pass through walls, for rooms the scan sealed</span>
+        <b>E</b><span>Take the stairs, at the stairwell</span>
+        <b>1 &nbsp;2</b><span>Jump to Downstairs / Upstairs</span>
+        <b>Tab</b><span>Pull back to the section view</span>
+      </div>
+      <div class="row">
+        <button class="btn solid hit" id="start">Start walking</button>
+        <button class="btn hit" id="justlook">Just look</button>
+      </div>
+      <p class="hint" id="hint">Mouse-only works fine — the cursor stays yours. Prefer FPS
+        controls? Turn on Mouse look to capture the pointer; Esc releases it.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// The viewer itself, bundled from src/ by build.py. Read it there: this is
+// one file because the output has to open from a memory stick with no server.
+(function(){
+// ---------- core/data.js ----------------------------------------------
+const HOUSE = {"name":"Home \u2014 3 Sep","device":"iPhone18,1","os":"26.6.1","levels":[{"name":"Downstairs","elevation":0.0,"ceiling":2.462,"tint":15909424,"areaSqM":126.2,"floors":[{"poly":[[7.223,-3.45],[5.047,0.402],[4.523,0.106],[3.536,1.851],[5.399,2.904],[2.441,8.137],[-2.641,5.265],[-3.413,4.88],[-7.211,2.733],[-5.629,-0.065],[-5.154,-0.905],[-4.464,-0.515],[-4.122,-1.12],[-4.815,-1.512],[-2.975,-4.768],[-1.07,-8.137],[2.723,-5.993]],"ceiling":2.462}],"walls":[{"c":[3.92,1.231,5.521],"w":6.011,"h":2.462,"yaw":-2.08524,"conf":"high","holes":[{"k":"door","x0":-2.348,"x1":3.006,"y0":-1.231,"y1":0.869}]},{"c":[6.135,1.205,-1.524],"w":4.424,"h":2.41,"yaw":-2.08524,"conf":"high","holes":[{"k":"window","x0":-0.879,"x1":0.928,"y0":-0.355,"y1":0.923}]},{"c":[4.785,1.205,0.254],"w":0.602,"h":2.41,"yaw":2.62715,"conf":"high","holes":[]},{"c":[0.005,1.231,2.499],"w":2.419,"h":2.462,"yaw":-2.08524,"conf":"high","holes":[]},{"c":[-0.738,1.231,0.062],"w":1.092,"h":2.462,"yaw":-2.08524,"conf":"high","holes":[]},{"c":[-4.809,1.205,-0.71],"w":0.793,"h":2.41,"yaw":-0.51445,"conf":"high","holes":[]},{"c":[-0.203,1.231,0.992],"w":1.846,"h":2.462,"yaw":-0.51445,"conf":"high","holes":[{"k":"door","x0":0.09,"x1":0.867,"y0":-1.231,"y1":0.916}]},{"c":[-2.094,1.231,0.446],"w":0.731,"h":2.462,"yaw":1.05635,"conf":"high","holes":[]},{"c":[0.475,1.231,-0.92],"w":1.099,"h":2.462,"yaw":2.62715,"conf":"high","holes":[]},{"c":[-1.974,1.231,2.385],"w":1.801,"h":2.462,"yaw":2.24623,"conf":"high","holes":[{"k":"door","x0":0.143,"x1":0.813,"y0":-1.231,"y1":0.961}]},{"c":[0.826,1.231,-7.065],"w":4.358,"h":2.462,"yaw":-0.51445,"conf":"high","holes":[{"k":"window","x0":-1.624,"x1":1.449,"y0":-0.263,"y1":0.954}]},{"c":[4.973,1.205,-4.721],"w":5.169,"h":2.41,"yaw":-0.51445,"conf":"high","holes":[{"k":"window","x0":-2.158,"x1":-1.165,"y0":-0.593,"y1":0.874},{"k":"window","x0":1.154,"x1":2.123,"y0":-0.616,"y1":0.794}]},{"c":[-2.022,1.231,-6.453],"w":3.87,"h":2.462,"yaw":1.05635,"conf":"high","holes":[{"k":"door","x0":-0.855,"x1":0.95,"y0":-1.231,"y1":0.922}]},{"c":[-3.895,1.205,-3.14],"w":3.74,"h":2.41,"yaw":1.05635,"conf":"high","holes":[{"k":"window","x0":-1.044,"x1":0.017,"y0":-0.084,"y1":0.984}]},{"c":[-4.293,1.231,-0.818],"w":0.695,"h":2.462,"yaw":1.05635,"conf":"high","holes":[]},{"c":[-4.468,1.205,-1.316],"w":0.796,"h":2.41,"yaw":2.62715,"conf":"high","holes":[]},{"c":[-3.018,1.231,-0.496],"w":2.536,"h":2.462,"yaw":-0.51444,"conf":"high","holes":[]},{"c":[-6.42,1.231,1.334],"w":3.215,"h":2.462,"yaw":1.05635,"conf":"high","holes":[{"k":"window","x0":-0.929,"x1":0.811,"y0":0.12,"y1":0.998}]},{"c":[-5.391,1.231,-0.485],"w":0.965,"h":2.462,"yaw":1.05635,"conf":"high","holes":[{"k":"window","x0":-0.35,"x1":0.408,"y0":0.232,"y1":1.125}]},{"c":[-4.083,1.231,0.809],"w":3.551,"h":2.462,"yaw":-0.51445,"conf":"high","holes":[{"k":"door","x0":-0.46,"x1":0.246,"y0":-1.231,"y1":0.944}]},{"c":[4.029,1.725,0.978],"w":2.005,"h":3.449,"yaw":-2.08524,"conf":"high","holes":[{"k":"door","x0":-0.861,"x1":0.818,"y0":-1.725,"y1":0.527}]},{"c":[4.468,1.725,2.378],"w":2.14,"h":3.449,"yaw":-0.51445,"conf":"high","holes":[]},{"c":[-5.312,1.231,3.806],"w":4.362,"h":2.462,"yaw":2.62715,"conf":"high","holes":[]},{"c":[-3.027,1.231,5.072],"w":0.863,"h":2.462,"yaw":2.67902,"conf":"high","holes":[]},{"c":[0.869,1.231,0.971],"w":1.092,"h":2.462,"yaw":-2.08524,"conf":"high","holes":[]},{"c":[-0.1,1.231,6.701],"w":5.838,"h":2.462,"yaw":2.62715,"conf":"high","holes":[]},{"c":[-1.0,1.231,3.32],"w":0.943,"h":2.462,"yaw":2.62715,"conf":"high","holes":[]},{"c":[-2.026,1.231,4.176],"w":2.5,"h":2.462,"yaw":1.05635,"conf":"high","holes":[]},{"c":[-0.994,1.205,-1.5],"w":3.74,"h":2.41,"yaw":-2.08524,"conf":"high","holes":[{"k":"opening","x0":-0.046,"x1":0.946,"y0":-1.205,"y1":1.015}]},{"c":[2.535,1.205,-1.018],"w":4.567,"h":2.41,"yaw":-0.51445,"conf":"high","holes":[{"k":"opening","x0":-1.312,"x1":1.651,"y0":-1.205,"y1":0.895}]},{"c":[1.635,1.205,-4.068],"w":4.424,"h":2.41,"yaw":1.05635,"conf":"high","holes":[{"k":"opening","x0":-1.026,"x1":0.81,"y0":-1.205,"y1":0.935}]},{"c":[-1.524,1.231,-3.948],"w":3.332,"h":2.462,"yaw":-0.51445,"conf":"high","holes":[{"k":"opening","x0":-0.846,"x1":1.666,"y0":-1.231,"y1":0.949}]},{"c":[-2.391,1.231,3.071],"w":4.156,"h":2.462,"yaw":-2.08524,"conf":"high","holes":[{"k":"door","x0":-0.04,"x1":1.753,"y0":-1.231,"y1":0.991}]},{"c":[1.533,1.836,0.719],"w":4.601,"h":3.672,"yaw":-0.51445,"conf":"high","holes":[]}],"objects":[{"cat":"table","c":[1.75,0.303,-6.231],"d":[0.544,0.607,0.413],"yaw":-2.08524},{"cat":"sofa","c":[0.674,0.523,-6.662],"d":[1.942,1.046,0.852],"yaw":-0.51445},{"cat":"storage","c":[-3.954,1.877,-1.313],"d":[0.556,0.811,0.501],"yaw":2.62715},{"cat":"storage","c":[-2.699,1.872,-0.65],"d":[0.699,0.821,0.478],"yaw":2.62715},{"cat":"storage","c":[-2.805,0.493,0.044],"d":[1.633,0.987,0.569],"yaw":-0.51444},{"cat":"refrigerator","c":[-2.831,0.961,-3.998],"d":[0.893,1.922,0.857],"yaw":1.05635},{"cat":"toilet","c":[-3.971,0.426,-0.513],"d":[0.487,0.852,0.738],"yaw":-0.51444},{"cat":"stove","c":[-3.278,1.078,-1.143],"d":[0.705,0.1,0.692],"yaw":2.62715},{"cat":"storage","c":[2.146,0.622,-5.345],"d":[1.018,1.245,0.367],"yaw":-2.08524},{"cat":"sink","c":[-2.755,0.892,0.056],"d":[0.574,0.19,0.404],"yaw":-0.51444},{"cat":"storage","c":[-5.628,0.388,0.481],"d":[0.693,0.776,0.459],"yaw":1.05635},{"cat":"bed","c":[-5.374,0.48,1.922],"d":[1.662,0.96,2.399],"yaw":1.05635},{"cat":"storage","c":[-3.364,2.087,-0.987],"d":[0.791,0.392,0.514],"yaw":2.62715},{"cat":"storage","c":[-2.553,0.515,-0.762],"d":[0.933,1.03,0.692],"yaw":2.62715},{"cat":"storage","c":[-4.075,0.515,-2.172],"d":[1.878,1.03,0.639],"yaw":1.05635},{"cat":"chair","c":[-0.881,0.484,-5.291],"d":[0.484,0.969,0.526],"yaw":1.05635},{"cat":"storage","c":[-0.418,0.806,6.26],"d":[0.999,1.612,0.454],"yaw":2.62715},{"cat":"storage","c":[1.027,0.735,-2.425],"d":[0.966,1.47,0.451],"yaw":1.05635},{"cat":"storage","c":[-6.74,0.399,2.519],"d":[0.615,0.799,0.413],"yaw":1.05635},{"cat":"washerDryer","c":[-1.376,0.601,2.241],"d":[1.455,1.203,0.733],"yaw":1.05635},{"cat":"storage","c":[-3.983,0.544,4.365],"d":[1.498,1.088,0.336],"yaw":2.62715},{"cat":"storage","c":[4.578,0.499,-0.047],"d":[0.79,0.997,0.32],"yaw":2.62715},{"cat":"table","c":[-0.25,0.456,-4.934],"d":[1.607,0.913,1.017],"yaw":-0.51445},{"cat":"chair","c":[0.38,0.484,-4.578],"d":[0.484,0.969,0.526],"yaw":-2.08524},{"cat":"storage","c":[5.932,0.398,-1.61],"d":[1.945,0.796,0.437],"yaw":-2.08524},{"cat":"storage","c":[-2.562,1.156,4.109],"d":[2.105,2.313,0.723],"yaw":-2.08525},{"cat":"storage","c":[-2.477,0.52,-4.967],"d":[0.835,1.041,0.583],"yaw":1.05635},{"cat":"chair","c":[6.252,0.404,-3.493],"d":[0.601,0.807,0.664],"yaw":-0.97166},{"cat":"storage","c":[-3.4,0.554,1.508],"d":[0.435,1.107,0.372],"yaw":-0.51445},{"cat":"storage","c":[-3.825,0.515,-1.431],"d":[0.532,1.03,0.692],"yaw":2.62715},{"cat":"storage","c":[-3.506,1.87,-3.442],"d":[0.618,0.856,0.379],"yaw":1.05635},{"cat":"chair","c":[-0.712,0.582,4.356],"d":[0.608,1.165,0.586],"yaw":-2.0646},{"cat":"storage","c":[-3.077,2.108,-4.102],"d":[0.955,0.379,0.373],"yaw":1.05635},{"cat":"sofa","c":[3.479,0.483,-1.858],"d":[2.058,0.965,1.009],"yaw":2.62715},{"cat":"storage","c":[0.031,0.494,3.159],"d":[1.755,0.987,0.495],"yaw":1.05635},{"cat":"oven","c":[-3.278,0.514,-1.143],"d":[0.705,1.028,0.692],"yaw":2.62715},{"cat":"storage","c":[-4.335,1.845,-1.724],"d":[0.389,0.81,0.398],"yaw":1.88862},{"cat":"stairs","c":[1.164,1.242,-0.025],"d":[0.932,2.483,2.945],"yaw":1.05635},{"cat":"storage","c":[-1.685,0.486,-2.855],"d":[1.414,0.972,0.767],"yaw":-2.08524},{"cat":"oven","c":[-3.394,0.524,-3.258],"d":[0.688,1.048,0.677],"yaw":1.05635},{"cat":"storage","c":[-1.999,1.134,-0.43],"d":[0.629,2.269,0.643],"yaw":2.62715}],"sections":[{"label":"livingRoom","x":3.88,"z":-2.79},{"label":"unidentified","x":2.03,"z":4.56},{"label":"bedroom","x":-4.53,"z":2.45},{"label":"unidentified","x":-0.03,"z":0.38},{"label":"kitchen","x":-2.45,"z":-2.26},{"label":"bathroom","x":-3.49,"z":0.29}]},{"name":"Upstairs","elevation":2.657,"ceiling":2.365,"tint":5556204,"areaSqM":98.69,"floors":[{"poly":[[5.673,-4.329],[3.6,-0.515],[4.548,0.0],[3.545,1.845],[2.533,1.376],[-0.314,6.615],[-2.56,5.394],[-3.382,4.947],[-3.362,4.91],[-7.223,2.811],[-5.09,-1.115],[-4.13,-2.881],[-1.288,-8.11],[2.608,-5.993],[1.481,-3.919],[2.237,-3.508],[3.365,-5.583]],"ceiling":2.365}],"walls":[{"c":[0.66,3.84,-7.052],"w":4.434,"h":2.365,"yaw":-0.49781,"conf":"high","holes":[{"k":"door","x0":-0.861,"x1":0.802,"y0":-1.182,"y1":0.934}]},{"c":[-5.293,3.84,3.861],"w":4.395,"h":2.365,"yaw":2.64378,"conf":"high","holes":[]},{"c":[-1.437,3.84,6.005],"w":2.557,"h":2.365,"yaw":2.64378,"conf":"high","holes":[{"k":"window","x0":0.545,"x1":1.114,"y0":0.142,"y1":0.762}]},{"c":[-1.516,3.84,-3.731],"w":0.711,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[4.637,3.84,-2.422],"w":4.341,"h":2.365,"yaw":-2.0686,"conf":"high","holes":[{"k":"window","x0":0.862,"x1":1.492,"y0":0.323,"y1":0.913}]},{"c":[4.519,3.84,-4.956],"w":2.627,"h":2.365,"yaw":-0.49781,"conf":"high","holes":[{"k":"window","x0":-1.18,"x1":-0.534,"y0":-0.366,"y1":0.687}]},{"c":[2.801,3.84,-4.546],"w":2.362,"h":2.365,"yaw":1.07299,"conf":"high","holes":[{"k":"door","x0":-0.947,"x1":0.978,"y0":-1.182,"y1":0.919}]},{"c":[4.047,3.047,0.923],"w":2.1,"h":0.78,"yaw":-2.06861,"conf":"high","holes":[]},{"c":[-0.458,4.115,0.48],"w":0.865,"h":2.915,"yaw":-0.49781,"conf":"high","holes":[]},{"c":[-2.281,3.84,-2.301],"w":0.748,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[4.074,3.84,-0.257],"w":1.079,"h":2.365,"yaw":-0.49781,"conf":"high","holes":[]},{"c":[-0.662,4.115,-0.051],"w":0.738,"h":2.915,"yaw":-2.06861,"conf":"high","holes":[{"k":"door","x0":-0.216,"x1":0.232,"y0":-1.457,"y1":0.174}]},{"c":[2.087,3.84,-1.337],"w":3.445,"h":2.365,"yaw":2.64378,"conf":"high","holes":[]},{"c":[3.101,3.84,0.368],"w":2.028,"h":2.365,"yaw":-2.08535,"conf":"high","holes":[{"k":"window","x0":0.126,"x1":0.735,"y0":0.424,"y1":0.969},{"k":"window","x0":-0.754,"x1":-0.119,"y0":0.399,"y1":0.988}]},{"c":[-2.572,3.84,3.457],"w":3.307,"h":2.365,"yaw":-2.0686,"conf":"high","holes":[{"k":"door","x0":-0.14,"x1":0.856,"y0":-1.182,"y1":0.944}]},{"c":[-1.553,3.731,1.582],"w":0.961,"h":2.146,"yaw":-2.0686,"conf":"high","holes":[]},{"c":[0.098,4.115,0.362],"w":0.738,"h":2.915,"yaw":-2.0686,"conf":"high","holes":[]},{"c":[1.11,3.84,3.996],"w":5.962,"h":2.365,"yaw":-2.0686,"conf":"high","holes":[{"k":"window","x0":-2.435,"x1":-1.743,"y0":0.364,"y1":1.004}]},{"c":[2.568,3.84,1.314],"w":0.143,"h":2.365,"yaw":-2.07221,"conf":"high","holes":[]},{"c":[3.039,3.84,1.611],"w":1.116,"h":2.365,"yaw":2.70758,"conf":"high","holes":[]},{"c":[2.044,3.84,-4.956],"w":2.361,"h":2.365,"yaw":-2.0686,"conf":"high","holes":[]},{"c":[1.189,3.84,-3.382],"w":1.222,"h":2.365,"yaw":-2.0686,"conf":"high","holes":[]},{"c":[1.859,3.84,-3.714],"w":0.861,"h":2.365,"yaw":-0.49781,"conf":"high","holes":[]},{"c":[-6.434,3.84,1.359],"w":3.307,"h":2.365,"yaw":1.07299,"conf":"high","holes":[{"k":"window","x0":-1.004,"x1":0.804,"y0":0.069,"y1":0.926}]},{"c":[-3.295,3.84,-2.427],"w":1.902,"h":2.365,"yaw":2.64378,"conf":"high","holes":[]},{"c":[-5.255,3.84,-0.811],"w":1.632,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[-4.498,3.84,-2.204],"w":1.54,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[-3.569,3.84,-3.913],"w":2.35,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[-2.036,3.84,0.441],"w":0.757,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[-2.148,3.84,-6.528],"w":3.602,"h":2.365,"yaw":1.07299,"conf":"high","holes":[{"k":"window","x0":-0.997,"x1":1.077,"y0":0.459,"y1":0.878}]},{"c":[-2.177,3.84,-4.494],"w":1.89,"h":2.365,"yaw":2.64378,"conf":"high","holes":[]},{"c":[-3.36,3.84,-0.71],"w":3.426,"h":2.365,"yaw":2.64378,"conf":"high","holes":[]},{"c":[-1.487,3.84,-0.568],"w":1.54,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[-0.559,3.731,-2.277],"w":2.35,"h":2.146,"yaw":-2.06861,"conf":"high","holes":[]},{"c":[-1.933,3.84,4.24],"w":2.628,"h":2.365,"yaw":1.07299,"conf":"high","holes":[]},{"c":[-0.628,4.115,1.699],"w":2.305,"h":2.915,"yaw":1.07299,"conf":"high","holes":[{"k":"door","x0":0.163,"x1":1.134,"y0":-1.457,"y1":0.719}]},{"c":[0.017,4.115,-0.102],"w":1.145,"h":2.915,"yaw":2.64378,"conf":"high","holes":[]},{"c":[1.891,4.034,0.865],"w":1.618,"h":2.754,"yaw":2.64379,"conf":"high","holes":[]},{"c":[-0.672,3.84,-3.676],"w":1.536,"h":2.365,"yaw":2.64378,"conf":"high","holes":[{"k":"opening","x0":-0.052,"x1":0.768,"y0":-1.182,"y1":0.838}]},{"c":[-3.714,3.84,0.955],"w":4.395,"h":2.365,"yaw":2.64378,"conf":"high","holes":[{"k":"door","x0":0.211,"x1":0.878,"y0":-1.182,"y1":0.875},{"k":"door","x0":-2.065,"x1":-1.312,"y0":-1.182,"y1":0.994}]},{"c":[-1.789,3.84,-1.609],"w":1.525,"h":2.365,"yaw":2.64378,"conf":"high","holes":[{"k":"opening","x0":-0.083,"x1":0.762,"y0":-1.182,"y1":0.838}]},{"c":[-1.242,3.84,2.898],"w":0.395,"h":2.365,"yaw":-1.89849,"conf":"low","holes":[]},{"c":[0.85,4.115,0.325],"w":0.728,"h":2.915,"yaw":2.7062,"conf":"low","holes":[]}],"objects":[{"cat":"table","c":[2.204,3.051,1.537],"d":[0.457,0.788,0.426],"yaw":-2.0686},{"cat":"bed","c":[2.998,3.483,-1.57],"d":[1.28,1.652,2.066],"yaw":-2.0686},{"cat":"storage","c":[-3.389,3.781,-3.812],"d":[1.101,2.247,0.413],"yaw":1.07299},{"cat":"storage","c":[1.634,3.081,-4.716],"d":[1.639,0.848,0.492],"yaw":-2.0686},{"cat":"storage","c":[-2.759,3.121,0.012],"d":[1.465,0.927,0.53],"yaw":-0.49781},{"cat":"toilet","c":[-3.951,3.095,-0.548],"d":[0.467,0.875,0.728],"yaw":-0.49781},{"cat":"table","c":[-3.542,2.906,4.537],"d":[0.672,0.497,0.483],"yaw":2.64378},{"cat":"bed","c":[0.973,2.974,1.748],"d":[1.446,0.634,2.065],"yaw":-0.49781},{"cat":"storage","c":[-1.358,2.997,-7.554],"d":[0.672,0.679,0.407],"yaw":1.07299},{"cat":"bed","c":[-1.089,3.017,-6.117],"d":[1.703,0.719,2.252],"yaw":1.07299},{"cat":"chair","c":[4.983,3.003,-3.643],"d":[0.42,0.692,0.486],"yaw":-1.87858},{"cat":"chair","c":[-5.4,3.173,0.652],"d":[0.584,1.032,0.687],"yaw":0.37987},{"cat":"storage","c":[-2.5,2.994,-5.423],"d":[0.624,0.673,0.436],"yaw":1.07299},{"cat":"chair","c":[5.06,3.127,-4.151],"d":[0.621,0.94,0.673],"yaw":-1.46244},{"cat":"storage","c":[-0.863,3.769,-2.355],"d":[2.196,2.223,0.61],"yaw":-2.0686},{"cat":"sink","c":[-2.721,3.507,0.02],"d":[0.573,0.155,0.433],"yaw":-0.49781},{"cat":"toilet","c":[-3.315,3.03,-1.092],"d":[0.494,0.746,0.714],"yaw":2.64378},{"cat":"television","c":[1.702,3.98,-4.633],"d":[1.459,0.825,0.1],"yaw":-2.0686},{"cat":"storage","c":[-2.36,3.074,-0.49],"d":[1.459,0.833,0.569],"yaw":2.64378},{"cat":"storage","c":[-4.229,3.636,3.76],"d":[0.952,1.957,0.733],"yaw":2.64378},{"cat":"storage","c":[4.372,3.14,-2.267],"d":[0.47,0.965,0.317],"yaw":-2.0686},{"cat":"storage","c":[-5.942,3.125,3.254],"d":[1.516,0.934,0.446],"yaw":2.64378}],"sections":[{"label":"bedroom","x":-0.27,"z":-5.63},{"label":"unidentified","x":-4.52,"z":2.46},{"label":"bedroom","x":3.27,"z":-3.03},{"label":"bedroom","x":0.11,"z":2.91},{"label":"unidentified","x":-0.9,"z":-1.3},{"label":"bathroom","x":-3.25,"z":-0.72}]}],"stairs":{"x":1.164,"z":-0.025},"storeyRise":2.657};
+const PHOTOS = [{"level":0,"room":"Living room","at":[4.2,-2.6],"caption":"Fireplace wall, with the stair rail beyond","file":"living-room-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/living-room-1.webp"},{"level":0,"room":"Living room","at":[4.2,-2.6],"caption":"Fireplace between the two view windows","file":"living-room-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/living-room-2.webp"},{"level":0,"room":"Living room","at":[4.2,-2.6],"caption":"Looking across to the lake windows","file":"living-room-3.webp","seq":2,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/living-room-3.webp"},{"level":0,"room":"Living room","at":[4.2,-2.6],"caption":"From the fireplace back to the stair","file":"living-room-4.webp","seq":3,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/living-room-4.webp"},{"level":0,"room":"Great room","at":[0.4,-5.6],"caption":"Picture window, open through to the living room","file":"great-room-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/great-room-1.webp"},{"level":0,"room":"Great room","at":[0.4,-5.6],"caption":"Dining end, looking into the kitchen","file":"great-room-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/great-room-2.webp"},{"level":0,"room":"Great room","at":[0.4,-5.6],"caption":"Slider out to the lawn","file":"great-room-3.webp","seq":2,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/great-room-3.webp"},{"level":0,"room":"Kitchen","at":[-2.6,-2.4],"caption":"Range wall and the window over the sink","file":"kitchen-1.webp","seq":0,"floorFrom":"Great room","view":null,"ground":null,"src":"3028-photos/kitchen-1.webp"},{"level":0,"room":"Kitchen","at":[-2.6,-2.4],"caption":"Island, from the dining side","file":"kitchen-2.webp","seq":1,"floorFrom":"Great room","view":null,"ground":null,"src":"3028-photos/kitchen-2.webp"},{"level":0,"room":"Kitchen","at":[-2.6,-2.4],"caption":"Island and refrigerator, looking to the great room","file":"kitchen-3.webp","seq":2,"floorFrom":"Great room","view":null,"ground":null,"src":"3028-photos/kitchen-3.webp"},{"level":0,"room":"Entry and stair","at":[2.4,0.7],"caption":"In at the front door, stair straight ahead","file":"entry-and-stair-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/entry-and-stair-1.webp"},{"level":0,"room":"Hall bathroom","at":[-3.5,-0.1],"caption":"Tub and vanity","file":"hall-bathroom-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/hall-bathroom-1.webp"},{"level":0,"room":"Main-floor bedroom","at":[-4.8,2.4],"caption":"Closet wall, bathroom through the near door","file":"main-floor-bedroom-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/main-floor-bedroom-1.webp"},{"level":0,"room":"Main-floor bedroom","at":[-4.8,2.4],"caption":"From the closet back toward the bathroom","file":"main-floor-bedroom-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/main-floor-bedroom-2.webp"},{"level":0,"room":"Laundry","at":[-1.3,2.3],"caption":"Washer and dryer","file":"laundry-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/laundry-1.webp"},{"level":1,"room":"Upper family room","at":[-0.4,-5.4],"caption":"Clerestory windows and the slider to the deck","file":"upper-family-room-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/upper-family-room-1.webp"},{"level":1,"room":"Upper family room","at":[-0.4,-5.4],"caption":"Slider out to the covered deck","file":"upper-family-room-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/upper-family-room-2.webp"},{"level":1,"room":"Upper family room","at":[-0.4,-5.4],"caption":"Clerestory band, hall and closet doors","file":"upper-family-room-3.webp","seq":2,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/upper-family-room-3.webp"},{"level":1,"room":"Upper family room","at":[-0.4,-5.4],"caption":"The deck, from outside the slider","file":"upper-family-room-4.webp","seq":3,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/upper-family-room-4.webp"},{"level":1,"room":"Upper family room","at":[-0.4,-5.4],"caption":"Lake, from under the pergola","file":"upper-family-room-5.webp","seq":4,"floorFrom":null,"view":[0.36,0.35,0.36,0.22],"ground":[0.5,0.7,0.2,0.08],"src":"3028-photos/upper-family-room-5.webp"},{"level":1,"room":"East bedroom","at":[3.3,-3.0],"caption":"Sloped ceiling, both windows","file":"east-bedroom-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/east-bedroom-1.webp"},{"level":1,"room":"East bedroom","at":[3.3,-3.0],"caption":"Closet wall under the slope","file":"east-bedroom-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/east-bedroom-2.webp"},{"level":1,"room":"East bedroom","at":[3.3,-3.0],"caption":"Closet and window","file":"east-bedroom-3.webp","seq":2,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/east-bedroom-3.webp"},{"level":1,"room":"South bedroom","at":[0.1,2.9],"caption":"Under the slope, sconce wall","file":"south-bedroom-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/south-bedroom-1.webp"},{"level":1,"room":"South bedroom","at":[0.1,2.9],"caption":"Sconce wall, door out to the landing","file":"south-bedroom-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/south-bedroom-2.webp"},{"level":1,"room":"West bedroom","at":[-4.5,2.4],"caption":"Glass door at the left, bathroom through the far door","file":"west-bedroom-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/west-bedroom-1.webp"},{"level":1,"room":"West bedroom","at":[-4.5,2.4],"caption":"Window wall, bathroom and hall beyond","file":"west-bedroom-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/west-bedroom-2.webp"},{"level":1,"room":"West bedroom","at":[-4.5,2.4],"caption":"Bathroom door and the hall","file":"west-bedroom-3.webp","seq":2,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/west-bedroom-3.webp"},{"level":1,"room":"West bedroom","at":[-4.5,2.4],"caption":"Window wall","file":"west-bedroom-4.webp","seq":3,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/west-bedroom-4.webp"},{"level":1,"room":"Upstairs bathrooms","at":[-3.3,-0.7],"caption":"Tiled shower and vessel basin","file":"upstairs-bathrooms-1.webp","seq":0,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/upstairs-bathrooms-1.webp"},{"level":1,"room":"Upstairs bathrooms","at":[-3.3,-0.7],"caption":"Granite vanity and glass shower","file":"upstairs-bathrooms-2.webp","seq":1,"floorFrom":null,"view":null,"ground":null,"src":"3028-photos/upstairs-bathrooms-2.webp"}];
+
+// ---------- core/constants.js -----------------------------------------
+// Body band stops below the lowest door header: RoomPlan reports headers as low
+// as 1.63 m here, and blocking any higher walls off real doorways. Window sills
+// sit at 0.82 m and up, so they still stop you.
+// EYE is set by eye, not by anatomy. A 5'10" viewer's real eye height is about
+// 1.66 m, but the 62 degree lens still spreads the floor wider than life, and at
+// anything near 1.62 m you read as looking down on the rooms and the house comes
+// out small. 1.30 m overshot the other way. 1.38 m is what looked level — and it
+// is only a starting point now: the walking bar carries a slider, because which
+// height reads as standing depends on the screen you are standing in front of.
+// SPEED is a slow indoor walk, not the 3.1 m/s jog it started as: at a jog the
+// rooms go by faster than the eye can size them, which reads as a small house.
+const WALL_T = 0.11, EYE = 1.38, BODY_R = 0.30, BAND_LO = 0.20, BAND_HI = 1.50;
+const SPEED = 1.7, SPRINT = 3.3, REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const M2FT = 3.280839895;
+
+// ---------- core/util.js ----------------------------------------------
+const $ = id => document.getElementById(id);
+const clamp = (v,a,b) => v<a?a:v>b?b:v;
+const titleise = s => s === 'unidentified' ? 'Unnamed space'
+  : s.replace(/([A-Z])/g,' $1').replace(/^./,c=>c.toUpperCase());
+
+// ---------- core/geometry.js ------------------------------------------
+// Split a wall panel around its openings: sweep the width, then subtract each
+// opening's height range from that column. Exact for the rectangular holes
+// RoomPlan reports, and it is what makes a doorway something you can walk through.
+function panels(w, h, holes){
+  const hw = w/2, hh = h/2;
+  const cuts = new Set([-hw, hw]);
+  for (const o of holes){ cuts.add(clamp(o.x0,-hw,hw)); cuts.add(clamp(o.x1,-hw,hw)); }
+  const xs = [...cuts].sort((a,b)=>a-b), out = [];
+  for (let i=0;i<xs.length-1;i++){
+    const a = xs[i], b = xs[i+1];
+    if (b-a < 0.02) continue;
+    const mid = (a+b)/2;
+    const spans = holes.filter(o => o.x0 <= mid && o.x1 >= mid)
+      .map(o => [clamp(o.y0,-hh,hh), clamp(o.y1,-hh,hh)])
+      .sort((p,q) => p[0]-q[0]);
+    let y = -hh;
+    for (const [y0,y1] of spans){
+      if (y0 - y > 0.02) out.push({x0:a, x1:b, y0:y, y1:y0});
+      y = Math.max(y, y1);
+    }
+    if (hh - y > 0.02) out.push({x0:a, x1:b, y0:y, y1:hh});
+  }
+  return out;
+}
+
+function boxEdges(arr, cx,cy,cz, hx,hy,hz, yaw){
+  const c = Math.cos(yaw), s = Math.sin(yaw);
+  const P = [];
+  for (const sx of [-1,1]) for (const sy of [-1,1]) for (const sz of [-1,1])
+    P.push([cx + c*sx*hx + s*sz*hz, cy + sy*hy, cz - s*sx*hx + c*sz*hz]);
+  const E = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
+  for (const [i,j] of E) arr.push(...P[i], ...P[j]);
+}
+
+function shapeFrom(poly){
+  const s = new THREE.Shape();
+  poly.forEach(([x,z],i) => i ? s.lineTo(x,-z) : s.moveTo(x,-z));
+  s.closePath();
+  const g = new THREE.ShapeGeometry(s);
+  g.rotateX(-Math.PI/2);
+  return g;
+}
+
+function onFloor(L, x, z){ return L.floors.some(f => inside(f.poly, x, z)); }
+
+function inside(poly, x, z){
+  let hit = false;
+  for (let i=0, j=poly.length-1; i<poly.length; j=i++){
+    const [xi,zi] = poly[i], [xj,zj] = poly[j];
+    if ((zi > z) !== (zj > z) && x < (xj-xi)*(z-zi)/(zj-zi) + xi) hit = !hit;
+  }
+  return hit;
+}
+
+// ---------- scene/stage.js --------------------------------------------
+const canvas = $('view');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+// Tone mapping happens at the end of the post chain, in one place, on linear
+// values — so the renderer must not also do it on the way into the buffer.
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x0C0F14);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.Fog(0x0C0F14, 8, 42);
+const camera = new THREE.PerspectiveCamera(62, 1, 0.05, 260);
+
+// Two rigs. The survey's is flat and even, because its job is to let you read
+// geometry. The dressed house's job is the opposite: daylight comes in off the
+// lake, the sky fills from above, and the far side of a room falls away — which
+// is most of what makes a room feel like a room rather than a diagram.
+const sky = new THREE.HemisphereLight(0xC5D8EE, 0x2A303A, 0.95);
+const key = new THREE.DirectionalLight(0xFFF4E2, 0.62);
+key.position.set(6, 14, 4);
+const fill = new THREE.DirectionalLight(0x9FC4E8, 0.28);
+fill.position.set(-7, 6, -5);
+// Without a shadow map the sun lights every wall in the house at once, inside
+// and out, and no room ever has a lit side and a dark one. This is the single
+// biggest thing between a lit box and a room: the light has to be stopped by
+// the wall it falls on, and land on the floor in the shape of the window.
+key.castShadow = true;
+key.shadow.mapSize.set(2048, 2048);
+key.shadow.camera.left = -16; key.shadow.camera.right = 16;
+key.shadow.camera.top = 16; key.shadow.camera.bottom = -16;
+key.shadow.camera.near = 1; key.shadow.camera.far = 70;
+key.shadow.bias = -0.0018;
+key.shadow.normalBias = 0.14;
+scene.add(sky); scene.add(key); scene.add(fill);
+
+function setLightRig(dressed){
+  sky.color.setHex(dressed ? 0xDCE9F6 : 0xC5D8EE);
+  sky.groundColor.setHex(dressed ? 0x6A6152 : 0x2A303A);
+  // Standard materials answer to light differently from Lambert, and an
+  // environment map is already carrying the ambient — so the fills come down
+  // and the sun goes up, which is also what an interior actually looks like.
+  // Now that the sun is stopped by the walls, almost nothing reaches indoors —
+  // which is true, and useless, because what actually lights a room is daylight
+  // bouncing in off every surface, and there is no global illumination here.
+  // The sky term and the environment stand in for it: the sun is left to make
+  // the patch on the floor, and the rest of the room is lit by the sky.
+  sky.intensity = dressed ? 1.05 : 0.95;
+  // The lake is north-east of the house and every view window faces it.
+  key.color.setHex(dressed ? 0xFFF1DA : 0xFFF4E2);
+  key.intensity = dressed ? 2.4 : 0.62;
+  key.position.set(dressed ? 17 : 6, dressed ? 21 : 14, dressed ? -13 : 4);
+  fill.intensity = dressed ? 0.35 : 0.28;
+  key.castShadow = dressed;
+  renderer.shadowMap.enabled = dressed;
+  renderer.shadowMap.needsUpdate = true;
+  scene.fog.color.setHex(dressed ? 0x1A1E24 : 0x0C0F14);
+  renderer.setClearColor(dressed ? 0x1A1E24 : 0x0C0F14);
+}
+
+// ---------- scene/materials.js ----------------------------------------
+const MAT = {
+  wall:    new THREE.MeshLambertMaterial({color:0xC9D0D8}),
+  wallLow: new THREE.MeshLambertMaterial({color:0xB9A897}),
+  floor:   new THREE.MeshLambertMaterial({color:0x7D8794, side:THREE.DoubleSide}),
+  ceil:    new THREE.MeshLambertMaterial({color:0xA7AEB7, side:THREE.DoubleSide}),
+  glass:   new THREE.MeshLambertMaterial({color:0x8FD3E8, transparent:true, opacity:0.22,
+             side:THREE.DoubleSide, depthWrite:false}),
+  // Once there is a world outside, a window's job is to show it, not to be blue
+  // — and to catch the sky at a grazing angle, which is what reads as glass.
+  pane:    new THREE.MeshStandardMaterial({color:0xF2F8FC, transparent:true, opacity:0.11,
+             roughness:0.03, metalness:0.0, envMapIntensity:2.2,
+             side:THREE.DoubleSide, depthWrite:false}),
+  furn:    new THREE.MeshLambertMaterial({color:0x63707F, transparent:true, opacity:0.9}),
+  fix:     new THREE.MeshLambertMaterial({color:0x7A8794, transparent:true, opacity:0.9}),
+  // Painted joinery, and the fittings as they actually are: white goods white,
+  // the fridge steel, the television black, tables and chairs wood. These are
+  // the dressed house's, so they are physical — roughness is most of what tells
+  // eggshell paint from a satin worktop from a stainless door.
+  trim:    new THREE.MeshStandardMaterial({color:0xF2F0EC, roughness:0.42, metalness:0.0}),
+  lamp:    new THREE.MeshBasicMaterial({color:0xFFF6E2}),
+  white:   new THREE.MeshStandardMaterial({color:0xEDEBE7, roughness:0.36, metalness:0.0}),
+  steel:   new THREE.MeshStandardMaterial({color:0xC2C7CC, roughness:0.28, metalness:0.85}),
+  screen:  new THREE.MeshStandardMaterial({color:0x14171C, roughness:0.14, metalness:0.2}),
+  wood:    new THREE.MeshStandardMaterial({color:0x9C6E4C, roughness:0.38, metalness:0.0}),
+  fabric:  new THREE.MeshStandardMaterial({color:0xB6AFA4, roughness:0.92, metalness:0.0}),
+  stone:   new THREE.MeshStandardMaterial({color:0xB9B3A8, roughness:0.24, metalness:0.0})
+};
+// What each fitting is made of, once the house is dressed.
+const REAL = {
+  toilet:'white', sink:'white', bathtub:'white', oven:'white', stove:'white',
+  dishwasher:'white', washerDryer:'white', storage:'white', fireplace:'white',
+  refrigerator:'steel', television:'screen',
+  table:'wood', chair:'wood', bed:'fabric', sofa:'fabric'
+};
+
+// ---------- scene/fittings.js -----------------------------------------
+// RoomPlan reports a fitting as a category, a size and a transform: a sofa is a
+// 1.94 x 1.05 x 0.85 box that knows it is a sofa. That is exactly the input a
+// parametric maker wants, so rather than draw the box, each category is built
+// out of it — a sofa as base, back, arms and cushions; a run of storage as
+// carcass, door fronts, toe kick and worktop. Nothing here is measured; the
+// proportions are the ordinary ones, hung on dimensions that are real.
+//
+// The survey keeps the boxes. A block is the honest drawing of a bounding box,
+// and this is not that.
+function box(mat, w, h, d, x, y, z){
+  const m = new THREE.Mesh(
+    new THREE.BoxGeometry(Math.max(w, 0.006), Math.max(h, 0.006), Math.max(d, 0.006)), mat);
+  m.position.set(x, y, z);
+  return m;
+}
+function tube(mat, r, len, x, y, z, axis){
+  const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 12), mat);
+  m.position.set(x, y, z);
+  if (axis === 'x') m.rotation.z = Math.PI/2;
+  if (axis === 'z') m.rotation.x = Math.PI/2;
+  return m;
+}
+
+// Which way a fitting faces: away from whatever wall it is standing against.
+// RoomPlan's own axis does not say, and a fridge with its doors to the wall is
+// worse than a box.
+function facing(L, o){
+  let bd = 1e9, best = null;
+  for (const b of L.blockers){
+    const d = Math.hypot(b.x - o.c[0], b.z - o.c[2]);
+    if (d < bd){ bd = d; best = b; }
+  }
+  if (!best || bd > 2.6) return 1;
+  const dx = o.c[0] - best.x, dz = o.c[2] - best.z;
+  return (dx*Math.sin(o.yaw) + dz*Math.cos(o.yaw)) >= 0 ? 1 : -1;
+}
+
+// Door and drawer fronts across a carcass, with a reveal between them and a
+// handle on each. This is what makes a run of kitchen units read as kitchen.
+function fronts(g, mat, w, h, d, y, f, handles){
+  const n = Math.max(1, Math.round(w/0.52));
+  const gap = 0.009, fw = (w - gap*(n + 1))/n;
+  for (let i=0;i<n;i++){
+    const x = -w/2 + gap*(i + 1) + fw*(i + 0.5);
+    g.add(box(mat, fw, h - gap*2, 0.019, x, y, f*(d/2 + 0.008)));
+    if (handles)
+      g.add(tube(MAT.steel, 0.008, Math.min(fw*0.5, 0.14),
+                 x, y + h*0.5 - 0.055, f*(d/2 + 0.03), 'x'));
+  }
+}
+
+const FITTING = {
+  sofa(g, w, h, d){
+    const y0 = -h/2, at = (a, b) => y0 + h*(a + b)/2, hi = (a, b) => h*(b - a);
+    const arm = Math.min(0.17, w*0.13), bk = Math.min(0.19, d*0.24);
+    g.add(box(MAT.fabric, w, hi(0.16, 0.50), d, 0, at(0.16, 0.50), 0));
+    g.add(box(MAT.fabric, w - arm*2, hi(0.50, 0.64), d - bk, 0, at(0.50, 0.64), bk/2));
+    g.add(box(MAT.fabric, w, hi(0.16, 1.0), bk, 0, at(0.16, 1.0), -(d - bk)/2));
+    for (const s of [-1, 1])
+      g.add(box(MAT.fabric, arm, hi(0.16, 0.78), d, s*(w - arm)/2, at(0.16, 0.78), 0));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(box(MAT.wood, 0.05, h*0.16, 0.05, sx*(w/2 - 0.08), y0 + h*0.08, sz*(d/2 - 0.08)));
+  },
+  bed(g, w, h, d, f){
+    const y0 = -h/2, at = (a, b) => y0 + h*(a + b)/2, hi = (a, b) => h*(b - a);
+    const head = -f;                       // the headboard goes against the wall
+    g.add(box(MAT.wood, w, hi(0.10, 0.44), d, 0, at(0.10, 0.44), 0));
+    g.add(box(MAT.white, w*0.98, hi(0.44, 0.78), d*0.98, 0, at(0.44, 0.78), 0));
+    g.add(box(MAT.fabric, w*0.99, hi(0.76, 0.86), d*0.66, 0, at(0.76, 0.86), -head*d*0.16));
+    for (const s of [-1, 1])
+      g.add(box(MAT.white, w*0.42, hi(0.78, 0.90), d*0.17,
+                s*w*0.24, at(0.78, 0.90), head*(d/2 - d*0.11)));
+    g.add(box(MAT.wood, w, h*0.95, 0.055, 0, y0 + h*0.62, head*(d/2 + 0.03)));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(box(MAT.wood, 0.06, h*0.10, 0.06, sx*(w/2 - 0.08), y0 + h*0.05, sz*(d/2 - 0.08)));
+  },
+  table(g, w, h, d){
+    const y0 = -h/2, t = Math.min(0.05, h*0.14), leg = Math.min(0.07, w*0.12);
+    g.add(box(MAT.wood, w, t, d, 0, y0 + h - t/2, 0));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(box(MAT.wood, leg, h - t, leg,
+                sx*(w/2 - leg*0.8), y0 + (h - t)/2, sz*(d/2 - leg*0.8)));
+  },
+  chair(g, w, h, d, f){
+    const y0 = -h/2, at = (a, b) => y0 + h*(a + b)/2, hi = (a, b) => h*(b - a);
+    g.add(box(MAT.wood, w, 0.045, d, 0, y0 + h*0.47, 0));
+    g.add(box(MAT.wood, w*0.92, hi(0.49, 1.0), 0.042, 0, at(0.49, 1.0), -f*(d/2 - 0.03)));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(box(MAT.wood, 0.038, h*0.47, 0.038,
+                sx*(w/2 - 0.045), y0 + h*0.235, sz*(d/2 - 0.045)));
+  },
+  storage(g, w, h, d, f, base){
+    const y0 = -h/2;
+    if (h > 1.5){                                        // wardrobe or tall unit
+      g.add(box(MAT.white, w, h - 0.09, d - 0.03, 0, y0 + 0.09 + (h - 0.09)/2, 0));
+      g.add(box(MAT.trim, w, 0.09, d - 0.12, 0, y0 + 0.045, -f*0.045));
+      fronts(g, MAT.white, w, h - 0.13, d - 0.03, y0 + 0.09 + (h - 0.09)/2, f, true);
+    } else if (base > 1.05){                             // hung on the wall
+      g.add(box(MAT.white, w, h, d - 0.02, 0, 0, 0));
+      fronts(g, MAT.white, w, h - 0.02, d - 0.02, 0, f, true);
+    } else {                                             // base unit, with a top
+      const toe = Math.min(0.11, h*0.14), top = 0.038;
+      const carc = h - toe - top;
+      g.add(box(MAT.trim, w, toe, d - 0.09, 0, y0 + toe/2, -f*0.045));
+      g.add(box(MAT.white, w, carc, d, 0, y0 + toe + carc/2, 0));
+      fronts(g, MAT.white, w, carc - 0.012, d, y0 + toe + carc/2, f, true);
+      g.add(box(MAT.stone, w + 0.02, top, d + 0.026, 0, y0 + h - top/2, f*0.013));
+    }
+  },
+  refrigerator(g, w, h, d, f){
+    const y0 = -h/2;
+    g.add(box(MAT.steel, w, h, d, 0, 0, 0));
+    const split = y0 + h*0.62;
+    for (const [a, b] of [[0.02, 0.60], [0.64, 0.98]]){
+      g.add(box(MAT.steel, w - 0.02, h*(b - a), 0.026, 0, y0 + h*(a + b)/2, f*(d/2 + 0.012)));
+    }
+    for (const yy of [y0 + h*0.52, y0 + h*0.72])
+      g.add(tube(MAT.steel, 0.011, h*0.2, w*0.32, yy, f*(d/2 + 0.045), 'y'));
+  },
+  oven(g, w, h, d, f){
+    const y0 = -h/2;
+    g.add(box(MAT.steel, w, h, d, 0, 0, 0));
+    g.add(box(MAT.screen, w*0.82, h*0.52, 0.02, 0, y0 + h*0.44, f*(d/2 + 0.016)));
+    g.add(tube(MAT.steel, 0.012, w*0.86, 0, y0 + h*0.76, f*(d/2 + 0.05), 'x'));
+    g.add(box(MAT.steel, w, h*0.14, 0.02, 0, y0 + h*0.92, f*(d/2 + 0.012)));
+  },
+  stove(g, w, h, d){
+    g.add(box(MAT.screen, w, h, d, 0, 0, 0));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(tube(MAT.trim, Math.min(w, d)*0.16, 0.006,
+                 sx*w*0.24, h/2 + 0.004, sz*d*0.22, 'y'));
+  },
+  sink(g, w, h, d, f){
+    const y0 = -h/2;
+    g.add(box(MAT.white, w, h, d, 0, 0, 0));
+    g.add(box(MAT.steel, w*0.78, h*0.55, d*0.7, 0, y0 + h*0.3, 0));
+    g.add(tube(MAT.steel, 0.016, 0.24, 0, y0 + h + 0.12, -f*(d/2 - 0.05), 'y'));
+    g.add(tube(MAT.steel, 0.014, d*0.5, 0, y0 + h + 0.23, -f*(d/2 - 0.05 - d*0.25), 'z'));
+  },
+  toilet(g, w, h, d, f){
+    const y0 = -h/2, at = (a, b) => y0 + h*(a + b)/2, hi = (a, b) => h*(b - a);
+    g.add(box(MAT.white, w*0.66, hi(0, 0.52), d*0.72, 0, at(0, 0.52), f*d*0.1));
+    g.add(box(MAT.white, w*0.84, hi(0.52, 0.62), d*0.78, 0, at(0.52, 0.62), f*d*0.09));
+    g.add(box(MAT.white, w, hi(0.52, 1.0), d*0.26, 0, at(0.52, 1.0), -f*(d/2 - d*0.13)));
+  },
+  washerDryer(g, w, h, d, f){
+    const y0 = -h/2;
+    const n = w > 1.0 ? 2 : 1, ww = w/n;
+    for (let i=0;i<n;i++){
+      const x = -w/2 + ww*(i + 0.5);
+      g.add(box(MAT.white, ww - 0.012, h, d, x, 0, 0));
+      const port = new THREE.Mesh(new THREE.CircleGeometry(Math.min(ww, h)*0.29, 22), MAT.screen);
+      port.position.set(x, y0 + h*0.46, f*(d/2 + 0.011));
+      port.rotation.y = f > 0 ? 0 : Math.PI;
+      g.add(port);
+      g.add(box(MAT.trim, ww - 0.06, h*0.11, 0.016, x, y0 + h*0.9, f*(d/2 + 0.009)));
+    }
+  },
+  television(g, w, h, d, f){
+    const y0 = -h/2;
+    g.add(box(MAT.screen, w, h*0.94, Math.max(d, 0.035), 0, y0 + h*0.53, 0));
+    g.add(box(MAT.screen, w*0.3, h*0.06, Math.max(d, 0.035)*2.4, 0, y0 + h*0.03, 0));
+  },
+};
+
+// One fitting, built out. Returns null for anything with no maker, which keeps
+// its box.
+function fitting(L, o){
+  const make = FITTING[o.cat];
+  if (!make) return null;
+  const g = new THREE.Group();
+  const f = facing(L, o);
+  make(g, o.d[0], o.d[1], o.d[2], f, o.c[1] - o.d[1]/2 - L.elevation);
+  if (!g.children.length) return null;
+  g.position.set(o.c[0], o.c[1], o.c[2]);
+  g.rotation.y = o.yaw;
+  return g;
+}
+
+// ---------- player/collision.js ---------------------------------------
+function pushOut(p, it, r){
+  const c = Math.cos(it.yaw), s = Math.sin(it.yaw);
+  const dx = p.x - it.x, dz = p.z - it.z;
+  const lx = dx*c - dz*s, lz = dx*s + dz*c;
+  const qx = clamp(lx, -it.hx, it.hx), qz = clamp(lz, -it.hz, it.hz);
+  let ox = lx - qx, oz = lz - qz;
+  let d = Math.hypot(ox, oz);
+  if (d > r) return;
+  if (d < 1e-6){                     // centre is inside the box: leave by the nearest face
+    const gx = it.hx - Math.abs(lx), gz = it.hz - Math.abs(lz);
+    const nlx = gx < gz ? (Math.sign(lx) || 1) * (it.hx + r) : lx;
+    const nlz = gx < gz ? lz : (Math.sign(lz) || 1) * (it.hz + r);
+    p.x = it.x + nlx*c + nlz*s;
+    p.z = it.z - nlx*s + nlz*c;
+    return;
+  }
+  const k = (r - d)/d;
+  const nlx = lx + ox*k, nlz = lz + oz*k;
+  p.x = it.x + nlx*c + nlz*s;
+  p.z = it.z - nlx*s + nlz*c;
+}
+
+function blocks(px, pz, it, r){
+  const c = Math.cos(it.yaw), s = Math.sin(it.yaw);
+  const dx = px - it.x, dz = pz - it.z;
+  const lx = dx*c - dz*s, lz = dx*s + dz*c;
+  return Math.hypot(lx - clamp(lx,-it.hx,it.hx), lz - clamp(lz,-it.hz,it.hz)) < r;
+}
+
+// Flood the floor from the spawn point. Anything left over is floor the scan
+// enclosed with no way in — a capture gap, not a rendering fault, and the app
+// should say which rather than let it read as a missing door.
+function detectSealed(L){
+  const g = 0.15, b = L.bounds;
+  const nx = Math.ceil((b.x1-b.x0)/g), nz = Math.ceil((b.z1-b.z0)/g);
+  const free = new Uint8Array(nx*nz);
+  for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
+    const x = b.x0+(i+0.5)*g, z = b.z0+(j+0.5)*g;
+    if (!onFloor(L, x, z)) continue;
+    let ok = true;
+    for (const bl of L.blockers) if (blocks(x, z, bl, BODY_R*0.75)){ ok = false; break; }
+    if (ok) free[j*nx+i] = 1;
+  }
+  const si = clamp(Math.round((L.spawn.x-b.x0)/g-0.5), 0, nx-1);
+  const sj = clamp(Math.round((L.spawn.z-b.z0)/g-0.5), 0, nz-1);
+  const seen = new Uint8Array(nx*nz), st = [sj*nx+si];
+  seen[st[0]] = 1;
+  while (st.length){
+    const k = st.pop(), i = k%nx, j = (k-i)/nx;
+    for (const [a,c] of [[i+1,j],[i-1,j],[i,j+1],[i,j-1]]){
+      if (a<0||c<0||a>=nx||c>=nz) continue;
+      const m = c*nx+a;
+      if (seen[m] || !free[m]) continue;
+      seen[m] = 1; st.push(m);
+    }
+  }
+  const cells = [];
+  for (let k=0;k<free.length;k++) if (free[k] && !seen[k]) cells.push(k);
+  return {g, nx, b, cells, area: cells.length*g*g};
+}
+
+// Run once the storeys are built: each one learns which of its floor it walled
+// off from the spawn point.
+function markSealed(){
+  for (const L of levels) L.sealed = detectSealed(L);
+}
+
+// ---------- scene/joinery.js ------------------------------------------
+// A cased opening, the way a real one is trimmed: head, two jambs, and for a
+// window a sill that stands proud of the wall.
+function casing(host, w, o, elev, t, sill){
+  const ow = o.x1 - o.x0, oh = o.y1 - o.y0;
+  const mid = (o.x0 + o.x1)/2, ymid = w.c[1] + (o.y0 + o.y1)/2;
+  const D = WALL_T + 0.04;
+  const put = (lx, ly, sx, sy, sz) => {
+    if (sx < 0.02 || sy < 0.02) return;
+    const m = new THREE.Mesh(new THREE.BoxGeometry(sx, sy, sz || D), MAT.trim);
+    m.position.set(w.c[0] + Math.cos(w.yaw)*(mid + lx), ymid + ly,
+                   w.c[2] - Math.sin(w.yaw)*(mid + lx));
+    m.rotation.y = w.yaw;
+    host.add(m);
+  };
+  put(0, oh/2 + t/2, ow + t*2, t);
+  put(-(ow/2 + t/2), 0, t, oh);
+  put( (ow/2 + t/2), 0, t, oh);
+  if (sill){
+    put(0, -(oh/2 + t/2), ow + t*2, t, D + 0.06);
+    // Divided lites. Every window in these photographs has them, and a single
+    // sheet of glass three metres wide is the giveaway that it is not one.
+    const n = Math.max(1, Math.round(ow/0.85));
+    for (let i=1;i<n;i++) put(-ow/2 + ow*i/n, 0, 0.042, oh, WALL_T + 0.012);
+    if (oh > 1.3) put(0, oh*0.16, ow, 0.038, WALL_T + 0.012);
+  }
+}
+
+// A door left standing open. RoomPlan reports the hole, not the leaf or which
+// way it swings, so all four ways are tried and the first that lands on clear
+// floor wins. If none does — a doorway too tight to swing into — there is no
+// leaf, which is better than one buried in a wall.
+function doorLeaf(host, L, w, o, blockers){
+  const ow = o.x1 - o.x0, oh = o.y1 - o.y0;
+  if (ow < 0.6 || ow > 1.25 || oh < 1.4) return;
+  const mid = (o.x0 + o.x1)/2;
+  for (const hs of [-1, 1]) for (const sw of [-1, 1]){
+    const xh = mid + hs*ow/2;
+    const hx = w.c[0] + Math.cos(w.yaw)*xh, hz = w.c[2] - Math.sin(w.yaw)*xh;
+    const rot = w.yaw + sw*Math.PI/2;
+    const cx = hx - hs*Math.cos(rot)*ow/2, cz = hz + hs*Math.sin(rot)*ow/2;
+    if (!onFloor(L, cx, cz)) continue;
+    let clear = true;
+    for (const b of blockers) if (blocks(cx, cz, b, 0.14)){ clear = false; break; }
+    if (!clear) continue;
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(ow - 0.02, oh - 0.03, 0.04), MAT.trim);
+    leaf.position.set(cx, w.c[1] + (o.y0 + o.y1)/2, cz);
+    leaf.rotation.y = rot;
+    host.add(leaf);
+    const kn = tube(MAT.steel, 0.022, 0.07,
+                    cx + Math.cos(rot)*hs*(ow/2 - 0.09), w.c[1] + (o.y0 + o.y1)/2 - oh*0.06,
+                    cz - Math.sin(rot)*hs*(ow/2 - 0.09), 'z');
+    kn.rotation.y = rot;
+    host.add(kn);
+    return;
+  }
+}
+const FIXTURES = new Set(['toilet','sink','bathtub','oven','stove','refrigerator',
+  'dishwasher','washerDryer','television','fireplace']);
+
+// ---------- scene/levels.js -------------------------------------------
+const levels = HOUSE.levels.map(L => build(L));
+
+function build(L){
+  const tint = L.tint ?? 0xC9D0D8;
+  const group = new THREE.Group();
+  const shell = new THREE.Group(), ceil = new THREE.Group();
+  group.add(shell); group.add(ceil);
+
+  // The flat survey slabs. Once the photographs are in, per-room pieces take
+  // their place — these stay for the storey's untextured reading.
+  const slabs = [], caps = [];
+  for (const f of L.floors){
+    const g = shapeFrom(f.poly);
+    const slab = new THREE.Mesh(g, MAT.floor);
+    slab.position.y = L.elevation + 0.005;
+    shell.add(slab); slabs.push(slab);
+    const cap = new THREE.Mesh(g.clone(), MAT.ceil);
+    cap.position.y = L.elevation + f.ceiling;
+    ceil.add(cap); caps.push(cap);
+  }
+
+  const edges = [], objEdges = [], blockers = [], objBlockers = [], plan = [];
+  const wallMeshes = [], objMeshes = [], holeWalls = [];
+  // Joinery and downlights: architecture, but the sketch-grade survey never had
+  // them, so they come and go with the photographic dressing.
+  const trim = new THREE.Group(); group.add(trim);
+  const furn = new THREE.Group(); group.add(furn);
+  const stairMat = new THREE.MeshLambertMaterial({color:tint, transparent:true, opacity:0.5});
+  const panes = [];
+
+  for (const w of L.walls){
+    const mat = w.conf === 'low' ? MAT.wallLow : MAT.wall;
+    for (const p of panels(w.w, w.h, w.holes)){
+      // Ceilings sit at the storey's median wall height, so a wall shorter than
+      // that used to leave a slot open at the top. Harmless against a black
+      // background; a bright line of sky once there is a sky. Any panel that
+      // reaches its wall's top grows to meet the ceiling.
+      let top = p.y1;
+      if (Math.abs(p.y1 - w.h/2) < 0.002)
+        top = Math.max(p.y1, L.elevation + L.ceiling - w.c[1]);
+      const pw = p.x1-p.x0, ph = top-p.y0;
+      const cx = w.c[0] + Math.cos(w.yaw)*(p.x0+p.x1)/2;
+      const cz = w.c[2] - Math.sin(w.yaw)*(p.x0+p.x1)/2;
+      const cy = w.c[1] + (p.y0+top)/2;
+      // Segmented so the baked light can vary across a wall rather than only
+      // between its corners. The uv scaling below covers every face, so the
+      // 11 cm end grain is stretched — nobody has ever looked at it.
+      const m = new THREE.Mesh(new THREE.BoxGeometry(pw, ph, WALL_T,
+        Math.max(1, Math.round(pw/0.7)), Math.max(1, Math.round(ph/0.7)), 1), mat);
+      m.position.set(cx, cy, cz); m.rotation.y = w.yaw;
+      shell.add(m);
+      wallMeshes.push({mesh:m, x:cx, z:cz, yaw:w.yaw, w:pw, h:ph, flat:mat, low:w.conf === 'low'});
+      boxEdges(edges, cx, cy, cz, pw/2, ph/2, WALL_T/2, w.yaw);
+
+      // A skirting on every stretch that reaches the floor — which, because
+      // panels() has already cut the openings out, is exactly the right ones.
+      if (cy - ph/2 - L.elevation < 0.03 && ph > 0.4){
+        const bh = 0.1;
+        const b = new THREE.Mesh(new THREE.BoxGeometry(pw, bh, WALL_T + 0.034), MAT.trim);
+        b.position.set(cx, L.elevation + bh/2 + 0.008, cz); b.rotation.y = w.yaw;
+        trim.add(b);
+      }
+
+      // Blocks the body only if it stands in the way at body height — which is
+      // why you walk through doorways but a window stops you.
+      const lo = cy - ph/2 - L.elevation, hi = cy + ph/2 - L.elevation;
+      if (hi > BAND_LO && lo < BAND_HI){
+        const b = {x:cx, z:cz, yaw:w.yaw, hx:pw/2, hz:WALL_T/2};
+        blockers.push(b); plan.push(b);
+      }
+    }
+    holeWalls.push(w);
+  }
+
+  // Openings are trimmed after every wall is up: a door leaf has to know what
+  // it would swing into, and that is not known until the last panel exists.
+  for (const w of holeWalls){
+    for (const o of w.holes){
+      casing(trim, w, o, L.elevation, o.k === 'window' ? 0.055 : 0.065, o.k === 'window');
+      if (o.k === 'door') doorLeaf(trim, L, w, o, blockers);
+      if (o.k !== 'window') continue;
+      const cx = w.c[0] + Math.cos(w.yaw)*(o.x0+o.x1)/2;
+      const cz = w.c[2] - Math.sin(w.yaw)*(o.x0+o.x1)/2;
+      const g = new THREE.Mesh(new THREE.PlaneGeometry(o.x1-o.x0, o.y1-o.y0), MAT.glass);
+      g.position.set(cx, w.c[1] + (o.y0+o.y1)/2, cz); g.rotation.y = w.yaw;
+      shell.add(g);
+      panes.push(g);
+    }
+  }
+
+  for (const o of L.objects){
+    const isStair = o.cat === 'stairs';
+    const m = new THREE.Mesh(new THREE.BoxGeometry(o.d[0], o.d[1], o.d[2]),
+      isStair ? stairMat : (FIXTURES.has(o.cat) ? MAT.fix : MAT.furn));
+    m.position.set(o.c[0], o.c[1], o.c[2]); m.rotation.y = o.yaw;
+    // The stairs are the route between storeys, not a furnishing — they stay put.
+    (isStair ? shell : furn).add(m);
+    // In the survey the stair is a storey-tinted volume you can see through, and
+    // that is the right answer there. Dressed, a translucent yellow slab in the
+    // middle of a painted room is the loudest wrong thing in the view, so it
+    // becomes what it is: timber. RoomPlan gives a box, not treads, and which
+    // way it climbs is not in the data — so a box is all this claims.
+    const rec = {mesh:m, flat:m.material,
+                 real: isStair ? MAT.wood : (MAT[REAL[o.cat]] || m.material), built:null};
+    if (!isStair){
+      const g = fitting({blockers, elevation:L.elevation}, o);
+      if (g){ g.visible = false; furn.add(g); rec.built = g; }
+    }
+    objMeshes.push(rec);
+    boxEdges(isStair ? edges : objEdges,
+      o.c[0], o.c[1], o.c[2], o.d[0]/2, o.d[1]/2, o.d[2]/2, o.yaw);
+    const base = o.c[1] - o.d[1]/2 - L.elevation;
+    if (!isStair && o.d[1] > 0.45 && base < BAND_HI - 0.2)
+      objBlockers.push({x:o.c[0], z:o.c[2], yaw:o.yaw, hx:o.d[0]/2, hz:o.d[2]/2});
+  }
+
+  const lines = new THREE.LineSegments(
+    new THREE.BufferGeometry().setAttribute('position',
+      new THREE.Float32BufferAttribute(edges, 3)),
+    new THREE.LineBasicMaterial({color:0x1A2029, transparent:true, opacity:0.55}));
+  shell.add(lines);
+  const objLines = new THREE.LineSegments(
+    new THREE.BufferGeometry().setAttribute('position',
+      new THREE.Float32BufferAttribute(objEdges, 3)),
+    new THREE.LineBasicMaterial({color:0x1A2029, transparent:true, opacity:0.55}));
+  furn.add(objLines);
+
+  scene.add(group);
+
+  const bx = L.floors.flatMap(f => f.poly).reduce((a,[x,z]) => ({
+    x0:Math.min(a.x0,x), x1:Math.max(a.x1,x), z0:Math.min(a.z0,z), z1:Math.max(a.z1,z)
+  }), {x0:1e9,x1:-1e9,z0:1e9,z1:-1e9});
+
+  const seed = L.sections.find(s => s.label !== 'unidentified') || L.sections[0]
+    || {x:(bx.x0+bx.x1)/2, z:(bx.z0+bx.z1)/2};
+
+  return {...L, tint, group, shell, ceil, furn, trim, slabs, caps, panes,
+          wallMeshes, objMeshes, stairMat, wire:[lines, objLines],
+          blockers, objBlockers, plan, bounds:bx, spawn:{x:seed.x, z:seed.z}};
+}
+
+// ---------- photo/rooms.js --------------------------------------------
+// The scan carries geometry and nothing at all about how the house looks. What
+// the photographs are for is the surfaces: every wall face, floor and ceiling is
+// assigned to a room, and each room takes its material from the pictures taken
+// in it — a patch of plain wall, a patch of floor, a patch of ceiling, lifted
+// out of the photograph and tiled at real-world scale.
+//
+// This is not a projection. There are no camera poses, so nothing here claims to
+// put a pixel back where it was seen. What it does claim is weaker and true: the
+// sage-green living room comes out sage green, the kitchen comes out grey-blue
+// over cherry boards, and the bathrooms come out tiled.
+//
+// photos.json says which room each picture belongs to; the geometry decides the
+// rest. Rooms with no photograph keep the flat survey palette.
+const TILE = {wall:1.15, floor:1.55, ceil:1.9};   // metres of wall per texture repeat
+const ROOM_REACH = 9;        // a surface further than this from every anchor stays flat
+const BANDS = {              // where in a photograph each surface tends to sit
+  ceil:  [0.02, 0.19],
+  wall:  [0.22, 0.58],
+  floor: [0.66, 0.99],
+};
+// How hard to iron the baked light out of a patch. A ceiling is paint and only
+// ever paint, so it goes all the way to its own flat colour — tiling a 128px
+// crop of one across a 15 m room is what speckles it. Walls keep enough for tile
+// to read as tile; floors keep most of it, because the grain is the point.
+const FLATTEN = {ceil:1, wall:0.72, floor:0.34};
+const photoRooms = [];       // {level, name, at, shots, mats}
+
+// Group the file's photographs by the room they were taken in, and give every
+// storey the groups it hangs its surfaces and prints on.
+function indexPhotos(){
+  for (const L of levels){
+    L.prints = new THREE.Group();  L.group.add(L.prints);
+    L.roomFloor = new THREE.Group(); L.shell.add(L.roomFloor);
+    L.roomCeil = new THREE.Group();  L.ceil.add(L.roomCeil);
+    L.shots = [];
+    L.rooms = [];
+  }
+
+  for (const ph of PHOTOS || []){
+    let room = photoRooms.find(r => r.level === ph.level && r.name === ph.room);
+    if (!room){
+      room = {level:ph.level, name:ph.room, at:ph.at, floorFrom:ph.floorFrom,
+              shots:[], mats:null};
+      photoRooms.push(room);
+      if (levels[ph.level]) levels[ph.level].rooms.push(room);
+    }
+    room.shots.push(ph);
+  }
+  for (const r of photoRooms) r.shots.sort((a,b) => a.seq - b.seq);
+}
+
+// Which room a point on this storey belongs to. Anchors are room centres, so the
+// boundary falls near the wall between them — near enough that the wall itself
+// hides it, and in an open plan there is no boundary to hide.
+function roomAt(L, x, z){
+  let best = null, bd = ROOM_REACH;
+  for (const r of L.rooms){
+    const d = Math.hypot(r.at[0] - x, r.at[1] - z);
+    if (d < bd){ bd = d; best = r; }
+  }
+  return best;
+}
+
+// ---------- core/state.js ---------------------------------------------
+// Every value the app mutates as you use it, in one place and grouped by what
+// owns it. They are objects rather than loose `let`s because a module cannot
+// assign to a binding it imported: the field is the seam between modules.
+
+const player = {x:0, z:0, yaw:0, pitch:0, level:0, vx:0, vz:0};
+
+// Where the player is trying to get to, and the last place they legitimately
+// stood — the fallback when a step lands off the floor.
+const nav = {goTarget:null, hover:null, stuckT:0, lastGood:{x:0, z:0}};
+
+const view = {mode:'view', explode:0};                 // 'view' | 'walk'
+const orbit = {theta:0.72, phi:0.95, dist:26, tx:0, ty:2.4, tz:0};
+
+// What the house is showing: photographic surfaces or the flat survey, the
+// prints, the furniture, walls you can pass through, and how high the eye sits.
+const flags = {surfaced:true, showPrints:false, showFurniture:true,
+                      ghost:false, eyeH:EYE};
+
+// Pointer and touch. lockLook is pointer-locked FPS look, off by default;
+// stick and look are the two halves of the touch screen.
+const pointer = {drag:null, press:null, lockLook:false, stick:null, look:null};
+const keys = Object.create(null);
+
+// The photograph under the cursor, and the one open full-size over everything.
+const focus = {hoverShot:null, lbShot:null};
+
+// ---------- photo/relight.js ------------------------------------------
+// Read the picture down to a size worth scanning. Everything below works on this
+// copy; the winning patch is then re-cut from the full-resolution original.
+function analyse(img){
+  const w = 320, h = Math.max(1, Math.round(img.naturalHeight/img.naturalWidth*w));
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  c.getContext('2d').drawImage(img, 0, 0, w, h);
+  return {px: c.getContext('2d').getImageData(0,0,w,h).data, w, h};
+}
+
+function patchStats(A, x0, y0, S){
+  let r=0, g=0, b=0;
+  const n = S*S;
+  for (let y=y0;y<y0+S;y++) for (let x=x0;x<x0+S;x++){
+    const i = (y*A.w + x)*4;
+    r += A.px[i]; g += A.px[i+1]; b += A.px[i+2];
+  }
+  r/=n; g/=n; b/=n;
+  let v = 0;
+  for (let y=y0;y<y0+S;y++) for (let x=x0;x<x0+S;x++){
+    const i = (y*A.w + x)*4;
+    v += (A.px[i]-r)**2 + (A.px[i+1]-g)**2 + (A.px[i+2]-b)**2;
+  }
+  return {r, g, b, sd:Math.sqrt(v/(n*3)), x:x0, y:y0, S};
+}
+
+// The best patch is the flattest one that also sits closest to the band's own
+// median colour — which is what picks painted wall over the picture hanging on
+// it, and floorboards over the rug. Blown-out windows and black voids are out.
+function bestPatch(A, band, medianWeight, ceiling, lowBias){
+  const S = 24, step = 12;
+  const y0 = Math.round(A.h*band[0]), y1 = Math.max(y0, Math.round(A.h*band[1]) - S);
+  const cand = [];
+  for (let y=y0; y<=y1; y+=step) for (let x=0; x<=A.w-S; x+=step){
+    const p = patchStats(A, x, y, S);
+    const lum = 0.299*p.r + 0.587*p.g + 0.114*p.b;
+    // A blown-out window is out; a white ceiling under downlights is not, and
+    // the one cutoff used to throw every ceiling in the house away.
+    if (lum > ceiling || lum < 20) continue;
+    cand.push(p);
+  }
+  if (!cand.length) return null;
+  const med = k => { const v = cand.map(c => c[k]).sort((a,b) => a-b); return v[v.length>>1]; };
+  const mr = med('r'), mg = med('g'), mb = med('b');
+  let best = null, bs = Infinity;
+  for (const p of cand){
+    // Floors want the bottom of the frame: the kitchen's own band is mostly
+    // worktop, and only the last rows are the boards you are standing on.
+    const up = (y1 > y0) ? 1 - (p.y - y0)/(y1 - y0) : 0;
+    const s = p.sd + Math.hypot(p.r-mr, p.g-mg, p.b-mb)*medianWeight + up*lowBias;
+    if (s < bs){ bs = s; best = p; }
+  }
+  best.score = bs;
+  return best;
+}
+
+// Cut the winning patch out of the full-resolution photograph and iron it flat.
+// A photograph carries its own light; pulling each pixel toward the patch mean
+// takes the gradient out, so a tiled wall reads as paint rather than banding.
+// Floors keep most of their contrast — the grain is the point.
+function patchCanvas(img, A, p, flatten){
+  const N = 256, k = img.naturalWidth / A.w;
+  const c = document.createElement('canvas');
+  c.width = c.height = N;
+  const cx = c.getContext('2d');
+  cx.drawImage(img, p.x*k, p.y*k, p.S*k, p.S*k, 0, 0, N, N);
+  const d = cx.getImageData(0, 0, N, N);
+  for (let i=0;i<d.data.length;i+=4){
+    d.data[i]   += (p.r - d.data[i])   * flatten;
+    d.data[i+1] += (p.g - d.data[i+1]) * flatten;
+    d.data[i+2] += (p.b - d.data[i+2]) * flatten;
+  }
+  cx.putImageData(d, 0, 0);
+  return c;
+}
+
+function tiling(canvas){
+  const t = new THREE.CanvasTexture(canvas);
+  // Mirrored, so a 128px patch tiles a 4 m wall without a seam every 1.15 m.
+  t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return t;
+}
+
+// A height field read straight off the patch: where the photograph is darker
+// the surface is lower. On a wall that has been ironed flat this comes out to
+// almost nothing, which is correct — paint is flat. On boards it is the grain,
+// and on tile it is the grout, and both of them catch the light.
+function reliefFrom(canvas, strength){
+  const N = canvas.width;
+  const src = canvas.getContext('2d').getImageData(0, 0, N, N).data;
+  const out = document.createElement('canvas');
+  out.width = out.height = N;
+  const cx = out.getContext('2d');
+  const d = cx.createImageData(N, N);
+  const lum = (x, y) => {
+    const i = (((y + N) % N)*N + ((x + N) % N))*4;
+    return (src[i]*0.299 + src[i+1]*0.587 + src[i+2]*0.114)/255;
+  };
+  for (let y=0;y<N;y++) for (let x=0;x<N;x++){
+    const nx = -(lum(x+1, y) - lum(x-1, y))*strength;
+    const ny = -(lum(x, y+1) - lum(x, y-1))*strength;
+    const l = Math.hypot(nx, ny, 1);
+    const i = (y*N + x)*4;
+    d.data[i] = (nx/l*0.5 + 0.5)*255;
+    d.data[i+1] = (ny/l*0.5 + 0.5)*255;
+    d.data[i+2] = (1/l*0.5 + 0.5)*255;
+    d.data[i+3] = 255;
+  }
+  cx.putImageData(d, 0, 0);
+  return out;
+}
+
+// The photographs are lit; the scene lights them again. Holding the material
+// colour below white is what keeps a sunlit wall from blowing out indoors.
+const PHYS = {
+  wall:  {roughness:0.94, relief:5.0,  scale:0.35, env:0.38},
+  floor: {roughness:0.30, relief:11.0, scale:0.55, env:0.58},
+  ceil:  {roughness:0.98, relief:0.0,  scale:0.0,  env:0.30},
+};
+function surfMat(canvas, tint, extra, kind){
+  const k = PHYS[kind] || PHYS.wall;
+  const m = new THREE.MeshStandardMaterial(Object.assign({
+    map: tiling(canvas), color: tint, vertexColors: true,
+    roughness: k.roughness, metalness: 0.0, envMapIntensity: k.env,
+  }, extra || {}));
+  if (k.relief > 0){
+    m.normalMap = tiling(reliefFrom(canvas, k.relief));
+    m.normalScale = new THREE.Vector2(k.scale, k.scale);
+  }
+  return m;
+}
+
+function dressRoom(room){
+  const pick = room.pick = {};
+  for (const ph of room.shots){
+    if (!ph.img) continue;
+    const A = analyse(ph.img);
+    for (const kind of ['wall','floor','ceil']){
+      const p = bestPatch(A, BANDS[kind], kind === 'ceil' ? 0.2 : 0.6,
+                          kind === 'ceil' ? 253 : 240, kind === 'floor' ? 9 : 0);
+      if (p && (!pick[kind] || p.score < pick[kind].score))
+        pick[kind] = {canvas:patchCanvas(ph.img, A, p, FLATTEN[kind]),
+                      score:p.score, r:p.r, g:p.g, b:p.b};
+    }
+  }
+  if (!pick.wall) return null;
+  // A low-confidence wall is brown in the flat survey and painted here: this
+  // view is about what the house looks like, and P still gives the other one.
+  const wall = surfMat(pick.wall.canvas, 0xBFBFBF, null, 'wall');
+  return {
+    wall, wallLow: wall,
+    floor: pick.floor && surfMat(pick.floor.canvas, 0xB6B6B6, {side:THREE.DoubleSide}, 'floor'),
+    ceil:  pick.ceil  && surfMat(pick.ceil.canvas,  0xC6C6C6, {side:THREE.DoubleSide}, 'ceil'),
+  };
+}
+
+// Surfaces no room claims — the garage, the far end of a hall — take the house's
+// own average rather than the flat survey grey. Standing in a photographed room
+// and seeing one brown low-confidence panel among the paint reads as a fault;
+// a neutral wall the colour of the rest of the house does not, and it is still
+// the photographs talking. Which panels those are is in the flat view.
+let AVG = null;
+function houseAverage(){
+  const flat = (kind, extra) => {
+    let r=0, g=0, b=0, n=0;
+    for (const room of photoRooms){
+      const p = room.pick && room.pick[kind];
+      if (p){ r += p.r; g += p.g; b += p.b; n++; }
+    }
+    if (!n) return null;
+    const c = document.createElement('canvas');
+    c.width = c.height = 8;
+    const cx = c.getContext('2d');
+    cx.fillStyle = `rgb(${Math.round(r/n)},${Math.round(g/n)},${Math.round(b/n)})`;
+    cx.fillRect(0, 0, 8, 8);
+    return surfMat(c, kind === 'floor' ? 0xB6B6B6 : kind === 'ceil' ? 0xC6C6C6 : 0xBFBFBF,
+                   extra, kind);
+  };
+  return {
+    wall: flat('wall'),
+    floor: flat('floor', {side:THREE.DoubleSide}),
+    ceil: flat('ceil', {side:THREE.DoubleSide}),
+  };
+}
+
+// A linked photograph taints the canvas when the page is opened over file://,
+// and every surface below is read back pixel by pixel. Ask once, before any of
+// it, rather than letting the house die half-dressed.
+function canReadPixels(img){
+  try {
+    const c = document.createElement('canvas');
+    c.width = c.height = 1;
+    const cx = c.getContext('2d');
+    cx.drawImage(img, 0, 0, 1, 1);
+    cx.getImageData(0, 0, 1, 1);
+    return true;
+  } catch { return false; }
+}
+
+// The average is computed once, after every room has been read.
+function computeAverage(){ return AVG = houseAverage(); }
+const avgMats = () => AVG;
+
+// ---------- photo/sky.js ----------------------------------------------
+// One hemisphere light means a corner eight metres from the glazing is exactly
+// as bright as the sill, and that is the most artificial thing left in the
+// frame. There is no global illumination here, but the plan knows where the
+// light gets in: solid wall stops it, an opening does not. So each storey is
+// rasterised once — walls blocked, every door, window and opening punched back
+// open — and from each cell a fan of rays is walked until it hits something or
+// leaves the building. The fraction that get out is how much sky that spot can
+// see, and it is baked into the vertex colours of the walls, floors and
+// ceilings. Rooms then go bright at the glass and fall away into their corners
+// because of where the windows are, not because a number was chosen.
+const SKY_G = 0.16;          // metres per cell
+const SKY_RAYS = 24;
+const SKY_FAR = 26;          // metres a ray walks before it counts as out
+const SKY_FLOOR = 0.46;      // no surface goes fully dark
+
+function bakeSky(L){
+  const b = L.bounds, pad = 1.2;
+  const x0 = b.x0 - pad, z0 = b.z0 - pad;
+  const nx = Math.ceil((b.x1 - b.x0 + pad*2)/SKY_G);
+  const nz = Math.ceil((b.z1 - b.z0 + pad*2)/SKY_G);
+  const solid = new Uint8Array(nx*nz);
+
+  // Stamp a wall segment's footprint into the grid, or clear an opening's.
+  const stamp = (cx, cz, yaw, hw, val) => {
+    const c = Math.cos(yaw), s = Math.sin(yaw);
+    const steps = Math.ceil(hw*2/(SKY_G*0.5)) + 1;
+    for (let i=0;i<=steps;i++){
+      const t = -hw + (2*hw)*i/steps;
+      for (let o=-1;o<=1;o++){
+        const px = cx + c*t + s*o*SKY_G*0.6, pz = cz - s*t + c*o*SKY_G*0.6;
+        const gi = Math.round((px - x0)/SKY_G), gj = Math.round((pz - z0)/SKY_G);
+        if (gi >= 0 && gj >= 0 && gi < nx && gj < nz) solid[gj*nx + gi] = val;
+      }
+    }
+  };
+  for (const w of L.walls){
+    stamp(w.c[0], w.c[2], w.yaw, w.w/2, 1);
+    for (const h of w.holes){
+      const mid = (h.x0 + h.x1)/2;
+      stamp(w.c[0] + Math.cos(w.yaw)*mid, w.c[2] - Math.sin(w.yaw)*mid,
+            w.yaw, (h.x1 - h.x0)/2, 0);
+    }
+  }
+
+  const sky = new Float32Array(nx*nz);
+  const dirs = [];
+  for (let a=0;a<SKY_RAYS;a++){
+    const t = (a + 0.5)/SKY_RAYS*Math.PI*2;
+    dirs.push([Math.cos(t), Math.sin(t)]);
+  }
+  const maxStep = Math.ceil(SKY_FAR/SKY_G);
+  for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
+    if (solid[j*nx + i]) continue;
+    const px = x0 + i*SKY_G, pz = z0 + j*SKY_G;
+    if (!onFloor(L, px, pz)) continue;
+    let open = 0;
+    for (const [dx, dz] of dirs){
+      let k = 1;
+      for (; k<=maxStep; k++){
+        const gi = Math.round((px + dx*k*SKY_G - x0)/SKY_G);
+        const gj = Math.round((pz + dz*k*SKY_G - z0)/SKY_G);
+        if (gi < 0 || gj < 0 || gi >= nx || gj >= nz){ open++; break; }
+        if (solid[gj*nx + gi]) break;
+        // Out of the footprint and past the walls: this ray reached daylight.
+        if (!onFloor(L, px + dx*k*SKY_G, pz + dz*k*SKY_G)){ open++; break; }
+      }
+      if (k > maxStep) open++;
+    }
+    sky[j*nx + i] = open/SKY_RAYS;
+  }
+
+  // Twenty-four rays on a 16 cm grid is a coarse estimate, and read back
+  // bilinearly it terraces across a ceiling. Two box passes take that out; the
+  // term is broad by nature and nothing is lost by smoothing it.
+  let cur = sky;
+  for (let pass=0; pass<2; pass++){
+    const next = new Float32Array(nx*nz);
+    for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
+      let sum = 0, n = 0;
+      for (let dj=-1;dj<=1;dj++) for (let di=-1;di<=1;di++){
+        const a = i + di, c = j + dj;
+        if (a < 0 || c < 0 || a >= nx || c >= nz) continue;
+        sum += cur[c*nx + a]; n++;
+      }
+      next[j*nx + i] = sum/n;
+    }
+    cur = next;
+  }
+  for (let k=0;k<sky.length;k++) if (!solid[k]) sky[k] = cur[k];
+
+  // A cell inside a wall has no value of its own; borrow the brightest of its
+  // neighbours so surfaces sampled at the wall line are not black.
+  const grown = Float32Array.from(sky);
+  for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
+    if (!solid[j*nx + i]) continue;
+    let m = 0;
+    for (let dj=-2;dj<=2;dj++) for (let di=-2;di<=2;di++){
+      const a = i + di, c = j + dj;
+      if (a < 0 || c < 0 || a >= nx || c >= nz) continue;
+      if (sky[c*nx + a] > m) m = sky[c*nx + a];
+    }
+    grown[j*nx + i] = m;
+  }
+  return {g:SKY_G, x0, z0, nx, nz, v:grown};
+}
+
+// Bilinear, and generous at the edges: this is a lighting term, not a lookup.
+function skyAt(S, x, z){
+  const fx = (x - S.x0)/S.g, fz = (z - S.z0)/S.g;
+  const i = Math.floor(fx), j = Math.floor(fz);
+  const tx = fx - i, tz = fz - j;
+  const at = (a, c) => {
+    a = clamp(a, 0, S.nx - 1); c = clamp(c, 0, S.nz - 1);
+    return S.v[c*S.nx + a];
+  };
+  return (at(i, j)*(1 - tx) + at(i + 1, j)*tx)*(1 - tz) +
+         (at(i, j + 1)*(1 - tx) + at(i + 1, j + 1)*tx)*tz;
+}
+
+// Smooth value noise, metres in. Real paint on real plaster is never one tone
+// across four metres, and the eye reads perfectly even colour as plastic.
+function mottle(x, z){
+  const h = (a, b) => {
+    const n = Math.sin(a*127.1 + b*311.7)*43758.5453;
+    return n - Math.floor(n);
+  };
+  const f = (sx, sz) => {
+    const i = Math.floor(sx), j = Math.floor(sz);
+    const tx = sx - i, tz = sz - j;
+    const u = tx*tx*(3 - 2*tx), v = tz*tz*(3 - 2*tz);
+    return (h(i, j)*(1 - u) + h(i + 1, j)*u)*(1 - v) +
+           (h(i, j + 1)*(1 - u) + h(i + 1, j + 1)*u)*v;
+  };
+  return f(x*0.42, z*0.42)*0.68 + f(x*1.35, z*1.35)*0.32;
+}
+
+// Paint the term into a geometry's vertex colours. Ceilings sit deeper than
+// floors because light arrives from below and from the window head, and a
+// ceiling that reads as bright as its floor is the giveaway of a fake room.
+function paintSky(geo, S, obj, lift, grain){
+  const pos = geo.attributes.position;
+  const col = new Float32Array(pos.count*3);
+  const v = new THREE.Vector3();
+  for (let i=0;i<pos.count;i++){
+    v.fromBufferAttribute(pos, i);
+    if (obj) obj.localToWorld(v);
+    const s = Math.pow(clamp(skyAt(S, v.x, v.z), 0, 1), 0.78)*lift;
+    let c = clamp(SKY_FLOOR + (1 - SKY_FLOOR)*s, 0, 1);
+    if (grain) c *= 1 + (mottle(v.x + v.y*0.7, v.z) - 0.5)*grain;
+    col[i*3] = col[i*3 + 1] = col[i*3 + 2] = c;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+}
+
+// ---------- photo/outside.js ------------------------------------------
+// Rooms read as sealed boxes until the windows have something behind them, and
+// nothing in the scan knows what that is. The photographs do: photos.json names
+// a crop of the deck shot — sky, the far hills, the lake — and it is wrapped on
+// a cylinder outside the house with lawn under it. A backdrop, not a place: it
+// does not parallax and it is not to scale, but it is the real view.
+let outdoors = null;
+function buildOutdoors(){
+  const src = photoRooms.flatMap(r => r.shots).find(ph => ph.view && ph.img);
+  if (!src) return null;
+  const img = src.img, W = img.naturalWidth, H = img.naturalHeight;
+  const cut = r => [r[0]*W, r[1]*H, r[2]*W, r[3]*H];
+
+  // Eight repeats at 2048 wide keeps the crop close to its own aspect: stretch
+  // one strip round 140 m of horizon and it smears into nothing.
+  const N = 2048, M = 512, REP = 8;
+  const c = document.createElement('canvas');
+  c.width = N; c.height = M;
+  const cx = c.getContext('2d');
+  const [vx, vy, vw, vh] = cut(src.view);
+
+  // Read the crop's own top and foot, so the gradient above and the ground
+  // below meet the horizon in the colours the photograph actually has.
+  const probe = document.createElement('canvas');
+  probe.width = 1; probe.height = 64;
+  const pcx = probe.getContext('2d');
+  pcx.drawImage(img, vx + vw/2, vy, 1, vh, 0, 0, 1, 64);
+  const col = row => {
+    const d = pcx.getImageData(0, row, 1, 1).data;
+    return `rgb(${d[0]},${d[1]},${d[2]})`;
+  };
+  const sky = cx.createLinearGradient(0, 0, 0, M*0.45);
+  sky.addColorStop(0, col(0));
+  sky.addColorStop(1, col(6));
+  cx.fillStyle = sky; cx.fillRect(0, 0, N, M*0.45);
+
+  // The crop itself across the horizon, repeated so it is not smeared round.
+  for (let i=0;i<REP;i++)
+    cx.drawImage(img, vx, vy, vw, vh, i*N/REP, M*0.43, N/REP, M*0.18);
+
+  let lawn = '#6E8B4A';
+  if (src.ground){
+    const [gx, gy, gw, gh] = cut(src.ground);
+    pcx.drawImage(img, gx, gy, gw, gh, 0, 0, 1, 1);
+    lawn = col(0);
+  }
+  const down = cx.createLinearGradient(0, M*0.60, 0, M);
+  down.addColorStop(0, lawn);
+  down.addColorStop(1, '#3B4A2C');
+  cx.fillStyle = down; cx.fillRect(0, M*0.60, N, M*0.40);
+
+  const tex = new THREE.CanvasTexture(c);
+  tex.encoding = THREE.sRGBEncoding;
+  tex.wrapS = THREE.RepeatWrapping;
+  const R = 140, HH = 140, base = levels[0].elevation;
+  // fog:false, or a 40 m draw distance would swallow the whole horizon.
+  const sleeve = new THREE.Mesh(
+    new THREE.CylinderGeometry(R, R, HH, 48, 1, true),
+    new THREE.MeshBasicMaterial({map:tex, side:THREE.BackSide, fog:false}));
+  sleeve.position.y = base - 60 + HH/2;
+
+  // Lawn only as far as a lawn goes; past that the photographed ground takes over.
+  const grass = new THREE.Mesh(new THREE.CircleGeometry(34, 48),
+    new THREE.MeshBasicMaterial({color:new THREE.Color(lawn), fog:false}));
+  grass.rotation.x = -Math.PI/2;
+  grass.position.y = base - 0.28;
+
+  // The same world again, small and equirectangular, so physical surfaces have
+  // something to reflect. Without it a polished floor reflects nothing and reads
+  // as matte plastic; with it, it picks up the window and the sky above it.
+  const e = document.createElement('canvas');
+  e.width = 256; e.height = 128;
+  const ecx = e.getContext('2d');
+  const eSky = ecx.createLinearGradient(0, 0, 0, 64);
+  eSky.addColorStop(0, col(0)); eSky.addColorStop(1, col(6));
+  ecx.fillStyle = eSky; ecx.fillRect(0, 0, 256, 64);
+  ecx.drawImage(img, vx, vy, vw, vh, 0, 56, 256, 18);
+  // Half the reflected sphere is ground, so a saturated lawn tints every
+  // surface in the house green. For the reflection it is muted toward neutral.
+  ecx.fillStyle = lawn; ecx.fillRect(0, 74, 256, 54);
+  ecx.globalAlpha = 0.55;
+  ecx.fillStyle = '#8C8C86'; ecx.fillRect(0, 74, 256, 54);
+  ecx.globalAlpha = 1;
+  const envTex = new THREE.CanvasTexture(e);
+  envTex.mapping = THREE.EquirectangularReflectionMapping;
+  envTex.encoding = THREE.sRGBEncoding;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  scene.environment = pmrem.fromEquirectangular(envTex).texture;
+  pmrem.dispose(); envTex.dispose();
+
+  const g = new THREE.Group();
+  g.add(sleeve); g.add(grass);
+  g.renderOrder = -1;
+  scene.add(g);
+  return outdoors = {group:g, sky:new THREE.Color(col(2)),
+                     lawn:new THREE.Color(lawn), env:scene.environment};
+}
+const outdoorWorld = () => outdoors;
+
+// ---------- scene/dressing.js -----------------------------------------
+// A wall has two faces and they can be in different rooms — the kitchen side of
+// the bathroom wall is kitchen. BoxGeometry keeps a material group per face, so
+// +Z and -Z take their own room's paint.
+function dressWalls(L){
+  for (const p of L.wallMeshes){
+    const nx = Math.sin(p.yaw), nz = Math.cos(p.yaw), off = WALL_T/2 + 0.3;
+    const front = roomAt(L, p.x + nx*off, p.z + nz*off);
+    const back  = roomAt(L, p.x - nx*off, p.z - nz*off);
+    const side = m => (m || avgMats()).wall;
+    p.photo = [p.flat, p.flat, p.flat, p.flat, side(front?.mats), side(back?.mats)];
+    // The repeat lives in the geometry, so every wall in a room shares a material.
+    const uv = p.mesh.geometry.attributes.uv;
+    for (let i=0;i<uv.count;i++)
+      uv.setXY(i, uv.getX(i)*p.w/TILE.wall, uv.getY(i)*p.h/TILE.wall);
+    uv.needsUpdate = true;
+    paintSky(p.mesh.geometry, L.sky, p.mesh, 1.0, 0.10);
+  }
+}
+
+// Floors and ceilings come as one slab per storey, so they are re-cut per room:
+// walk a grid over the footprint, keep each cell's room, then merge each row's
+// runs into quads. Boundaries land on the 10 cm grid, which is finer than the
+// walls that sit on top of them.
+function dressSlabs(L){
+  const g = 0.1, b = L.bounds;
+  const nx = Math.ceil((b.x1-b.x0)/g), nz = Math.ceil((b.z1-b.z0)/g);
+  // false = off the storey's floor entirely; null = on it but in no room.
+  const own = new Array(nx*nz).fill(false);
+  for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
+    const x = b.x0 + (i+0.5)*g, z = b.z0 + (j+0.5)*g;
+    if (onFloor(L, x, z)) own[j*nx+i] = roomAt(L, x, z);
+  }
+  // The whole footprint has to be covered exactly once. Cells no room claims —
+  // the garage, the far end of a hall — go in their own bucket and keep the flat
+  // survey slab material, because the storey above is directly overhead and a
+  // hole in the ceiling looks straight up into its floorboards.
+  const BARE = {mats:avgMats(), bare:true};
+  const runs = new Map();
+  for (let j=0;j<nz;j++){
+    for (let i=0;i<nx;){
+      const cell = own[j*nx+i];
+      if (cell === false){ i++; continue; }
+      const r = cell && cell.mats ? cell : BARE;
+      let e = i;
+      while (e+1 < nx && (own[j*nx+e+1] && own[j*nx+e+1].mats ? own[j*nx+e+1] : BARE) === r) e++;
+      if (!runs.has(r)) runs.set(r, []);
+      runs.get(r).push([b.x0 + i*g, b.x0 + (e+1)*g, b.z0 + j*g, b.z0 + (j+1)*g]);
+      i = e + 1;
+    }
+  }
+  for (const [room, quads] of runs){
+    for (const [kind, host, y, up] of [
+      ['floor', L.roomFloor, L.elevation + 0.006, 1],
+      ['ceil',  L.roomCeil,  L.elevation + L.ceiling, -1]]){
+      const mat = room.mats[kind];
+      if (!mat) continue;
+      const pos = [], uv = [], nor = [], T = TILE[kind];
+      for (const [x0,x1,z0,z1] of quads){
+        const c = [[x0,z0],[x1,z0],[x1,z1],[x0,z1]];
+        for (const t of [0,2,1, 0,3,2]){
+          const [x,z] = c[t];
+          pos.push(x, y, z); uv.push(x/T, z/T); nor.push(0, up, 0);
+        }
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+      geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
+      paintSky(geo, L.sky, null, kind === 'ceil' ? 0.86 : 1.0, kind === 'floor' ? 0.07 : 0.05);
+      host.add(new THREE.Mesh(geo, mat));
+    }
+    // Downlights on a 2.4 m grid over the room's own ceiling. They are lamps to
+    // look at rather than lamps that light: one light per room would mean a
+    // dozen in a single forward-rendered pass.
+    if (room.bare) continue;
+    const seen = new Set();
+    for (const [x0,x1,z0,z1] of quads){
+      const gz = Math.round((z0+z1)/2/2.4)*2.4;
+      if (Math.abs(gz - (z0+z1)/2) > 0.06) continue;
+      for (let x = Math.ceil(x0/2.4)*2.4; x < x1; x += 2.4){
+        const key = x.toFixed(1) + ',' + gz.toFixed(1);
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const d = new THREE.Mesh(new THREE.CircleGeometry(0.085, 14), MAT.lamp);
+        d.rotation.x = Math.PI/2;
+        d.position.set(x, L.elevation + L.ceiling - 0.012, gz);
+        L.roomCeil.add(d);
+      }
+    }
+  }
+}
+
+// Shadow flags are set once, on everything: three skips a mesh's shadow work
+// when the map is off, so leaving them on costs nothing in the survey.
+function castAll(root){
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const m = o.material;
+    const clear = m && (m.transparent || m.isMeshBasicMaterial);
+    o.castShadow = !clear;
+    o.receiveShadow = true;
+  });
+}
+
+function setSurfaces(on){
+  flags.surfaced = on;
+  for (const L of levels){
+    L.roomFloor.visible = on; L.roomCeil.visible = on;
+    const bare = !on || !L.roomFloor.children.length;
+    for (const m of L.slabs) m.visible = bare;
+    for (const m of L.caps)  m.visible = bare;
+    for (const p of L.wallMeshes) p.mesh.material = on && p.photo ? p.photo : p.flat;
+    for (const o of L.objMeshes){
+      o.mesh.material = on ? o.real : o.flat;
+      // A built fitting replaces its box outright; the box stays for the survey.
+      if (o.built){ o.built.visible = on; o.mesh.visible = !on; }
+    }
+    for (const g of L.panes) g.material = on ? MAT.pane : MAT.glass;
+    L.trim.visible = on;
+    // The wireframe is how you read a sketch, and the last thing a room needs.
+    for (const w of L.wire) w.visible = !on;
+    castAll(L.group);
+    // The stair marker is a storey-tinted volume. Against flat grey it reads as
+    // a highlight; against paint it reads as a wall someone painted yellow.
+    L.stairMat.opacity = 0.5;
+  }
+  const world = outdoorWorld();
+  if (world){
+    world.group.visible = on;
+    scene.environment = on ? world.env : null;
+  }
+  setLightRig(on);
+  $('surftog').textContent = on ? 'Flat surfaces' : 'Photo surfaces';
+  $('surftog2').textContent = $('surftog').textContent;
+  for (const id of ['surftog','surftog2']) $(id).setAttribute('aria-pressed', String(on));
+}
+
+// ---------- scene/picking.js ------------------------------------------
+// One raycaster for the whole app. Screen pixels in, a ray through the scene
+// out; what each caller does with it — floor, print, wall — is its own business.
+const ray = new THREE.Raycaster();
+const ndc = new THREE.Vector2();
+
+function castFrom(sx, sy){
+  ndc.set((sx/innerWidth)*2 - 1, -(sy/innerHeight)*2 + 1);
+  ray.setFromCamera(ndc, camera);
+  return ray;
+}
+
+// ---------- core/units.js ---------------------------------------------
+let unit = 'm';
+const len = m => unit === 'm' ? m.toFixed(2)+' m' : (m*M2FT).toFixed(1)+' ft';
+const area = a => unit === 'm' ? a.toFixed(1)+' m²' : Math.round(a*10.7639)+' sq ft';
+
+function toggleUnit(){ return unit = unit === 'm' ? 'ft' : 'm'; }
+const unitName = () => unit === 'm' ? 'metres' : 'feet';
+
+// ---------- player/pointing.js ----------------------------------------
+// The cursor addresses the storey you are standing on, so a click means "walk
+// there" rather than "walk to whatever surface the ray happened to strike".
+const ring = new THREE.Mesh(
+  new THREE.RingGeometry(0.25, 0.34, 40),
+  new THREE.MeshBasicMaterial({color:0xF2C230, transparent:true, opacity:0.92,
+    side:THREE.DoubleSide, depthTest:false}));
+ring.rotation.x = -Math.PI/2; ring.renderOrder = 9; ring.visible = false;
+scene.add(ring);
+
+const hit = new THREE.Vector3();
+
+function floorPoint(sx, sy){
+  const L = levels[player.level];
+  castFrom(sx, sy);
+  const plane = new THREE.Plane(new THREE.Vector3(0,1,0), -(L.elevation + 0.01));
+  if (!ray.ray.intersectPlane(plane, hit)) return null;
+  return onFloor(L, hit.x, hit.z) ? {x:hit.x, z:hit.z} : null;
+}
+
+// ---------- player/movement.js ----------------------------------------
+function spawnOn(i, at){
+  const L = levels[i];
+  player.level = i;
+  const ok = at && onFloor(L, at.x, at.z);
+  player.x = ok ? at.x : L.spawn.x;
+  player.z = ok ? at.z : L.spawn.z;
+  player.vx = player.vz = 0;
+  if (!ok) player.yaw = Math.atan2(-(0 - player.x), -(0 - player.z)) + Math.PI;
+  nav.lastGood = {x:player.x, z:player.z};
+  nav.goTarget = null; nav.hover = null; nav.stuckT = 0;
+  ring.material.color.setHex(L.tint);
+  document.documentElement.style.setProperty('--accent',
+    '#' + L.tint.toString(16).padStart(6,'0'));
+  paintStoreys(); $('plan-name').textContent = L.name;
+  paintGap();
+}
+
+function stairsNear(){
+  if (!HOUSE.stairs) return false;
+  return Math.hypot(player.x - HOUSE.stairs.x, player.z - HOUSE.stairs.z) < 2.4;
+}
+
+function useStairs(){
+  const to = player.level === 0 ? 1 : 0;
+  spawnOn(to, HOUSE.stairs);
+}
+
+// ---------- ui/hud.js -------------------------------------------------
+function paintMeta(){
+  const walls = HOUSE.levels.reduce((a,L) => a + L.walls.length, 0);
+  const holes = HOUSE.levels.reduce((a,L) =>
+    a + L.walls.reduce((b,w) => b + w.holes.length, 0), 0);
+  const fits  = HOUSE.levels.reduce((a,L) => a + L.objects.length, 0);
+  $('m-name').textContent = HOUSE.name;
+  $('g-name').textContent = HOUSE.name;
+  $('m-dev').textContent = [HOUSE.device, HOUSE.os && 'iOS ' + HOUSE.os]
+    .filter(Boolean).join(' · ');
+  const shots = PHOTOS ? PHOTOS.length : 0;
+  $('g-counts').textContent =
+    `${walls} walls, ${holes} door and window openings, ${fits} fittings`
+    + (shots ? `, and ${shots} photographs the rooms take their surfaces from` : '');
+  $('m-shots').hidden = !shots;
+  $('m-nshots').textContent = shots;
+  $('m-area').textContent = area(HOUSE.levels.reduce((a,L) => a + L.areaSqM, 0));
+  const many = HOUSE.levels.length > 1;
+  $('m-storeys').hidden = !many;
+  $('rise-row').hidden = !many;
+  if (many){
+    $('m-nlev').textContent = HOUSE.levels.length;
+    $('m-rise').textContent = len(HOUSE.storeyRise);
+    $('rise-v').textContent = '+' + len(HOUSE.storeyRise);
+  }
+}
+function paintStoreys(){
+  const host = $('storeys');
+  host.innerHTML = '';
+  [...levels].reverse().forEach(L => {
+    const i = levels.indexOf(L);
+    const b = document.createElement('button');
+    b.className = 'storey hit';
+    b.setAttribute('aria-current', String(i === player.level));
+    b.style.setProperty('--tint', '#' + L.tint.toString(16).padStart(6,'0'));
+    b.innerHTML =
+      `<span class="lvl">${L.elevation > 0 ? '+' : ''}${L.elevation.toFixed(2)}</span>` +
+      `<span><span class="nm">${L.name}</span><span class="sub">` +
+      `${L.walls.length} walls · ${len(L.ceiling)} ceiling</span></span>` +
+      `<span class="ar">${area(L.areaSqM)}</span>`;
+    b.onclick = () => spawnOn(i, HOUSE.stairs);
+    host.appendChild(b);
+  });
+}
+
+function whereAmI(){
+  const L = levels[player.level];
+  // photos.json names rooms RoomPlan had no label for — great room, entry,
+  // laundry — so it answers first where it has an answer.
+  const room = roomAt(L, player.x, player.z);
+  if (room) return room.name;
+  let best = null, bd = 1e9;
+  for (const s of L.sections){
+    const d = Math.hypot(s.x - player.x, s.z - player.z);
+    if (d < bd){ bd = d; best = s; }
+  }
+  return best ? titleise(best.label) : L.name;
+}
+
+// ---------- ui/modes.js -----------------------------------------------
+function syncCursor(){
+  const walking = view.mode === 'walk';
+  $('cross').hidden = !(walking && pointer.lockLook);
+  canvas.style.cursor = focus.hoverShot && !pointer.lockLook ? 'pointer'
+    : !walking ? 'grab' : pointer.lockLook ? 'none' : 'crosshair';
+  $('looktog').textContent = pointer.lockLook ? 'Free cursor' : 'Mouse look';
+  paintShot();
+}
+let litShot = null;
+function paintShot(){
+  const ph = focus.lbShot ? null : focus.hoverShot;
+  if (ph === litShot) return;
+  if (litShot && litShot.frame) litShot.frame.material = frameMat;
+  litShot = ph;
+  $('shot').hidden = !ph;
+  if (!ph) return;
+  if (ph.frame){
+    frameLit.color.setHex(levels[player.level].tint);
+    ph.frame.material = frameLit;
+  }
+  $('shot-room').textContent = ph.room;
+  $('shot-cap').textContent = ph.caption || '';
+}
+function toWalk(lock){
+  view.mode = 'walk';
+  $('gate').hidden = true; $('viewbar').hidden = true;
+  $('walkbar').hidden = false; $('here').hidden = false;
+  setLook(!!lock);
+}
+function setLook(on){
+  pointer.lockLook = on;
+  if (on) canvas.requestPointerLock?.();
+  else document.exitPointerLock?.();
+  syncCursor();
+}
+function toView(){
+  view.mode = 'view';
+  pointer.lockLook = false; nav.goTarget = null; nav.hover = null; focus.hoverShot = null; ring.visible = false;
+  document.exitPointerLock?.();
+  $('viewbar').hidden = false; $('walkbar').hidden = true;
+  $('here').hidden = true; $('prompt').hidden = true;
+  syncCursor();
+}
+
+function setFurniture(on){
+  flags.showFurniture = on;
+  for (const L of levels) L.furn.visible = on;
+  for (const id of ['furntog','furntog2']){
+    $(id).textContent = on ? 'Hide furniture' : 'Show furniture';
+    $(id).setAttribute('aria-pressed', String(!on));
+  }
+}
+function paintGap(){
+  const L = levels[player.level];
+  $('gap').hidden = L.sealed.area < 1;
+  $('gap-a').textContent = area(L.sealed.area);
+}
+function setGhost(on){
+  flags.ghost = on;
+  $('ghosttog').textContent = on ? 'Solid walls' : 'Pass through walls';
+  $('ghosttog').setAttribute('aria-pressed', String(on));
+}
+
+// Eye height. Kept per browser: it is a property of the viewer and their screen,
+// not of the scan, so it should outlive a reload.
+function setEye(m){
+  flags.eyeH = clamp(m, 1.15, 1.80);
+  $('eyeh').value = flags.eyeH;
+  $('eyeh-v').textContent = len(flags.eyeH);
+  try { localStorage.setItem('storeywalk.eye', flags.eyeH); } catch {}
+}
+
+// Every control the two toolbars carry, wired in one place.
+function initControls(){
+  // Esc gives the pointer back; walking carries on with the cursor free.
+  document.addEventListener('pointerlockchange', () => {
+    if (pointer.lockLook && document.pointerLockElement !== canvas){ pointer.lockLook = false; syncCursor(); }
+  });
+  $('start').onclick   = () => toWalk(false);
+  $('walkbtn').onclick = () => toWalk(false);
+  $('looktog').onclick = () => setLook(!pointer.lockLook);
+  $('backview').onclick = toView;
+  $('surftog').onclick   = () => setSurfaces(!flags.surfaced);
+  $('surftog2').onclick  = () => setSurfaces(!flags.surfaced);
+  $('printtog').onclick  = () => setPrints(!flags.showPrints);
+  $('printtog2').onclick = () => setPrints(!flags.showPrints);
+  $('ghosttog').onclick = () => setGhost(!flags.ghost);
+  $('furntog').onclick  = () => setFurniture(!flags.showFurniture);
+  $('furntog2').onclick = () => setFurniture(!flags.showFurniture);
+  $('justlook').onclick = () => { $('gate').hidden = true; toView(); };
+  $('explode').oninput = e => { view.explode = +e.target.value; };
+
+  $('eyeh').oninput = e => setEye(+e.target.value);
+  let saved = null;
+  try { saved = localStorage.getItem('storeywalk.eye'); } catch {}
+  setEye(saved === null ? EYE : +saved || EYE);
+
+  $('units').onclick = () => {
+    const u = toggleUnit();
+    $('units').textContent = u;
+    $('sec-unit').textContent = unitName();
+    paintMeta(); paintStoreys(); paintGap();
+    $('eyeh-v').textContent = len(flags.eyeH);
+  };
+}
+
+// ---------- photo/prints.js -------------------------------------------
+// The photographs themselves, hung on the wall of the room they came from. The
+// surfaces are the point now, so these are off until asked for — they are how
+// you get from a room back to the picture its paint was lifted out of.
+const PH_H = 0.94;        // picture height where the wall allows it
+const PH_MID = 1.50;      // hung just under eye level
+const SLOT = 1.36;        // wall frontage one picture claims
+const MIN_SPAN = 0.80;    // narrowest stretch worth hanging on
+const MIN_TALL = 0.66;    // shortest clear band worth hanging in
+const PH_SPREAD = 1.5;    // keep this much between two pictures
+const PH_REACH = 7.5;     // how far from the anchor a wall may be
+
+// Every place on this storey a picture could hang, nearest the anchor first.
+// panels() has already cut the openings out, so a slot is solid wall by
+// construction — a print never lands over a door or a window, and a stretch too
+// narrow or too short for a full-size picture takes a smaller one instead.
+function photoSlots(L, at, rivals){
+  const out = [];
+  for (const w of L.walls){
+    for (const q of panels(w.w, w.h, w.holes)){
+      const span = q.x1 - q.x0;
+      if (span < MIN_SPAN) continue;
+      const bot = Math.max(w.c[1] + q.y0 - L.elevation, 0.72) + 0.04;
+      const top = Math.min(w.c[1] + q.y1 - L.elevation, 2.32) - 0.04;
+      if (top - bot < MIN_TALL) continue;
+      const n = Math.max(1, Math.floor(span/SLOT));
+      for (let i=0;i<n;i++){
+        const off = q.x0 + span*(i + 0.5)/n;
+        const x = w.c[0] + Math.cos(w.yaw)*off;
+        const z = w.c[2] - Math.sin(w.yaw)*off;
+        const d = Math.hypot(x - at[0], z - at[1]);
+        if (d > PH_REACH) continue;
+        // A wall has two faces; the picture goes on the one the room is on.
+        const face = Math.sin(w.yaw)*(at[0] - x) + Math.cos(w.yaw)*(at[1] - z) >= 0 ? 1 : -1;
+        // Sight alone leaks through doorways — a header is not a blocker, so the
+        // far wall of the next room is in plain view. Whoever's anchor is nearest
+        // the spot in front of the wall owns it.
+        const fx = x + Math.sin(w.yaw)*face*0.3, fz = z + Math.cos(w.yaw)*face*0.3;
+        const mine = Math.hypot(fx - at[0], fz - at[1]);
+        if (rivals.some(r => Math.hypot(fx - r[0], fz - r[1]) < mine - 0.25)) continue;
+        out.push({x, z, yaw:w.yaw, face, d, wide:span/n, bot, top});
+      }
+    }
+  }
+  return out.sort((a,b) => a.d - b.d);
+}
+
+// Same room, or merely the same storey? Walk the line and see: it has to stay on
+// the floor and clear of every body-height panel, which is exactly the test for
+// "you could stand in the room and look straight at it".
+function inSight(L, at, m){
+  const bx = m.x + Math.sin(m.yaw)*m.face*0.28, bz = m.z + Math.cos(m.yaw)*m.face*0.28;
+  const n = Math.max(2, Math.ceil(Math.hypot(bx - at[0], bz - at[1])/0.22));
+  for (let i=1;i<=n;i++){
+    const t = i/n, x = at[0] + (bx - at[0])*t, z = at[1] + (bz - at[1])*t;
+    if (!onFloor(L, x, z)) return false;
+    for (const b of L.blockers) if (blocks(x, z, b, 0.07)) return false;
+  }
+  return true;
+}
+
+// Give every print a wall in its own room. Only the spacing gives — a picture
+// that cannot find room here is left for the lightbox rather than hung next door.
+function placeRoom(L, at, rivals, n){
+  const slots = photoSlots(L, at, rivals).filter(m => inSight(L, at, m));
+  const out = [];
+  for (const gap of [PH_SPREAD, 0.95, 0.5, 0]){
+    for (const m of slots){
+      if (out.length >= n) return out;
+      if (out.includes(m)) continue;
+      if (out.some(o => Math.hypot(o.x - m.x, o.z - m.z) < gap)) continue;
+      out.push(m);
+    }
+  }
+  return out;
+}
+
+// How big the picture can be here, and where its centre lands: as close to
+// PH_MID as the clear band allows, never wider than the stretch of wall.
+function fitPhoto(m, aspect){
+  let h = Math.min(PH_H, m.top - m.bot);
+  let w = h*aspect;
+  if (w > m.wide - 0.12){ w = m.wide - 0.12; h = w/aspect; }
+  return {w, h, y: clamp(PH_MID, m.bot + h/2, m.top - h/2)};
+}
+
+const frameMat = new THREE.MeshBasicMaterial({color:0x10151C});
+const frameLit = new THREE.MeshBasicMaterial({color:0xF2C230});
+
+function hangPrints(){
+  for (const room of photoRooms){
+    const L = levels[room.level];
+    if (!L) continue;
+    const rivals = photoRooms.filter(r => r !== room && r.level === room.level).map(r => r.at);
+    const mounts = placeRoom(L, room.at, rivals, room.shots.length);
+    room.shots.forEach((ph, i) => {
+      ph.room_ = room; ph.index = i;
+      const m = mounts[i];
+      // No wall wide enough: the picture is still in the room's reel, reachable
+      // with the arrow keys from any of its neighbours.
+      if (!m || !ph.img) return;
+      const fit = fitPhoto(m, ph.img.naturalWidth/ph.img.naturalHeight || 4/3);
+      const g = new THREE.Group();
+      g.position.set(m.x + Math.sin(m.yaw)*m.face*(WALL_T/2 + 0.012),
+                     L.elevation + fit.y,
+                     m.z + Math.cos(m.yaw)*m.face*(WALL_T/2 + 0.012));
+      g.rotation.y = m.face > 0 ? m.yaw : m.yaw + Math.PI;
+      L.prints.add(g);
+
+      // Square power-of-two canvas: WebGL1 only mipmaps those, and the stretch
+      // is undone exactly by the picture's own aspect, so nothing looks squashed.
+      const cv = document.createElement('canvas');
+      cv.width = cv.height = 512;
+      cv.getContext('2d').drawImage(ph.img, 0, 0, 512, 512);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.encoding = THREE.sRGBEncoding;
+      tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+      const frame = new THREE.Mesh(new THREE.PlaneGeometry(fit.w + 0.06, fit.h + 0.06), frameMat);
+      const pic = new THREE.Mesh(new THREE.PlaneGeometry(fit.w, fit.h),
+                                 new THREE.MeshBasicMaterial({map:tex}));
+      pic.position.z = 0.004;
+      g.add(frame); g.add(pic);
+
+      pic.userData.ph = ph;
+      ph.frame = frame; ph.slot = m; ph.mark = {x:m.x, z:m.z, yaw:m.yaw};
+      L.shots.push(pic);
+    });
+  }
+}
+
+function setPrints(on){
+  flags.showPrints = on;
+  for (const L of levels) L.prints.visible = on;
+  if (!on){ focus.hoverShot = null; paintShot(); }
+  for (const id of ['printtog','printtog2']){
+    $(id).textContent = on ? 'Hide prints' : 'Show prints';
+    $(id).setAttribute('aria-pressed', String(on));
+  }
+}
+
+// Which print the cursor is on. Only this storey's while walking — from
+// downstairs you should not be able to reach through the ceiling — and only one
+// standing between you and it, since the ray itself passes through walls.
+function shotAt(sx, sy){
+  if (!flags.showPrints) return null;
+  const pool = view.mode === 'walk' ? levels[player.level].shots
+                               : levels.flatMap(L => L.shots);
+  if (!pool.length) return null;
+  castFrom(sx, sy);
+  const h = ray.intersectObjects(pool, false);
+  if (!h.length) return null;
+  const ph = h[0].object.userData.ph;
+  if (view.mode === 'view') return ph;
+  return h[0].distance < 14 && inSight(levels[player.level], [player.x, player.z], ph.slot)
+    ? ph : null;
+}
+
+// Click the wall itself and you get the pictures its paint came from. The room
+// is read off the face you hit, not off where you are standing, so a wall seen
+// through a doorway answers for the room on the far side.
+function wallShotAt(sx, sy){
+  const L = levels[player.level];
+  castFrom(sx, sy);
+  const h = ray.intersectObjects(L.wallMeshes.map(p => p.mesh), false);
+  if (!h.length || h[0].distance > 14) return null;
+  const n = h[0].face.normal.clone().applyQuaternion(h[0].object.getWorldQuaternion(new THREE.Quaternion()));
+  const p = h[0].point.clone().addScaledVector(n, 0.3);
+  const room = roomAt(L, p.x, p.z);
+  return room && room.shots.length ? room.shots[0] : null;
+}
+
+// ---------- photo/dress.js --------------------------------------------
+// Everything the photographs pay for, in the order it has to happen. They are
+// already in the file as data URIs, so this is a decode, not a fetch — a few
+// hundred milliseconds during which the house is the flat survey it was before.
+function dressHouse(){
+  if (!photoRooms.length){
+    for (const id of ['surftog','surftog2','printtog','printtog2']) $(id).hidden = true;
+    return;
+  }
+  let left = 0, started = false;
+  const flat = why => {
+    console.warn('storeywalk: ' + why + ' The house stays the flat survey. Serve '
+      + 'the folder (npm start), or build with --inline-photos for one portable file.');
+    for (const id of ['surftog','surftog2','printtog','printtog2']) $(id).hidden = true;
+  };
+  const settle = () => {
+    if (--left > 0) return;
+    const first = photoRooms.flatMap(r => r.shots).find(ph => ph.img);
+    if (!first) return flat('none of the photographs loaded.');
+    if (!canReadPixels(first.img))
+      return flat('the photographs are linked files and this page is not being served, '
+                  + 'so the browser will not let their pixels be read.');
+    for (const r of photoRooms) r.mats = dressRoom(r);
+    // A room photographed from its doorway can show no floor at all — the
+    // kitchen's bottom band is worktop — so photos.json may name a room to
+    // borrow the boards from.
+    for (const r of photoRooms){
+      if (!r.floorFrom || !r.mats) continue;
+      const donor = photoRooms.find(d => d.name === r.floorFrom && d.level === r.level);
+      if (donor && donor.mats && donor.mats.floor) r.mats.floor = donor.mats.floor;
+    }
+    computeAverage();
+    buildOutdoors();
+    for (const L of levels){
+      L.sky = bakeSky(L);
+      dressWalls(L); dressSlabs(L);
+    }
+    hangPrints();
+    // The full-size decodes have done their work; hold only the canvases.
+    for (const r of photoRooms) for (const ph of r.shots) ph.img = null;
+    setSurfaces(true);
+    setPrints(false);
+  };
+  for (const r of photoRooms) for (const ph of r.shots){
+    left++;
+    const img = new Image();
+    img.onload = () => { ph.img = img; settle(); };
+    img.onerror = settle;
+    img.src = ph.src;
+  }
+  started = left > 0;
+  if (!started) settle();
+}
+
+// ---------- ui/lightbox.js --------------------------------------------
+function openShot(ph){
+  focus.lbShot = ph;
+  document.exitPointerLock?.();
+  $('lb-img').src = ph.src;
+  $('lb-img').alt = ph.room + ' — ' + (ph.caption || 'room photograph');
+  $('lb-room').textContent = ph.room;
+  $('lb-cap').textContent = ph.caption || '';
+  $('lb-of').textContent = `${ph.index + 1} / ${ph.room_.shots.length}`;
+  const many = ph.room_.shots.length > 1;
+  $('lb-prev').hidden = $('lb-next').hidden = !many;
+  $('lb').hidden = false;
+  paintShot();
+}
+function stepShot(d){
+  if (!focus.lbShot) return;
+  const list = focus.lbShot.room_.shots;
+  openShot(list[(focus.lbShot.index + d + list.length) % list.length]);
+}
+function closeShot(){
+  focus.lbShot = null;
+  $('lb').hidden = true;
+  $('lb-img').removeAttribute('src');
+  focus.hoverShot = null;
+  syncCursor();
+}
+
+function initLightbox(){
+  $('lb-x').onclick = closeShot;
+  $('lb-prev').onclick = () => stepShot(-1);
+  $('lb-next').onclick = () => stepShot(1);
+  $('lb').addEventListener('mousedown', e => { if (e.target === $('lb')) closeShot(); });
+}
+
+// ---------- render/passes.js ------------------------------------------
+// three.js ships its post-processing in examples/js, and this file loads only
+// the core UMD build, so the chain is written out here. Five passes: the scene
+// into a linear buffer, ambient occlusion off the depth, a bloom pyramid, a
+// composite that also does depth-of-field and ACES, and FXAA to put the edges
+// back that rendering off-screen took away.
+//
+// It runs only over the dressed house. The survey wants to be legible, not
+// photographed, and a crisp aliased edge is easier to measure against.
+const QUAD = (() => {
+  // One triangle rather than two: no seam down the diagonal, one fewer vertex.
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([-1,-1,0, 3,-1,0, -1,3,0], 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute([0,0, 2,0, 0,2], 2));
+  const mesh = new THREE.Mesh(g, null);
+  mesh.frustumCulled = false;
+  const sc = new THREE.Scene(); sc.add(mesh);
+  return {sc, cam:new THREE.OrthographicCamera(-1,1,1,-1,0,1), mesh};
+})();
+
+const VERT = `
+varying vec2 vUv;
+void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+
+const shader = (uniforms, frag) => new THREE.ShaderMaterial({
+  uniforms, vertexShader:VERT, fragmentShader:frag, depthTest:false, depthWrite:false});
+
+function draw(mat, target){
+  QUAD.mesh.material = mat;
+  renderer.setRenderTarget(target || null);
+  renderer.render(QUAD.sc, QUAD.cam);
+}
+
+// Depth textures are core in WebGL2 and an extension before it. Without one
+// there is no occlusion and no focus, so the chain steps aside entirely.
+const CAN_POST = renderer.capabilities.isWebGL2 ||
+                 !!renderer.extensions.get('WEBGL_depth_texture');
+
+// Depth is the only geometry the post chain gets, so both the occlusion and the
+// circle of confusion are read back out of it.
+const DEPTH_FNS = `
+uniform sampler2D tDepth;
+uniform mat4 uProjInv;
+uniform float uNear, uFar;
+float linearise(float d){
+  float z = d * 2.0 - 1.0;
+  return (2.0 * uNear * uFar) / (uFar + uNear - z * (uFar - uNear));
+}
+vec3 viewPos(vec2 uv){
+  float d = texture2D(tDepth, uv).x;
+  vec4 c = uProjInv * vec4(uv * 2.0 - 1.0, d * 2.0 - 1.0, 1.0);
+  return c.xyz / c.w;
+}`;
+
+// Horizon-free hemisphere SSAO. Normals are rebuilt from the depth derivatives
+// rather than rendered again: one less full pass over the scene, and at this
+// radius the difference does not survive the blur anyway.
+const aoMat = shader({
+  tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
+  uNear:{value:0.05}, uFar:{value:260}, uTexel:{value:new THREE.Vector2()},
+  uRadius:{value:0.55}, uBias:{value:0.028}, uProj:{value:new THREE.Matrix4()},
+}, DEPTH_FNS + `
+varying vec2 vUv;
+uniform vec2 uTexel;
+uniform float uRadius, uBias;
+uniform mat4 uProj;
+const int K = 12;
+// A spiral, not a random cloud: even coverage from few taps.
+vec3 kernel(int i){
+  float f = (float(i) + 0.5) / float(K);
+  float a = float(i) * 2.39996;
+  float r = pow(f, 0.7);
+  return vec3(cos(a) * r, sin(a) * r, 0.35 + 0.65 * f);
+}
+void main(){
+  vec3 p = viewPos(vUv);
+  if (-p.z > uFar * 0.5){ gl_FragColor = vec4(1.0); return; }
+  vec3 n = normalize(cross(dFdx(p), dFdy(p)));
+  if (dot(n, -normalize(p)) < 0.0) n = -n;      // the hemisphere faces the viewer
+  float rot = fract(sin(dot(vUv, vec2(12.9898, 78.233))) * 43758.5453) * 6.2831853;
+  float ca = cos(rot), sa = sin(rot);
+  vec3 t = normalize(abs(n.z) < 0.9 ? cross(n, vec3(0.0,0.0,1.0)) : vec3(1.0,0.0,0.0));
+  vec3 b = cross(n, t);
+  float occ = 0.0;
+  for (int i = 0; i < K; i++){
+    vec3 k = kernel(i);
+    vec2 rk = vec2(k.x * ca - k.y * sa, k.x * sa + k.y * ca);
+    vec3 s = p + (t * rk.x + b * rk.y + n * k.z) * uRadius;
+    vec4 clip = uProj * vec4(s, 1.0);
+    vec2 suv = clip.xy / clip.w * 0.5 + 0.5;
+    if (suv.x < 0.0 || suv.x > 1.0 || suv.y < 0.0 || suv.y > 1.0) continue;
+    float sz = viewPos(suv).z;
+    float range = smoothstep(0.0, 1.0, uRadius / max(0.0001, abs(p.z - sz)));
+    occ += (sz >= s.z + uBias ? 1.0 : 0.0) * range;
+  }
+  gl_FragColor = vec4(vec3(clamp(1.0 - occ / float(K), 0.0, 1.0)), 1.0);
+}`);
+aoMat.extensions = {derivatives:true};
+
+const blurMat = shader({
+  tSrc:{value:null}, uDir:{value:new THREE.Vector2()},
+}, `
+varying vec2 vUv;
+uniform sampler2D tSrc;
+uniform vec2 uDir;
+void main(){
+  vec4 s = texture2D(tSrc, vUv) * 0.2270270;
+  s += (texture2D(tSrc, vUv + uDir * 1.3846153) +
+        texture2D(tSrc, vUv - uDir * 1.3846153)) * 0.3162162;
+  s += (texture2D(tSrc, vUv + uDir * 3.2307692) +
+        texture2D(tSrc, vUv - uDir * 3.2307692)) * 0.0702702;
+  gl_FragColor = s;
+}`);
+
+// Only what is brighter than the room blooms — which, indoors, means the
+// windows and the downlights, and that is exactly what blooms in a photograph.
+const brightMat = shader({
+  tSrc:{value:null}, uCut:{value:1.55}, uKnee:{value:0.6},
+}, `
+varying vec2 vUv;
+uniform sampler2D tSrc;
+uniform float uCut, uKnee;
+void main(){
+  vec3 c = texture2D(tSrc, vUv).rgb;
+  float l = max(c.r, max(c.g, c.b));
+  gl_FragColor = vec4(c * smoothstep(uCut - uKnee, uCut + uKnee, l), 1.0);
+}`);
+
+// Screen-space reflection, floors only. There is no G-buffer here, so which
+// pixels are floor is decided the only way available: rebuild the normal from
+// depth and keep the ones facing up. A ray is walked in view space and the
+// colour buffer read where it lands — so the floor reflects the room, the
+// window and the light in it, which is what a polished board actually does and
+// what an environment map alone can never give. What is off-screen is not
+// reflected; that is the standing bargain with this technique.
+const ssrMat = shader({
+  tColor:{value:null}, tDepth:{value:null},
+  uProj:{value:new THREE.Matrix4()}, uProjInv:{value:new THREE.Matrix4()},
+  uNear:{value:0.05}, uFar:{value:260},
+  uUp:{value:new THREE.Vector3(0,1,0)}, uStride:{value:0.34},
+}, DEPTH_FNS + `
+varying vec2 vUv;
+uniform sampler2D tColor;
+uniform mat4 uProj;
+uniform vec3 uUp;
+uniform float uStride;
+void main(){
+  vec3 p = viewPos(vUv);
+  if (-p.z > 40.0){ gl_FragColor = vec4(0.0); return; }
+  // A depth-derived normal comes out with whichever sign the derivatives give,
+  // so it is turned to face the camera — which is the only way a visible
+  // surface can point. Flipping it toward world up instead, as this first did,
+  // makes every ceiling pass for a floor and reflect the room onto itself.
+  vec3 n = normalize(cross(dFdx(p), dFdy(p)));
+  if (dot(n, -normalize(p)) < 0.0) n = -n;
+  if (dot(n, uUp) < 0.80){ gl_FragColor = vec4(0.0); return; }
+  vec3 r = reflect(normalize(p), n);
+  vec3 q = p;
+  float stride = uStride * (1.0 + fract(sin(dot(vUv, vec2(12.9898, 78.233))) * 43758.5453) * 0.4);
+  for (int i = 0; i < 22; i++){
+    q += r * stride;
+    vec4 c = uProj * vec4(q, 1.0);
+    vec2 uv = c.xy / c.w * 0.5 + 0.5;
+    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) break;
+    float sz = viewPos(uv).z;
+    if (sz > q.z + 0.03 && sz < q.z + 1.4){
+      vec2 e = abs(uv - 0.5) * 2.0;
+      float edge = smoothstep(1.0, 0.62, max(e.x, e.y));
+      float run = 1.0 - float(i) / 22.0;
+      gl_FragColor = vec4(texture2D(tColor, uv).rgb, edge * run);
+      return;
+    }
+    stride *= 1.14;
+  }
+  gl_FragColor = vec4(0.0);
+}`);
+ssrMat.extensions = {derivatives:true};
+
+const compMat = shader({
+  tColor:{value:null}, tAO:{value:null}, tBloom:{value:null}, tFar:{value:null},
+  tSSR:{value:null}, uSSR:{value:0.30},
+  tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
+  uNear:{value:0.05}, uFar:{value:260},
+  uExposure:{value:1.06}, uBloom:{value:0.14}, uAO:{value:0.72},
+  uFocus:{value:5.5}, uRange:{value:16.0}, uDof:{value:0.55},
+  uVignette:{value:0.22}, uGrain:{value:0.012}, uTime:{value:0},
+}, DEPTH_FNS + `
+varying vec2 vUv;
+uniform sampler2D tColor, tAO, tBloom, tFar, tSSR;
+uniform float uExposure, uBloom, uAO, uFocus, uRange, uDof, uVignette, uGrain, uTime, uSSR;
+
+// ACES, fitted. Rolls the window highlights off instead of clipping them white.
+vec3 aces(vec3 x){
+  return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0);
+}
+void main(){
+  vec3 col = texture2D(tColor, vUv).rgb;
+
+  // Depth of field. The eye holds a room at about four metres; everything
+  // nearer and further goes soft, which is most of why a still looks taken
+  // rather than drawn.
+  float z = linearise(texture2D(tDepth, vUv).x);
+  float coc = clamp(abs(z - uFocus) / uRange, 0.0, 1.0) * uDof;
+  col = mix(col, texture2D(tFar, vUv).rgb, coc * coc);
+
+  vec4 ssr = texture2D(tSSR, vUv);
+  col += ssr.rgb * ssr.a * uSSR;
+
+  col *= mix(1.0, texture2D(tAO, vUv).r, uAO);
+  col += texture2D(tBloom, vUv).rgb * uBloom;
+  col = aces(col * uExposure);
+
+  vec2 d = vUv - 0.5;
+  col *= 1.0 - uVignette * dot(d, d) * 1.9;
+
+  // Grain last, and in display space, so it reads as film rather than noise.
+  float g = fract(sin(dot(vUv * (1.0 + uTime), vec2(12.9898, 78.233))) * 43758.5453);
+  col += (g - 0.5) * uGrain;
+
+  gl_FragColor = vec4(pow(max(col, 0.0), vec3(0.4545454)), 1.0);
+}`);
+
+// Rendering off-screen loses the multisampling, so the edges come back here.
+const fxaaMat = shader({
+  tSrc:{value:null}, uTexel:{value:new THREE.Vector2()},
+}, `
+varying vec2 vUv;
+uniform sampler2D tSrc;
+uniform vec2 uTexel;
+float lum(vec3 c){ return dot(c, vec3(0.299, 0.587, 0.114)); }
+void main(){
+  vec3 m  = texture2D(tSrc, vUv).rgb;
+  float lM = lum(m);
+  float lNW = lum(texture2D(tSrc, vUv + vec2(-1.0, -1.0) * uTexel).rgb);
+  float lNE = lum(texture2D(tSrc, vUv + vec2( 1.0, -1.0) * uTexel).rgb);
+  float lSW = lum(texture2D(tSrc, vUv + vec2(-1.0,  1.0) * uTexel).rgb);
+  float lSE = lum(texture2D(tSrc, vUv + vec2( 1.0,  1.0) * uTexel).rgb);
+  float lMin = min(lM, min(min(lNW, lNE), min(lSW, lSE)));
+  float lMax = max(lM, max(max(lNW, lNE), max(lSW, lSE)));
+  if (lMax - lMin < max(0.0312, lMax * 0.125)){ gl_FragColor = vec4(m, 1.0); return; }
+  vec2 dir = vec2(-((lNW + lNE) - (lSW + lSE)), ((lNW + lSW) - (lNE + lSE)));
+  float red = max((lNW + lNE + lSW + lSE) * 0.03125, 0.0078125);
+  float sc = 1.0 / (min(abs(dir.x), abs(dir.y)) + red);
+  dir = clamp(dir * sc, -8.0, 8.0) * uTexel;
+  vec3 a = 0.5 * (texture2D(tSrc, vUv + dir * (1.0/3.0 - 0.5)).rgb +
+                  texture2D(tSrc, vUv + dir * (2.0/3.0 - 0.5)).rgb);
+  vec3 b = a * 0.5 + 0.25 * (texture2D(tSrc, vUv - dir * 0.5).rgb +
+                             texture2D(tSrc, vUv + dir * 0.5).rgb);
+  float lB = lum(b);
+  gl_FragColor = vec4((lB < lMin || lB > lMax) ? a : b, 1.0);
+}`);
+
+// Five full-screen passes and a 2048 shadow map is a lot to ask of a laptop
+// running this off a CDN. If the frame budget goes for a couple of seconds the
+// lens comes off by itself — once, and never again if the reader has an opinion.
+let postForced = false, slowFor = 0;
+function watchBudget(dt){
+  if (postForced || !postOn || !flags.surfaced) return;
+  slowFor = dt > 0.055 ? slowFor + dt : 0;
+  if (slowFor > 2.2){ postOn = false; slowFor = 0; }
+}
+
+const RTS = {};
+let postOn = CAN_POST, postReady = false;
+function makeTargets(w, h){
+  if (!CAN_POST) return;
+  for (const k in RTS){ RTS[k].dispose(); delete RTS[k]; }
+  const hdr = renderer.capabilities.isWebGL2 ? THREE.HalfFloatType : THREE.UnsignedByteType;
+  const opt = t => ({minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter,
+                     format:THREE.RGBAFormat, type:t, depthBuffer:true, stencilBuffer:false});
+  RTS.scene = new THREE.WebGLRenderTarget(w, h, opt(hdr));
+  RTS.scene.depthTexture = new THREE.DepthTexture(w, h);
+  RTS.scene.depthTexture.type = renderer.capabilities.isWebGL2
+    ? THREE.UnsignedIntType : THREE.UnsignedShortType;
+  const half = o => new THREE.WebGLRenderTarget(Math.max(1, w >> 1), Math.max(1, h >> 1), o);
+  const quarter = o => new THREE.WebGLRenderTarget(Math.max(1, w >> 2), Math.max(1, h >> 2), o);
+  RTS.ao  = half(opt(THREE.UnsignedByteType));
+  RTS.aoT = half(opt(THREE.UnsignedByteType));
+  RTS.b0  = half(opt(hdr));
+  RTS.b1  = half(opt(hdr));
+  RTS.q0  = quarter(opt(hdr));
+  RTS.q1  = quarter(opt(hdr));
+  RTS.d0  = quarter(opt(hdr));
+  RTS.d1  = quarter(opt(hdr));
+  RTS.ssr = half(opt(hdr));
+  RTS.comp = new THREE.WebGLRenderTarget(w, h, opt(THREE.UnsignedByteType));
+  for (const k of ['ao','aoT','b0','b1','q0','q1','d0','d1','ssr','comp'])
+    RTS[k].depthBuffer = false;
+  postReady = true;
+}
+
+function blur(src, tmp, dst, texel, spread){
+  blurMat.uniforms.tSrc.value = src.texture;
+  blurMat.uniforms.uDir.value.set(texel.x * spread, 0);
+  draw(blurMat, tmp);
+  blurMat.uniforms.tSrc.value = tmp.texture;
+  blurMat.uniforms.uDir.value.set(0, texel.y * spread);
+  draw(blurMat, dst);
+}
+
+function renderFrame(){
+  if (!postOn || !postReady || !flags.surfaced){
+    renderer.setRenderTarget(null);
+    renderer.render(scene, camera);
+    return;
+  }
+  const w = RTS.scene.width, h = RTS.scene.height;
+
+  renderer.setRenderTarget(RTS.scene);
+  renderer.render(scene, camera);
+
+  const projInv = new THREE.Matrix4().copy(camera.projectionMatrix).invert();
+  for (const m of [aoMat, compMat]){
+    m.uniforms.tDepth.value = RTS.scene.depthTexture;
+    m.uniforms.uProjInv.value.copy(projInv);
+    m.uniforms.uNear.value = camera.near;
+    m.uniforms.uFar.value = camera.far;
+  }
+  aoMat.uniforms.uProj.value.copy(camera.projectionMatrix);
+  const half = new THREE.Vector2(1/(w>>1), 1/(h>>1));
+  const quarter = new THREE.Vector2(1/(w>>2), 1/(h>>2));
+  aoMat.uniforms.uTexel.value.copy(half);
+  draw(aoMat, RTS.ao);
+  // Twelve rotated taps leave a speckle that one narrow blur does not clear —
+  // and a flat ceiling is exactly where it shows. Two widening passes do.
+  blur(RTS.ao, RTS.aoT, RTS.ao, half, 1.7);      // ping-pong: never read what we write
+  blur(RTS.ao, RTS.aoT, RTS.ao, half, 3.1);
+
+  // Reflections before the bloom, while b1 is still free to blur them in.
+  ssrMat.uniforms.tColor.value = RTS.scene.texture;
+  ssrMat.uniforms.tDepth.value = RTS.scene.depthTexture;
+  ssrMat.uniforms.uProjInv.value.copy(projInv);
+  ssrMat.uniforms.uProj.value.copy(camera.projectionMatrix);
+  ssrMat.uniforms.uNear.value = camera.near;
+  ssrMat.uniforms.uFar.value = camera.far;
+  ssrMat.uniforms.uUp.value.set(0, 1, 0).transformDirection(camera.matrixWorldInverse);
+  draw(ssrMat, RTS.ssr);
+  blur(RTS.ssr, RTS.b1, RTS.ssr, half, 1.5);   // gloss, not a mirror
+
+  brightMat.uniforms.tSrc.value = RTS.scene.texture;
+  draw(brightMat, RTS.b0);
+  blur(RTS.b0, RTS.b1, RTS.b0, half, 1.4);
+  // Half to quarter, blurring on the way down: the wide tail of the bloom for
+  // two more passes rather than a fifth of the pyramid.
+  blurMat.uniforms.tSrc.value = RTS.b0.texture;
+  blurMat.uniforms.uDir.value.set(half.x * 2.0, 0);
+  draw(blurMat, RTS.q1);
+  blurMat.uniforms.tSrc.value = RTS.q1.texture;
+  blurMat.uniforms.uDir.value.set(0, quarter.y * 2.0);
+  draw(blurMat, RTS.q0);
+  blur(RTS.q0, RTS.q1, RTS.q0, quarter, 2.4);
+
+  // Out of focus is its own chain. Reusing the bloom pyramid for it was the
+  // obvious economy and quite wrong: that buffer holds the bright pass, so
+  // everything soft came back milky with the windows smeared through it.
+  blurMat.uniforms.tSrc.value = RTS.scene.texture;
+  blurMat.uniforms.uDir.value.set(2.0/w, 0);
+  draw(blurMat, RTS.d1);
+  blurMat.uniforms.tSrc.value = RTS.d1.texture;
+  blurMat.uniforms.uDir.value.set(0, quarter.y * 2.0);
+  draw(blurMat, RTS.d0);
+  blur(RTS.d0, RTS.d1, RTS.d0, quarter, 2.0);
+
+  compMat.uniforms.tColor.value = RTS.scene.texture;
+  compMat.uniforms.tAO.value = RTS.ao.texture;
+  compMat.uniforms.tBloom.value = RTS.q0.texture;
+  compMat.uniforms.tFar.value = RTS.d0.texture;
+  compMat.uniforms.tSSR.value = RTS.ssr.texture;
+  compMat.uniforms.uTime.value = performance.now() * 0.0002;
+  draw(compMat, RTS.comp);
+
+  fxaaMat.uniforms.tSrc.value = RTS.comp.texture;
+  fxaaMat.uniforms.uTexel.value.set(1/w, 1/h);
+  draw(fxaaMat, null);
+}
+
+// The reader's own opinion about the lens, from the Q key.
+function togglePost(){ postOn = !postOn; postForced = true; }
+
+// ---------- player/input.js -------------------------------------------
+// Keyboard, mouse, wheel and touch. Nothing here decides anything: every
+// handler moves a value in core/state.js and lets the frame read it.
+function initInput(){
+  addEventListener('keydown', e => {
+    const k = e.key.toLowerCase();
+    if (focus.lbShot){                                   // the lightbox owns the keyboard
+      if (k === 'escape') closeShot();
+      if (k === 'arrowleft') stepShot(-1);
+      if (k === 'arrowright') stepShot(1);
+      e.preventDefault();
+      return;
+    }
+    keys[k] = true;
+    if (k === 'tab'){ e.preventDefault(); toView(); }
+    if (k === 'f') setFurniture(!flags.showFurniture);
+    if (k === 'p') setSurfaces(!flags.surfaced);
+    if (k === 'o') setPrints(!flags.showPrints);
+    if (k === 'q' && CAN_POST) togglePost();
+    if (k === 'g') setGhost(!flags.ghost);
+    if (k === 'e' && view.mode === 'walk' && stairsNear()) useStairs();
+    const n = parseInt(k, 10);
+    if (view.mode === 'walk' && n >= 1 && n <= levels.length) spawnOn(n - 1, HOUSE.stairs);
+  });
+  addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+  canvas.addEventListener('mousedown', e => {
+    if (e.button !== 0) return;
+    pointer.drag  = {x:e.clientX, y:e.clientY};
+    pointer.press = {x:e.clientX, y:e.clientY, moved:false};
+    if (view.mode === 'walk' && !pointer.lockLook) canvas.style.cursor = 'grabbing';
+  });
+  addEventListener('mousemove', e => {
+    if (view.mode === 'walk' && pointer.lockLook && document.pointerLockElement === canvas){
+      player.yaw   -= e.movementX * 0.0022;
+      player.pitch  = clamp(player.pitch - e.movementY * 0.0022, -1.45, 1.45);
+      return;
+    }
+    if (pointer.press && (Math.abs(e.clientX - pointer.press.x) > 4 || Math.abs(e.clientY - pointer.press.y) > 4))
+      pointer.press.moved = true;
+    if (pointer.drag && pointer.press && pointer.press.moved){
+      if (view.mode === 'walk'){
+        player.yaw   -= (e.clientX - pointer.drag.x) * 0.0045;
+        player.pitch  = clamp(player.pitch - (e.clientY - pointer.drag.y) * 0.0038, -1.45, 1.45);
+      } else {
+        orbit.theta -= (e.clientX - pointer.drag.x) * 0.006;
+        orbit.phi    = clamp(orbit.phi - (e.clientY - pointer.drag.y) * 0.005, 0.12, 1.5);
+      }
+      pointer.drag = {x:e.clientX, y:e.clientY};
+      return;
+    }
+    if (focus.lbShot) return;
+    focus.hoverShot = pointer.lockLook ? null : shotAt(e.clientX, e.clientY);
+    if (view.mode === 'walk' && !pointer.lockLook) nav.hover = focus.hoverShot ? null : floorPoint(e.clientX, e.clientY);
+    syncCursor();
+  });
+  addEventListener('mouseup', e => {
+    // A press that never moved is a click. A click on a photograph opens it; a
+    // click on the floor is a destination.
+    if (pointer.press && !pointer.press.moved && !focus.lbShot){
+      const ph = pointer.lockLook ? shotAt(innerWidth/2, innerHeight/2) : shotAt(e.clientX, e.clientY);
+      if (ph){
+        openShot(ph);
+        pointer.drag = null; pointer.press = null; syncCursor();
+        return;
+      }
+      if (view.mode === 'walk' && !pointer.lockLook){
+        const t = floorPoint(e.clientX, e.clientY);
+        if (t){ nav.goTarget = t; nav.stuckT = 0; }
+        // Nothing to walk to means you clicked up at a wall, and a wall answers
+        // with the photographs its paint was lifted out of.
+        else {
+          const w = wallShotAt(e.clientX, e.clientY);
+          if (w){ openShot(w); pointer.drag = null; pointer.press = null; syncCursor(); return; }
+        }
+      }
+    }
+    pointer.drag = null; pointer.press = null;
+    syncCursor();
+  });
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    if (view.mode === 'view'){ orbit.dist = clamp(orbit.dist + e.deltaY * 0.02, 8, 70); return; }
+    const step = clamp(-e.deltaY * 0.012, -1.6, 1.6);
+    const from = nav.goTarget || {x:player.x, z:player.z};
+    const t = {x: from.x - Math.sin(player.yaw)*step, z: from.z - Math.cos(player.yaw)*step};
+    if (onFloor(levels[player.level], t.x, t.z)){ nav.goTarget = t; nav.stuckT = 0; }
+  }, {passive:false});
+  // touch: left half drives, right half looks
+  canvas.addEventListener('touchstart', e => {
+    for (const t of e.changedTouches){
+      if (view.mode === 'view'){ pointer.drag = {x:t.clientX, y:t.clientY}; continue; }
+      if (t.clientX < innerWidth/2 && !pointer.stick) pointer.stick = {id:t.identifier, x:t.clientX, y:t.clientY, dx:0, dy:0};
+      else if (!pointer.look) pointer.look = {id:t.identifier, x:t.clientX, y:t.clientY};
+    }
+  }, {passive:true});
+  canvas.addEventListener('touchmove', e => {
+    for (const t of e.changedTouches){
+      if (view.mode === 'view' && pointer.drag){
+        orbit.theta -= (t.clientX - pointer.drag.x) * 0.008;
+        orbit.phi    = clamp(orbit.phi - (t.clientY - pointer.drag.y) * 0.006, 0.12, 1.5);
+        pointer.drag = {x:t.clientX, y:t.clientY};
+      }
+      if (pointer.stick && t.identifier === pointer.stick.id){
+        pointer.stick.dx = clamp((t.clientX - pointer.stick.x)/60, -1, 1);
+        pointer.stick.dy = clamp((t.clientY - pointer.stick.y)/60, -1, 1);
+      }
+      if (pointer.look && t.identifier === pointer.look.id){
+        player.yaw   -= (t.clientX - pointer.look.x) * 0.006;
+        player.pitch  = clamp(player.pitch - (t.clientY - pointer.look.y) * 0.005, -1.45, 1.45);
+        pointer.look = {id:pointer.look.id, x:t.clientX, y:t.clientY};
+      }
+    }
+  }, {passive:true});
+  canvas.addEventListener('touchend', e => {
+    for (const t of e.changedTouches){
+      if (pointer.stick && t.identifier === pointer.stick.id) pointer.stick = null;
+      if (pointer.look && t.identifier === pointer.look.id) pointer.look = null;
+      pointer.drag = null;
+    }
+  }, {passive:true});
+}
+
+// ---------- ui/plan.js ------------------------------------------------
+const mini = $('mini'), mx = mini.getContext('2d');
+function paintPlan(){
+  const L = levels[player.level], b = L.bounds;
+  const W = mini.width, H = mini.height, pad = 14;
+  mx.clearRect(0,0,W,H);
+  const s = Math.min((W-pad*2)/(b.x1-b.x0), (H-pad*2)/(b.z1-b.z0));
+  const ox = (W - (b.x1-b.x0)*s)/2 - b.x0*s, oz = (H - (b.z1-b.z0)*s)/2 - b.z0*s;
+  const X = x => x*s + ox, Z = z => z*s + oz;
+
+  mx.fillStyle = 'rgba(120,138,160,.13)';
+  for (const f of L.floors){
+    mx.beginPath();
+    f.poly.forEach(([x,z],i) => i ? mx.lineTo(X(x),Z(z)) : mx.moveTo(X(x),Z(z)));
+    mx.closePath(); mx.fill();
+  }
+
+  if (L.sealed.cells.length){
+    const q = L.sealed;
+    mx.fillStyle = 'rgba(232,163,61,.22)';
+    for (const k of q.cells){
+      const i = k % q.nx, j = (k - i)/q.nx;
+      mx.fillRect(X(q.b.x0 + i*q.g), Z(q.b.z0 + j*q.g), q.g*s + 1, q.g*s + 1);
+    }
+  }
+
+  mx.fillStyle = 'rgba(139,152,169,.34)';
+  for (const o of (flags.showFurniture ? L.objects : [])){
+    mx.save(); mx.translate(X(o.c[0]), Z(o.c[2])); mx.rotate(-o.yaw);
+    mx.fillRect(-o.d[0]*s/2, -o.d[2]*s/2, o.d[0]*s, o.d[2]*s);
+    mx.restore();
+  }
+
+  // only body-height panels are drawn, so doorways read as gaps — plan convention
+  mx.strokeStyle = '#C9D0D8'; mx.lineWidth = 2.4; mx.lineCap = 'butt';
+  mx.beginPath();
+  for (const p of L.plan){
+    const c = Math.cos(p.yaw), s2 = Math.sin(p.yaw);
+    mx.moveTo(X(p.x - c*p.hx), Z(p.z + s2*p.hx));
+    mx.lineTo(X(p.x + c*p.hx), Z(p.z - s2*p.hx));
+  }
+  mx.stroke();
+
+  const tint = '#' + L.tint.toString(16).padStart(6,'0');
+
+  if (flags.showPrints){
+    mx.fillStyle = '#E4EAF2';
+    for (const m of L.shots){
+      const ph = m.userData.ph;
+      if (!ph.mark) continue;
+      mx.save(); mx.translate(X(ph.mark.x), Z(ph.mark.z)); mx.rotate(-ph.mark.yaw);
+      mx.fillRect(-4.5, -1.6, 9, 3.2);
+      mx.restore();
+    }
+  }
+
+  const px = X(player.x), pz = Z(player.z), a = player.yaw;
+  mx.globalAlpha = 0.22;
+  mx.beginPath(); mx.moveTo(px,pz);
+  mx.arc(px, pz, 34, -a - Math.PI/2 - 0.42, -a - Math.PI/2 + 0.42);
+  mx.closePath(); mx.fillStyle = tint; mx.fill(); mx.globalAlpha = 1;
+  mx.beginPath(); mx.arc(px, pz, 4.2, 0, 7); mx.fillStyle = tint; mx.fill();
+  mx.strokeStyle = '#0C0F14'; mx.lineWidth = 1.4; mx.stroke();
+}
+
+// ---------- render/loop.js --------------------------------------------
+let prev = performance.now();
+function frame(now){
+  const dt = Math.min((now - prev)/1000, 0.05); prev = now;
+
+  if (view.mode === 'walk'){
+    const L = levels[player.level];
+    let fx = (keys.w || keys.arrowup ? 1 : 0) - (keys.s || keys.arrowdown ? 1 : 0);
+    let sx = (keys.d || keys.arrowright ? 1 : 0) - (keys.a || keys.arrowleft ? 1 : 0);
+    if (pointer.stick){ fx -= pointer.stick.dy; sx += pointer.stick.dx; }
+    const m = Math.hypot(fx, sx);
+    let dvx = 0, dvz = 0;
+
+    if (m > 0.01){
+      nav.goTarget = null;                       // any manual input takes the wheel back
+      const sp = keys.shift ? SPRINT : SPEED;
+      dvx = (-Math.sin(player.yaw)*fx + Math.cos(player.yaw)*sx) / m * sp;
+      dvz = (-Math.cos(player.yaw)*fx - Math.sin(player.yaw)*sx) / m * sp;
+    } else if (nav.goTarget){
+      const tx = nav.goTarget.x - player.x, tz = nav.goTarget.z - player.z;
+      const d = Math.hypot(tx, tz);
+      if (d < 0.28){ nav.goTarget = null; }
+      else {
+        dvx = tx/d * SPEED; dvz = tz/d * SPEED;
+        // Turn to face the way you are walking, unless you are steering by hand.
+        if (!(pointer.drag && pointer.press && pointer.press.moved)){
+          const want = Math.atan2(-tx, -tz);
+          const off = ((want - player.yaw + Math.PI*3) % (Math.PI*2)) - Math.PI;
+          player.yaw += off * Math.min(dt*2.6, 1);
+        }
+      }
+    }
+    player.vx += (dvx - player.vx) * Math.min(dt*12, 1);
+    player.vz += (dvz - player.vz) * Math.min(dt*12, 1);
+    player.x += player.vx * dt;
+    player.z += player.vz * dt;
+
+    for (let pass=0; pass<3; pass++){
+      if (flags.ghost) break;
+      for (const b of L.blockers) pushOut(player, b, BODY_R);
+      if (flags.showFurniture) for (const b of L.objBlockers) pushOut(player, b, BODY_R);
+    }
+    if (nav.goTarget){
+      nav.stuckT = Math.hypot(player.vx, player.vz) < 0.4 ? nav.stuckT + dt : 0;
+      if (nav.stuckT > 0.5){ nav.goTarget = null; nav.stuckT = 0; }
+    }
+    if (onFloor(L, player.x, player.z)) nav.lastGood = {x:player.x, z:player.z};
+    else { player.x = nav.lastGood.x; player.z = nav.lastGood.z; player.vx = player.vz = 0; }
+
+    camera.position.set(player.x, L.elevation + flags.eyeH, player.z);
+    camera.rotation.set(0,0,0, 'YXZ');
+    camera.rotation.order = 'YXZ';
+    camera.rotation.y = player.yaw;
+    camera.rotation.x = player.pitch;
+    scene.fog.near = flags.surfaced ? 12 : 7;
+    scene.fog.far  = flags.surfaced ? 62 : 40;
+
+    if (pointer.lockLook){
+      const was = focus.hoverShot;
+      focus.hoverShot = focus.lbShot ? null : shotAt(innerWidth/2, innerHeight/2);
+      if (was !== focus.hoverShot) paintShot();
+    }
+    const near = stairsNear();
+    $('prompt').hidden = !(near && !focus.hoverShot);
+    if (near) $('prompt-t').textContent =
+      player.level === 0 ? 'Go up to ' + levels[1].name : 'Go down to ' + levels[0].name;
+    const mark = nav.goTarget || (pointer.lockLook ? null : nav.hover);
+    ring.visible = !!mark;
+    if (mark){
+      ring.position.set(mark.x, L.elevation + 0.02, mark.z);
+      ring.material.opacity = nav.goTarget ? 0.95 : 0.55;
+    }
+    $('here-room').textContent = whereAmI();
+    const deg = Math.round(((-player.yaw * 180/Math.PI) % 360 + 360) % 360);
+    $('here-co').textContent =
+      `${player.x >= 0 ? '+' : ''}${player.x.toFixed(1)}, ${player.z >= 0 ? '+' : ''}${player.z.toFixed(1)} · ${String(deg).padStart(3,'0')}°`;
+    paintPlan();
+  } else {
+    if (!REDUCED && !pointer.drag) orbit.theta += dt * 0.055;
+    const r = orbit.dist;
+    camera.position.set(
+      orbit.tx + r*Math.cos(orbit.phi)*Math.sin(orbit.theta),
+      orbit.ty + r*Math.sin(orbit.phi),
+      orbit.tz + r*Math.cos(orbit.phi)*Math.cos(orbit.theta));
+    camera.rotation.order = 'YXZ';
+    camera.lookAt(orbit.tx, orbit.ty, orbit.tz);
+    scene.fog.near = 30; scene.fog.far = 130;
+    paintPlan();
+  }
+
+  levels.forEach((L,i) => {
+    L.group.position.y = view.mode === 'view' ? view.explode * i : 0;
+    L.ceil.visible = view.mode === 'walk' && i === player.level;
+    L.group.visible = true;
+  });
+
+  watchBudget(dt);
+  renderFrame();
+  requestAnimationFrame(frame);
+}
+
+function resize(){
+  const w = innerWidth, h = innerHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h; camera.updateProjectionMatrix();
+  // Five full-screen passes: the buffers follow the drawing buffer, but capped,
+  // because a retina panel would otherwise cost four times the fill for nothing
+  // the eye can find once FXAA and a little grain are over the top.
+  const dpr = Math.min(renderer.getPixelRatio(), 1.5);
+  makeTargets(Math.max(2, Math.round(w*dpr)), Math.max(2, Math.round(h*dpr)));
+}
+
+// Frame the whole house for the section view: the orbit sits at half the storey
+// rise and stands back by the longer of the two plan axes.
+function frameHouse(){
+  const all = HOUSE.levels.flatMap(L => L.floors.flatMap(f => f.poly));
+  orbit.ty = (HOUSE.levels[1]?.elevation ?? 0) / 2 + 1.2;
+  orbit.dist = Math.max(20, Math.max(
+    Math.max(...all.map(p=>p[0])) - Math.min(...all.map(p=>p[0])),
+    Math.max(...all.map(p=>p[1])) - Math.min(...all.map(p=>p[1]))) * 1.5);
+}
+
+function startLoop(){
+  addEventListener('resize', resize);
+  resize();
+  requestAnimationFrame(frame);
+}
+
+// ---------- main.js ---------------------------------------------------
+// Entry point: the order the house comes up in.
+//
+// Everything below is a function call rather than a module side effect, so this
+// file is the whole boot sequence — nothing happens because of where a file
+// happens to sit in the bundle.
+
+indexPhotos();          // group the photographs by room
+markSealed();           // find floor the scan enclosed with no way in
+dressHouse();           // decode the pictures, then dress the house (async)
+
+initLightbox();
+initControls();
+initInput();
+
+frameHouse();           // stand the overview camera back far enough to see it
+paintMeta();
+spawnOn(0);
+syncCursor();
+startLoop();
+})();
+
+</script>

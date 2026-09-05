@@ -1,0 +1,12 @@
+{
+  "name": "homescan-webviewer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "First-person walkthrough of a HomeScan scan (see webviewer/)",
+  "scripts": {
+    "start": "node webviewer/serve.mjs",
+    "dev": "node webviewer/serve.mjs --watch",
+    "build": "python3 webviewer/build.py"
+  },
+  "engines": { "node": ">=18" }
+}
