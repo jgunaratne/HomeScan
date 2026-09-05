@@ -1,0 +1,40 @@
+{
+  "createdAt" : "2026-09-03T17:54:52Z",
+  "deviceModel" : "iPhone18,1",
+  "id" : "2EC17B81-6BD5-4E7A-A4CA-CF56948A6151",
+  "name" : "Home — 3 Sep",
+  "osVersion" : "26.6.1",
+  "segments" : [
+    {
+      "hasStructure" : false,
+      "id" : "7D8BFC18-1044-49E2-B4EF-681855F97759",
+      "rooms" : [
+        {
+          "archiveError" : "JSON: Invalid data binary property list: Unable to encode the given top-level value as a property list",
+          "capturedAt" : "2026-09-03T18:00:54Z",
+          "capturedRoomIdentifier" : "34F259D8-3100-405F-B02C-08A1A3D4F9D7",
+          "confidence" : "low",
+          "floorAreaSqM" : 98.68720537064776,
+          "id" : "6940CB48-79DF-4456-85F8-51763C8CF123",
+          "label" : "Upstairs",
+          "objectCount" : 22,
+          "version" : 1,
+          "dir" : "upstairs"
+        },
+        {
+          "archiveError" : "JSON: Invalid data binary property list: Unable to encode the given top-level value as a property list",
+          "capturedAt" : "2026-09-03T18:05:11Z",
+          "capturedRoomIdentifier" : "13E6CE4D-32F5-40A9-85A8-85544D3A1AC1",
+          "confidence" : "high",
+          "floorAreaSqM" : 126.20196646598151,
+          "id" : "21795537-3850-46CB-9DBB-C4E4718B7B84",
+          "label" : "Downstairs",
+          "objectCount" : 41,
+          "version" : 1,
+          "dir" : "downstairs"
+        }
+      ],
+      "dir" : "segment-1"
+    }
+  ]
+}

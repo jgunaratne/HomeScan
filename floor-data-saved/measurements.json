@@ -1,0 +1,765 @@
+{
+  "convention" : "net-interior",
+  "generatedAt" : "2026-09-03T18:06:43Z",
+  "rooms" : [
+    {
+      "areaMethod" : "floor-polygon",
+      "ceilingHeight" : {
+        "max" : 2.9149999618530273,
+        "median" : 2.364710807800293,
+        "min" : 0.7799999713897705
+      },
+      "confidence" : "low",
+      "floorArea" : 98.68720537064776,
+      "footprint" : {
+        "depth" : 12.323914527893066,
+        "width" : 14.610734939575195
+      },
+      "id" : "6940CB48-79DF-4456-85F8-51763C8CF123",
+      "label" : "Upstairs",
+      "openings" : [
+        {
+          "confidence" : "high",
+          "height" : 2.1160764694213867,
+          "id" : "8BAE5958-1E08-4CAD-B6C0-FCB6ECD9A536",
+          "type" : "door",
+          "width" : 1.6626312732696533
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.0577077865600586,
+          "id" : "8CCBA586-3D8A-46A5-92E5-57F79B23CEDD",
+          "type" : "door",
+          "width" : 0.667516827583313
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.1261720657348633,
+          "id" : "49B4A3B5-B1B1-4159-B9E8-F951F229FCAF",
+          "type" : "door",
+          "width" : 0.9963850378990173
+        },
+        {
+          "confidence" : "medium",
+          "height" : 1.631159782409668,
+          "id" : "715B4637-4F65-4AC1-B3E2-362B32BC22AC",
+          "type" : "door",
+          "width" : 0.4471741020679474
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.101227283477783,
+          "id" : "481F56FD-5CE9-4A32-B2CB-B924818516C1",
+          "type" : "door",
+          "width" : 1.9250121116638184
+        },
+        {
+          "confidence" : "medium",
+          "height" : 2.176438570022583,
+          "id" : "AA158536-B2CC-45EA-8C8D-9C849B896CAD",
+          "type" : "door",
+          "width" : 0.9714732766151428
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.176438570022583,
+          "id" : "8F2A5849-12B1-4D77-9E61-A5D61CED3C51",
+          "type" : "door",
+          "width" : 0.7535052299499512
+        },
+        {
+          "confidence" : "high",
+          "height" : 0.6204894781112671,
+          "id" : "C8C8C4E2-803A-47B9-B79F-4F8B39ADDBB1",
+          "type" : "window",
+          "width" : 0.56946861743927
+        },
+        {
+          "confidence" : "medium",
+          "height" : 0.5893659591674805,
+          "id" : "4DCCAF27-971C-4A2F-B698-D6DB33E45CC5",
+          "type" : "window",
+          "width" : 0.6298177242279053
+        },
+        {
+          "confidence" : "medium",
+          "height" : 1.0529518127441406,
+          "id" : "997FA658-9482-43BA-BB4A-053E4A2D04B7",
+          "type" : "window",
+          "width" : 0.64574134349823
+        },
+        {
+          "confidence" : "medium",
+          "height" : 0.5452785491943359,
+          "id" : "2A504AE9-1179-4222-BE96-2B2465A84225",
+          "type" : "window",
+          "width" : 0.6097129583358765
+        },
+        {
+          "confidence" : "medium",
+          "height" : 0.5891517400741577,
+          "id" : "2C06B07A-354D-4C42-9755-53940CDD2998",
+          "type" : "window",
+          "width" : 0.6348553895950317
+        },
+        {
+          "confidence" : "high",
+          "height" : 0.6402015686035156,
+          "id" : "3B10E67D-89D6-4FDA-8825-21C604B9D18F",
+          "type" : "window",
+          "width" : 0.6920520067214966
+        },
+        {
+          "confidence" : "high",
+          "height" : 0.8564889430999756,
+          "id" : "E6A7FBDC-EC20-47F1-B047-034D0F8C702E",
+          "type" : "window",
+          "width" : 1.8082574605941772
+        },
+        {
+          "confidence" : "high",
+          "height" : 0.4191462993621826,
+          "id" : "DE59F22F-4553-43BE-9E3D-3F495DE6F178",
+          "type" : "window",
+          "width" : 2.0743026733398438
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.0199999809265137,
+          "id" : "54DB63A8-AD3B-452C-9542-FC47D648DB9C",
+          "type" : "opening",
+          "width" : 0.8454239964485168
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.0199999809265137,
+          "id" : "AEE6353C-A92D-4666-AEC8-E3D857DE2282",
+          "type" : "opening",
+          "width" : 0.8199031949043274
+        }
+      ],
+      "perimeter" : 47.601339376893165,
+      "perimeterMethod" : "floor-polygon",
+      "walls" : [
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "E5F6B4E8-D0C6-45D4-9D2C-961909CED366",
+          "length" : 4.433682918548584
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "32B6D38D-9D23-4351-B2CB-236B0C0396F3",
+          "length" : 4.395033836364746
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "0941F334-5566-40E1-ABA7-D83D67B736FD",
+          "length" : 2.5566797256469727
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "38C82AD7-A432-40F3-9BD3-64EEC1B41BDE",
+          "length" : 0.7105041146278381
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "465D0929-45EB-4732-864D-AE6427FB9215",
+          "length" : 4.34089469909668
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "155097A9-D00C-4B96-91FB-439625FA1402",
+          "length" : 2.627112865447998
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "EE11E41A-F411-48D8-8703-E4116B24965F",
+          "length" : 2.361510753631592
+        },
+        {
+          "confidence" : "high",
+          "height" : 0.7799999713897705,
+          "id" : "948F00D8-DA62-4CE6-9DD6-1D913E0CF6C2",
+          "length" : 2.0997374057769775
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.9149999618530273,
+          "id" : "59BE3F96-F054-4A20-BDE7-1037F70C6C89",
+          "length" : 0.865006685256958
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "C2074333-913F-4232-BD68-9533656E736F",
+          "length" : 0.7477824687957764
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "B435EB9B-FF39-4274-8A10-8E45FE1D5359",
+          "length" : 1.0788185596466064
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.9149999618530273,
+          "id" : "162A3228-BF6E-4370-A615-35FED740559D",
+          "length" : 0.7376670241355896
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "4214DCF7-7652-4A99-A3D2-BD8CAFBC6DFE",
+          "length" : 3.4447381496429443
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "D3A24CB6-1DD0-4098-88F1-A78271AF11B3",
+          "length" : 2.0284054279327393
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "FA6E73A1-C281-4ED5-BE8B-23AD42B9E9FA",
+          "length" : 3.3065221309661865
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.1464099884033203,
+          "id" : "499EB0AF-3310-4618-9DF2-F959375F7701",
+          "length" : 0.9610059857368469
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.9149999618530273,
+          "id" : "CCE5DB2F-5645-4BCA-9D3A-FA18253695C9",
+          "length" : 0.7376669645309448
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "DAAE12C0-BAAD-420C-A6B6-47F9870BDA8A",
+          "length" : 5.962290287017822
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "25957416-3DF3-4095-9FD0-428012960BB1",
+          "length" : 0.14273230731487274
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "BA1356C6-BF46-45AC-AF98-C29385DA9174",
+          "length" : 1.1155601739883423
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "0ACB32A0-00A5-40D8-8FF1-BB64A39CC2E4",
+          "length" : 2.360549211502075
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "5E11D2CF-21E9-43BF-B0B0-745589313C0B",
+          "length" : 1.2223469018936157
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "4309CE9D-D955-4AC3-B366-16E6C3716A5B",
+          "length" : 0.8608890771865845
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "D8933F9B-799D-4663-A1F7-84C752267B39",
+          "length" : 3.3065285682678223
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "D2312F6D-DAFE-4CE1-B263-B47EE8EB4BF9",
+          "length" : 1.9016531705856323
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "5EC63793-124E-4D49-A85C-B2B2C8C7086B",
+          "length" : 1.6317108869552612
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "20E19E14-AC4F-4098-86CC-C77E33971202",
+          "length" : 1.5398603677749634
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "1E8452EB-3E7A-49CE-B195-6BD913243981",
+          "length" : 2.3503546714782715
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "D9413A3E-6FBC-4363-BB58-190151AE74F3",
+          "length" : 0.7573882341384888
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "C0CC38DE-ED4D-4023-82E8-AA5DE7D65F19",
+          "length" : 3.6018903255462646
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "93569011-69C2-438B-BD9F-6D82F6F06D27",
+          "length" : 1.8904117345809937
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "6442CFEA-9303-4CB8-BD10-51CAA79D6A52",
+          "length" : 3.4261796474456787
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "0FA10F65-1037-497E-9396-FCD474BD92E4",
+          "length" : 1.539864420890808
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.1464099884033203,
+          "id" : "1F95F172-5F7B-4DD5-820B-0789E923CA75",
+          "length" : 2.3503551483154297
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "994F0016-915A-4148-86E6-B4F09493649A",
+          "length" : 2.6278443336486816
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.9149999618530273,
+          "id" : "2A5C611B-71AF-4472-A896-667E493525DF",
+          "length" : 2.3045265674591064
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.9149999618530273,
+          "id" : "C2A0F7FD-D3BF-4981-9AFB-710E4A9FB8F3",
+          "length" : 1.1448310613632202
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.7539620399475098,
+          "id" : "02796632-59AF-4B69-9388-5B46D8EAF706",
+          "length" : 1.6177712678909302
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "DE0C51FB-90A2-4497-8D21-20340615051F",
+          "length" : 1.5357643365859985
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "A2584861-4B54-402C-A79B-E3FB3F9FCC8B",
+          "length" : 4.395034313201904
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.364710807800293,
+          "id" : "9376E969-D4AC-4027-9A23-8B8F68C97B62",
+          "length" : 1.5245230197906494
+        },
+        {
+          "confidence" : "low",
+          "height" : 2.364710807800293,
+          "id" : "8C803696-0544-4919-98D2-44AA6269BC92",
+          "length" : 0.39528560638427734
+        },
+        {
+          "confidence" : "low",
+          "height" : 2.9149999618530273,
+          "id" : "BF558308-267E-459D-97E9-1E2E4A8ABFE4",
+          "length" : 0.7279380559921265
+        }
+      ]
+    },
+    {
+      "areaMethod" : "floor-polygon",
+      "ceilingHeight" : {
+        "max" : 3.671999931335449,
+        "median" : 2.4616570472717285,
+        "min" : 2.4099998474121094
+      },
+      "confidence" : "high",
+      "floorArea" : 126.20196646598151,
+      "footprint" : {
+        "depth" : 13.929093837738037,
+        "width" : 15.9651517868042
+      },
+      "id" : "21795537-3850-46CB-9DBB-C4E4718B7B84",
+      "label" : "Downstairs",
+      "openings" : [
+        {
+          "confidence" : "high",
+          "height" : 2.251246929168701,
+          "id" : "4D5FF460-5E81-42B0-9F0F-55D042E3D76E",
+          "type" : "door",
+          "width" : 1.6788520812988281
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.2214884757995605,
+          "id" : "AB61E4EF-E487-460A-A13D-22C3E7B8EF24",
+          "type" : "door",
+          "width" : 1.7932318449020386
+        },
+        {
+          "confidence" : "medium",
+          "height" : 2.1752219200134277,
+          "id" : "1AB024FE-9D06-4636-86F3-FAD0E1DBC0B8",
+          "type" : "door",
+          "width" : 0.7055343985557556
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.1530652046203613,
+          "id" : "930E4867-92B6-48C7-91BE-3A3681814BFC",
+          "type" : "door",
+          "width" : 1.805526852607727
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.0999531745910645,
+          "id" : "79BAD6A5-4D14-404F-8973-EF0A35CC53F7",
+          "type" : "door",
+          "width" : 5.353665351867676
+        },
+        {
+          "confidence" : "medium",
+          "height" : 2.147092342376709,
+          "id" : "F5CB9172-1C9B-4809-AF1C-6BEB169311D7",
+          "type" : "door",
+          "width" : 0.7774307131767273
+        },
+        {
+          "confidence" : "medium",
+          "height" : 2.19173002243042,
+          "id" : "89499C11-6141-46E7-916F-5B44E8B10221",
+          "type" : "door",
+          "width" : 0.6693776249885559
+        },
+        {
+          "confidence" : "high",
+          "height" : 1.2781813144683838,
+          "id" : "A2077DC3-113A-4172-B413-50E17C073713",
+          "type" : "window",
+          "width" : 1.8070894479751587
+        },
+        {
+          "confidence" : "medium",
+          "height" : 1.2167878150939941,
+          "id" : "50DBCE99-4815-46E1-B4DF-D89870A2B7BF",
+          "type" : "window",
+          "width" : 3.073655366897583
+        },
+        {
+          "confidence" : "medium",
+          "height" : 1.4674444198608398,
+          "id" : "7BEE0292-3474-47B6-87E0-D098BAFF2CF9",
+          "type" : "window",
+          "width" : 0.9922831654548645
+        },
+        {
+          "confidence" : "medium",
+          "height" : 1.4096710681915283,
+          "id" : "B9CBC6C3-587A-49F3-9D84-D382722FD7BD",
+          "type" : "window",
+          "width" : 0.9692068696022034
+        },
+        {
+          "confidence" : "medium",
+          "height" : 1.0676939487457275,
+          "id" : "1AE011F4-A279-4DE9-84FA-7137B48D216A",
+          "type" : "window",
+          "width" : 1.0602184534072876
+        },
+        {
+          "confidence" : "medium",
+          "height" : 0.8778703212738037,
+          "id" : "DE27F72E-8820-4325-B7F7-BF051E41CD27",
+          "type" : "window",
+          "width" : 1.7409089803695679
+        },
+        {
+          "confidence" : "medium",
+          "height" : 0.892749547958374,
+          "id" : "80033429-8645-4693-A93A-F7BD326C92B8",
+          "type" : "window",
+          "width" : 0.7581408619880676
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.0999999046325684,
+          "id" : "909A8E05-D5EF-470F-85DD-E99F958DB787",
+          "type" : "opening",
+          "width" : 2.9632527828216553
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.180000066757202,
+          "id" : "A2C08F35-434C-4335-AFB8-1FDBF39CEB76",
+          "type" : "opening",
+          "width" : 2.5122008323669434
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.1399998664855957,
+          "id" : "35EF7FBB-76AF-4288-A8A5-E4A109513E2A",
+          "type" : "opening",
+          "width" : 1.8367455005645752
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.2200000286102295,
+          "id" : "65C67A1D-FA91-4496-AF6E-65F3F97FEFDC",
+          "type" : "opening",
+          "width" : 0.9923740029335022
+        }
+      ],
+      "perimeter" : 49.845853939805394,
+      "perimeterMethod" : "floor-polygon",
+      "walls" : [
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "A98B8B38-B8BD-4654-8065-19031FB8D3C7",
+          "length" : 6.011133193969727
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "F64D9921-CE95-4C78-9EFE-C23EDF7F782F",
+          "length" : 4.423912525177002
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "C78F9E94-7903-4FC3-8BB9-4A0E88D88493",
+          "length" : 0.6016577482223511
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "2027E7A2-6D79-4F01-AD63-85EC46BA8407",
+          "length" : 2.419070243835449
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "798EF4C1-2751-42BC-B5BB-E8843F499B07",
+          "length" : 1.0918922424316406
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "2421588D-4BE8-4E58-A570-A5D01C40F1F5",
+          "length" : 0.792955219745636
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "880FE755-0F0E-4CB2-A88F-A49197D0FB62",
+          "length" : 1.8461101055145264
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "F2A8B010-1957-43BA-BC04-8FE4B5418BAE",
+          "length" : 0.7310444116592407
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "206D2B6F-B786-4CA1-8C4C-547CE1B31126",
+          "length" : 1.0986558198928833
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "3672BDB8-EE47-428A-B342-5BE08AB79D1B",
+          "length" : 1.8014167547225952
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "69F652A2-5ADD-4844-B453-80E74836976F",
+          "length" : 4.357585906982422
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "C1843740-7AB9-4056-9726-BF1CC8553384",
+          "length" : 5.169103145599365
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "009BDD32-F6DB-4153-BB37-B7B272ACF69D",
+          "length" : 3.870220184326172
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "560C2555-A5F6-43F0-80FA-6E762CB79880",
+          "length" : 3.739983320236206
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "47F3A5D4-2185-48D8-84BF-CAFB229E8144",
+          "length" : 0.6954886317253113
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "E5BC48BF-CB8A-44A0-B130-84A9161A9DB6",
+          "length" : 0.7963576316833496
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "EF6D43BD-2994-48B3-856D-70C2535813D7",
+          "length" : 2.535952091217041
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "74FA1E2E-0F49-4662-AB7B-3B2D1EEB9068",
+          "length" : 3.214635133743286
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "913858F6-ACEB-4305-9AA9-0C465ED70B50",
+          "length" : 0.9646129608154297
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "72401EC4-7C95-4D10-9F16-C46B4B337D81",
+          "length" : 3.551452875137329
+        },
+        {
+          "confidence" : "high",
+          "height" : 3.4491631984710693,
+          "id" : "60BBD3C0-8EC6-4FA1-8C8C-3CF0E3CA3BB2",
+          "length" : 2.0051403045654297
+        },
+        {
+          "confidence" : "high",
+          "height" : 3.4491631984710693,
+          "id" : "F2454236-60C6-4EBB-84CF-A6E2FF1EDC3D",
+          "length" : 2.14013934135437
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "7D9466C4-7B5E-4E28-8C4D-EBAA76C775ED",
+          "length" : 4.361763000488281
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "CBB442E8-0CE1-457A-B1D8-6462D57FE17C",
+          "length" : 0.8631448149681091
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "0B47FEC6-FB2F-4BC4-9F6D-158DA0338A8F",
+          "length" : 1.091892123222351
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "6CB8C658-F3F6-4164-909C-3A25DCBB6179",
+          "length" : 5.838022232055664
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "09168D8A-57CE-413E-8C5D-B45CB5E72B12",
+          "length" : 0.9427856206893921
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "B4D51DD1-6E6A-419F-B5CB-77CD517E8550",
+          "length" : 2.5001707077026367
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "415BF7AB-D126-44B1-B4BE-604077D7347D",
+          "length" : 3.739964246749878
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "57D7CBA8-3F8E-46A4-9E58-96A45C118485",
+          "length" : 4.567444324493408
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4099998474121094,
+          "id" : "8CDA96E4-4CE0-487F-B299-FDE28C85856D",
+          "length" : 4.423912525177002
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "91284AE9-296A-41F4-A870-2181B14830C8",
+          "length" : 3.332310199737549
+        },
+        {
+          "confidence" : "high",
+          "height" : 2.4616570472717285,
+          "id" : "CC040CD5-F552-4923-A2CB-38A978062457",
+          "length" : 4.155783176422119
+        },
+        {
+          "confidence" : "high",
+          "height" : 3.671999931335449,
+          "id" : "AB725E41-0575-4C64-B46F-8B6B397A48E0",
+          "length" : 4.601200103759766
+        }
+      ]
+    }
+  ],
+  "total" : {
+    "excludedRoomCount" : 1,
+    "floorArea" : 224.88917183662926,
+    "roomCount" : 2,
+    "verified" : false,
+    "verifiedFloorArea" : 126.20196646598151
+  },
+  "units" : "meters"
+}

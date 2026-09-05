@@ -1,0 +1,10 @@
+Room,Floor Area (m2),Floor Area (sq ft),Area Method,Estimated,Width (m),Depth (m),Ceiling Median (m),Ceiling Min (m),Ceiling Max (m),Perimeter (m),Walls,Doors,Windows,Openings,Confidence
+Upstairs,98.69,1062.3,floor-polygon,no,14.61,12.32,2.365,0.780,2.915,47.60,43,7,8,2,low
+Downstairs,126.20,1358.4,floor-polygon,no,15.97,13.93,2.462,2.410,3.672,49.85,34,7,7,4,high
+TOTAL (net interior),224.89,2420.7,net-interior,yes,,,,,,,77,14,15,6,unverified
+
+# convention,net-interior
+# note,"Net interior area, wall face to wall face. Not gross/assessor square footage."
+# rooms excluded from verified total,1
+# verified area (m2),126.20
+# generated,2026-09-03T18:06:43Z
