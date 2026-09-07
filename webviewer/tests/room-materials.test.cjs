@@ -27,3 +27,42 @@ test('a room may say how far its finishes carry',()=>{
  const unbounded={name:'Laundry',at:[0,0]};
  assert.equal(roomAt({rooms:[unbounded,hall],blockers:[]},2,0,true),unbounded);
 });
+
+// Floor finishes are assigned by walking distance from each room's anchor, not
+// by straight-line distance, because a bathroom's anchor is nearer to the hall
+// outside its door than to its own far corner. No radius can separate those;
+// the wall between them can.
+const src=fs.readFileSync(path.join(__dirname,'../src/photo/rooms.js'),'utf8');
+const flood=new Function('ROOM_REACH','roomAt',
+  src.slice(src.indexOf('const DOORWAY')).replace(/^export /gm,'')
+  +';return {assignFloor,barriers};')(9,()=>null);
+
+// One room, one corridor, one wall with a door-width hole between them.
+const room=(name,at)=>({name,at});
+function strip(walls,rooms,nx=20,nz=1,g=0.5){
+  const b={x0:0,z0:0,x1:nx*g,z1:nz*g};
+  const L={walls,rooms};
+  const own=flood.assignFloor(L,g,b,nx,nz,()=>true);
+  return own.map(r=>r?r.name[0]:'.').join('');
+}
+test('a doorway stops a floor finish; a wide opening carries it through',()=>{
+  // A wall across the strip at x=5, with a 0.9 m hole in it — a door.
+  const door=[{c:[5,1.2,0.25],w:4,yaw:Math.PI/2,holes:[{x0:-0.45,x1:0.45}]}];
+  const laid=strip(door,[room('Bathroom',[2.5,0.25]),room('Hall',[7.5,0.25])]);
+  assert.match(laid,/^B+H+$/,'the two finishes must meet exactly once');
+  assert.equal(laid.indexOf('H'),10,'and they meet at the wall, not between the anchors');
+
+  // The same wall with a 2.4 m hole is a cased opening, and the boards run on.
+  const opening=[{c:[5,1.2,0.25],w:4,yaw:Math.PI/2,holes:[{x0:-1.2,x1:1.2}]}];
+  const through=strip(opening,[room('Bathroom',[2.5,0.25]),room('Hall',[7.5,0.25])]);
+  assert.match(through,/^B+H+$/);
+  assert.equal(through.indexOf('H'),11,
+    'with nothing to stop it the boundary falls where the two floods meet, past the wall');
+});
+test('floor left unreachable from any anchor still gets a room',()=>{
+  const sealed=[{c:[5,1.2,0.25],w:4,yaw:Math.PI/2,holes:[]}];
+  const laid=strip(sealed,[room('Kitchen',[2.5,0.25])]);
+  // Past the solid wall nothing can be walked to, so the fallback answers.
+  assert.match(laid,/^K+\.+$/);
+  assert.equal(laid.indexOf('.'),10);
+});

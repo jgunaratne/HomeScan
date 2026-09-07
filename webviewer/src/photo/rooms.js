@@ -99,3 +99,92 @@ export function clearRoomRay(L,x,z,tx,tz){
   }
   return true;
 }
+
+// Which room each patch of floor belongs to, for the purpose of what is laid on
+// it. Nearest anchor is the wrong question here and was the cause of every
+// bleed: a bathroom's anchor is two metres from the hall outside its door and
+// three from its own far corner, so no radius can separate them. What separates
+// one floor finish from the next is not distance, it is the wall — flooring
+// stops at a doorway and carries through a cased opening.
+//
+// So the floor is flood-filled from the anchors instead, over a barrier set of
+// every wall with its wide openings cut out. A hole a door could hang in stays
+// a barrier; anything wider is an opening two rooms share, and the boards run
+// through it. The door width is the one `doorLeaf` already uses to decide
+// whether an opening gets a leaf at all.
+const DOORWAY = 1.25;               // wider than this and it is an opening
+// RoomPlan's walls do not quite meet at the corners, and a flood fill leaks
+// through a two-centimetre gap as happily as through a door. Each barrier is
+// run on a little past both ends to close them.
+const OVERRUN = 0.2;
+
+function barriers(L){
+  if (L.barriers) return L.barriers;
+  const out = [];
+  for (const w of L.walls){
+    const c = Math.cos(w.yaw), s = -Math.sin(w.yaw), half = w.w/2;
+    // Everything but the wide holes, as intervals along the wall's own axis.
+    const gaps = (w.holes || [])
+      .filter(h => h.x1 - h.x0 > DOORWAY)
+      .map(h => [Math.max(-half, h.x0), Math.min(half, h.x1)])
+      .sort((a, b) => a[0] - b[0]);
+    let at = -half;
+    for (const [x0, x1] of gaps.concat([[half, half]])){
+      if (x0 > at){
+        // Only the outer ends overrun; a stub beside a cased opening must not
+        // grow across the opening it stands next to.
+        const a = at - (at <= -half ? OVERRUN : 0), bEnd = x0 + (x1 <= x0 ? OVERRUN : 0);
+        out.push([w.c[0] + c*a, w.c[2] + s*a, w.c[0] + c*bEnd, w.c[2] + s*bEnd]);
+      }
+      at = Math.max(at, x1);
+    }
+  }
+  return (L.barriers = out);
+}
+
+const crosses = (bar, ax, az, bx, bz) => {
+  const side = (x1,z1,x2,z2,px,pz) => (x2-x1)*(pz-z1) - (z2-z1)*(px-x1);
+  for (const [x1,z1,x2,z2] of bar){
+    const d1 = side(x1,z1,x2,z2,ax,az), d2 = side(x1,z1,x2,z2,bx,bz);
+    const d3 = side(ax,az,bx,bz,x1,z1), d4 = side(ax,az,bx,bz,x2,z2);
+    if (((d1>0)!==(d2>0)) && ((d3>0)!==(d4>0))) return true;
+  }
+  return false;
+};
+
+// Multi-source breadth-first over the floor cells: every room starts at its own
+// anchor and spreads until it meets a wall or another room. What that measures
+// is how far away a room is by walking, which is the question a floor answers.
+// Cells no room can walk to — the garage — keep the nearest-anchor answer.
+export function assignFloor(L, g, b, nx, nz, onFloorAt){
+  const bar = barriers(L);
+  const own = new Array(nx*nz).fill(undefined);
+  const at = (i,j) => [b.x0 + (i+0.5)*g, b.z0 + (j+0.5)*g];
+  let queue = [];
+  for (const r of L.rooms){
+    const i = Math.round((r.at[0] - b.x0)/g - 0.5), j = Math.round((r.at[1] - b.z0)/g - 0.5);
+    if (i < 0 || i >= nx || j < 0 || j >= nz) continue;
+    const k = j*nx + i;
+    if (!onFloorAt(k) || own[k] !== undefined) continue;
+    own[k] = r; queue.push(k);
+  }
+  for (let head = 0; head < queue.length; head++){
+    const k = queue[head], i = k % nx, j = (k - i)/nx;
+    const [ax, az] = at(i, j);
+    for (const [di, dj] of [[1,0],[-1,0],[0,1],[0,-1]]){
+      const ni = i + di, nj = j + dj;
+      if (ni < 0 || ni >= nx || nj < 0 || nj >= nz) continue;
+      const nk = nj*nx + ni;
+      if (own[nk] !== undefined || !onFloorAt(nk)) continue;
+      const [bx, bz] = at(ni, nj);
+      if (crosses(bar, ax, az, bx, bz)) continue;
+      own[nk] = own[k]; queue.push(nk);
+    }
+  }
+  for (let k = 0; k < own.length; k++){
+    if (own[k] !== undefined || !onFloorAt(k)) continue;
+    const i = k % nx, j = (k - i)/nx, [x, z] = at(i, j);
+    own[k] = roomAt(L, x, z, true);          // sealed off from every anchor
+  }
+  return own;
+}

@@ -7,7 +7,7 @@ import { flags } from '../core/state.js';
 import { scene, setLightRig } from './stage.js';
 import { MAT } from './materials.js';
 import { levels } from './levels.js';
-import { TILE, roomAt } from '../photo/rooms.js';
+import { TILE, roomAt, assignFloor } from '../photo/rooms.js';
 import { avgMats } from '../photo/relight.js';
 import { outdoorWorld } from '../photo/outside.js';
 
@@ -38,11 +38,11 @@ export function dressSlabs(L){
   const g = 0.1, b = L.bounds;
   const nx = Math.ceil((b.x1-b.x0)/g), nz = Math.ceil((b.z1-b.z0)/g);
   // false = off the storey's floor entirely; null = on it but in no room.
-  const own = new Array(nx*nz).fill(false);
-  for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
-    const x = b.x0 + (i+0.5)*g, z = b.z0 + (j+0.5)*g;
-    if (onFloor(L, x, z)) own[j*nx+i] = roomAt(L, x, z, true);
-  }
+  const floor = new Array(nx*nz).fill(false);
+  for (let j=0;j<nz;j++) for (let i=0;i<nx;i++)
+    floor[j*nx+i] = onFloor(L, b.x0 + (i+0.5)*g, b.z0 + (j+0.5)*g);
+  const filled = assignFloor(L, g, b, nx, nz, k => floor[k]);
+  const own = filled.map((r, k) => floor[k] ? (r || null) : false);
   // The whole footprint has to be covered exactly once. Cells no room claims —
   // the garage, the far end of a hall — go in their own bucket and keep the flat
   // survey slab material, because the storey above is directly overhead and a

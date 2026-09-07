@@ -217,6 +217,31 @@ going without one, and `finishes.ceil` is free to name something other than pain
 for a room that should not join. Grouping runs before `floorFrom`, so a borrowed
 floor carries the shared boards outward rather than being overwritten by them.
 
+**A floor stops at the wall, not halfway to the next anchor.** Rooms are matched
+to a point by nearest anchor, which is the right question for a wall face and the
+wrong one for a floor. A bathroom's anchor is about 1.6 m from its own door and
+2.1 m from its own far corner, so the hall a metre outside that door is nearer to
+it than half its own floor is: no radius can separate them, and tile came out
+into the corridor. What separates one finish from the next is not distance, it is
+the wall.
+
+So the floor is flood-filled instead. Every room's anchor spreads over the 10 cm
+cells until it meets a wall or another room, and what that measures is how far
+away a room is *by walking* — the question a floor answers. The barriers are
+every wall with its wide openings cut out: a hole a door could hang in stays a
+barrier, because flooring stops at a threshold, and anything wider is a cased
+opening two rooms share, so the boards run through it. The width is the one
+`doorLeaf` already uses to decide whether an opening gets a leaf. Each barrier
+overruns its ends by 20 cm, because RoomPlan's walls do not quite meet at the
+corners and a flood leaks through a two-centimetre gap as happily as through a
+door. Floor sealed off from every anchor — the garage — keeps the nearest-anchor
+answer. On this scan it takes the hall bathroom from 6.5 m² to the 5.3 m² inside
+its own walls, and gives the upstairs bathrooms the 13.0 m² they actually cover
+rather than the 10.7 m² distance had left them.
+
+Walls still use nearest anchor, with `reach` to bound a room whose anchor is a
+fitting rather than a centre. Two questions, two answers.
+
 **A hall is a room you never photograph.** Rooms are matched to floor by nearest
 anchor, so a space with no anchor of its own goes to whoever is closest — and the
 closest thing to a corridor is usually a bathroom door. The laundry held 24.3 m²
@@ -687,3 +712,11 @@ as two houses from the head of the stairs. It is one wood on purpose now, cherry
 with the laundry joining the boards despite its tiled photograph. Verified by
 material identity per floor cell: one material over 207.6 m², tile over the
 17.2 m² of bathroom.
+
+Tile was bleeding out of the first-floor bathroom into the hall outside it. The
+cause was that floors were assigned by nearest anchor, and a bathroom's anchor is
+nearer to the corridor past its door than to its own far corner — which is why
+`reach` never fixed it and could not have. Floors are flood-filled from the
+anchors now, over a barrier set of every wall with its wide openings cut out, so
+a finish stops at a doorway and carries through a cased opening. The hall
+bathroom drops from 6.5 m² to the 5.3 m² within its own walls.
