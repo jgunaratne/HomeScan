@@ -100,12 +100,23 @@ stick with no server behind it, and that is a concatenation, not a build system.
 
 ## Nano Banana
 
-The `Nano Banana` button in either toolbar takes the frame on screen and posts it
-to Gemini's image model, which sends back a photograph of the same room. It is
-the one place the viewer stops pretending: the geometry is sketch-grade LiDAR and
-the paint is lifted off a handful of photographs, so the walkthrough is credible
-as a survey and never as a picture. This is what the room might look like, drawn
-by something that has seen a great many rooms.
+The `Nano Banana` button in either toolbar — or `N` — takes the frame on screen,
+posts it to Gemini's image model, and puts the photograph that comes back over
+the whole viewport at the size the walkthrough itself runs at. `N` again flips
+back to the live view, and again to the photograph. That is the point of it: the
+same room from the same camera, one of them measured and one of them imagined,
+compared by flipping rather than by putting two small pictures side by side.
+
+The geometry is sketch-grade LiDAR and the paint is lifted off a handful of
+photographs, so the walkthrough is credible as a survey and never as a picture.
+This is the one place it stops pretending.
+
+Three states, and no more: the photograph over everything, the live view with a
+chip in the corner to get back to it, and gone. The keyboard belongs to the
+walkthrough again the moment the photograph is out of the way, so you can walk
+somewhere else and flip back — the header says the view has moved when it has,
+and `Render again` takes a fresh one from wherever you now stand. Clicking the
+photograph is the same as pressing `N`; `Esc` throws it away.
 
 ```sh
 cp .env.example .env       # at the repo root
@@ -119,6 +130,8 @@ A viewer opened straight off disk has no server behind it, so the button says so
 rather than failing silently. `GEMINI_IMAGE_MODEL` overrides the model; the
 default is `gemini-3.1-flash-image`, and a 404 on it falls back to
 `gemini-2.5-flash-image`, which not every key is cleared past.
+`curl localhost:5173/api/nano-banana` reports whether a key was found without
+spending one.
 
 **The brief matters more than the model.** The first version of it led with what
 had to be preserved — keep the camera, keep the geometry, add nothing — and
@@ -128,16 +141,17 @@ untextured model render, reproduced as a photograph on a 24 mm lens, every
 surface given a real material and real daylight) and fences the geometry after
 it. On the same frame, the same brief and the newer model is the difference
 between a tidier render and a photograph. Whatever is typed into the field on the
-panel is appended, so "at dusk" or "in winter" is a sentence, not a rewrite.
+bar is appended, so "at dusk" or "in winter" is a sentence, not a rewrite.
 
 The frame is captured straight off the drawing buffer, which is readable only
 inside the task that drew it — this renderer has no `preserveDrawingBuffer` — so
 `renderFrame()` and the read happen without yielding in between. It goes up as a
-JPEG no wider than 1536 px: the model resamples to about a megapixel anyway.
+JPEG no wider than 1536 px: the model resamples to about a megapixel anyway. What
+comes back fills the viewport with `object-fit: cover`, so the two views line up
+under the flip instead of one of them being letterboxed.
 
 What comes back is generated. It is a picture of what the scan guessed, at the
-resolution of a model's idea of a house, and it is not evidence of anything —
-which is what the line under the panel says.
+resolution of a model's idea of a house, and it is not evidence of anything.
 
 ## The photographs
 
@@ -526,3 +540,16 @@ the .env parser and the request shape under the unit suite, plus a headless
 browser run of the whole path — capture, post, swap, save, Escape — against the
 live model, with the prompt field proved not to fire the viewer's single-letter
 toggles.
+
+The photograph now fills the viewport and `N` flips between it and the live view,
+rather than opening a card with the render beside it. Two things came out of
+building it. The bundler's export-stripping regex knew `const`, `let`, `function`
+and `class` but not `async`, so `export async function` survived into the page as
+a SyntaxError that took the whole viewer down; the suite now parses the built
+bundle and checks every export in `src/` against the form the regex recognises.
+And an absolutely positioned box at `left:50%` is only offered the half of the
+line that remains, so both toolbars had been shrink-to-fitting into 640 px on a
+1280 px screen and wrapping to two rows; they are centred by auto margins now.
+Validation: the unit suite, plus a headless browser run of the whole path —
+render, flip, walk, flip back to the moved-view marker, save, Escape — against
+the live model.

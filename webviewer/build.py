@@ -61,7 +61,7 @@ def bundle(entry):
     for path in order:
         name = str(path.relative_to(root))
         text = IMPORT.sub('', path.read_text(encoding='utf-8'))
-        text = re.sub(r'^export (?=const |let |function |class )', '', text, flags=re.M)
+        text = re.sub(r'^export (?=const |let |async |function |class )', '', text, flags=re.M)
         out.append(f'// ---------- {name} ' + '-' * max(3, 58 - len(name))
                    + f'\n{text.strip()}\n')
     # One scope, so the page leaves nothing of its own on window.

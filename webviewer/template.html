@@ -96,9 +96,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   padding:1px 6px;margin-right:8px;font-size:12px;font-weight:600}
 
 /* overview controls */
-.viewbar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+.viewbar{position:absolute;left:0;right:0;bottom:18px;margin-inline:auto;width:fit-content;
   display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;
-  flex-wrap:wrap;max-width:min(1120px,94vw);
+  flex-wrap:wrap;max-width:min(1280px,96vw);
   background:rgba(20,26,34,.9);border:1px solid var(--line);backdrop-filter:blur(7px)}
 .viewbar label{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
 .viewbar input[type=range]{width:132px;accent-color:var(--accent)}
@@ -140,36 +140,45 @@ a.btn{color:inherit;text-decoration:none;display:inline-block}
 .lb-x:hover{color:var(--text);border-color:var(--accent)}
 @media (max-width:760px){.lb-nav{width:40px;height:60px;font-size:24px}}
 
-/* nano banana — the frame handed back as a photograph */
-.nb{position:fixed;inset:0;z-index:6;display:grid;place-items:center;
-  background:rgba(8,10,14,.975);pointer-events:auto;padding:20px}
-.nb-card{width:min(1180px,94vw);max-height:92vh;display:flex;flex-direction:column;gap:12px}
-.nb-head{display:flex;align-items:baseline;gap:12px}
-.nb-head .rm{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
-  font-size:17px;font-weight:600;color:var(--accent)}
-.nb-head .grow{flex:1}
-.nb-model{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
-.nb-stage{position:relative;min-height:0;border:1px solid var(--line);background:var(--surface)}
-.nb-stage img{display:block;width:100%;max-height:62vh;object-fit:contain}
-.nb-veil{position:absolute;inset:0;display:grid;place-items:center;
-  background:rgba(12,15,20,.62);backdrop-filter:blur(2px)}
-.nb-veil i{display:block;width:34px;height:34px;border:2px solid var(--line);
+/* nano banana — the frame handed back as a photograph, at the size the
+   walkthrough itself runs at, so flipping between the two is a flip and not a
+   change of medium */
+.nb{position:fixed;inset:0;z-index:6;pointer-events:auto}
+.nb img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;
+  cursor:pointer}
+.nb .head{position:absolute;left:18px;top:18px;display:flex;align-items:baseline;gap:12px;
+  padding:7px 12px;background:rgba(20,26,34,.82);border:1px solid var(--line);
+  backdrop-filter:blur(7px)}
+.nb .head .rm{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
+  font-size:15px;font-weight:600;color:var(--accent)}
+.nb .head .cp{font-size:12.5px;color:var(--muted)}
+.nb .head .stale{font-size:11.5px;color:var(--warn)}
+.nb-bar{width:min(1040px,94vw)}
+.nb-bar textarea{flex:1 1 300px;min-width:180px;height:36px;padding:8px 12px;resize:none;
+  font:inherit;font-size:12.5px;color:var(--text);background:rgba(12,15,20,.6);
+  border:1px solid var(--line)}
+.nb-bar textarea::placeholder{color:var(--dim)}
+.nb-bar textarea:focus{outline:none;border-color:var(--accent)}
+.nb-bar i{display:block;width:15px;height:15px;border:2px solid var(--line);
   border-top-color:var(--accent);border-radius:50%;animation:nb-turn 900ms linear infinite}
 @keyframes nb-turn{to{transform:rotate(1turn)}}
-@media (prefers-reduced-motion:reduce){.nb-veil i{animation-duration:2.4s}}
-.nb-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.nb-row .grow{flex:1}
-.nb-row textarea{flex:1 1 320px;min-width:220px;height:38px;padding:9px 12px;resize:vertical;
-  font:inherit;font-size:12.5px;color:var(--text);background:var(--surface);
-  border:1px solid var(--line)}
-.nb-row textarea::placeholder{color:var(--dim)}
-.nb-row textarea:focus{outline:none;border-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.nb-bar i{animation-duration:2.4s}}
 .btn:disabled{opacity:.45;cursor:default;border-color:var(--line);color:var(--muted)}
-.nb-status{margin:0;min-height:1.4em;font-size:12.5px;line-height:1.45;color:var(--muted)}
+.nb-status{position:absolute;left:0;right:0;bottom:78px;margin:0 auto;width:fit-content;
+  max-width:min(70ch,90vw);text-align:center;font-size:12.5px;line-height:1.45;
+  color:var(--muted);text-shadow:0 1px 3px rgba(8,10,14,.9)}
 .nb-status.is-busy{color:var(--warn)}
-.nb-status.is-good{color:var(--muted)}
 .nb-status.is-bad{color:var(--bad)}
-.nb-note{margin:0;font-size:11.5px;color:var(--dim);line-height:1.45}
+.nb-status:empty{display:none}
+
+/* left behind over the live view, so the photograph is one press away back */
+.nb-chip{position:absolute;left:18px;top:58px;display:flex;align-items:baseline;gap:9px;
+  padding:7px 12px;background:rgba(20,26,34,.86);border:1px solid var(--line);
+  backdrop-filter:blur(7px);font-size:12px;color:var(--muted)}
+.nb-chip b{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
+  font-size:13px;font-weight:600;color:var(--accent)}
+.nb-chip kbd{font-family:var(--mono);background:var(--accent);color:#0C0F14;
+  padding:1px 6px;font-size:11px;font-weight:600}
 
 /* gate / pause */
 .gate{position:absolute;inset:0;display:grid;place-items:center;
@@ -276,27 +285,25 @@ a.btn{color:inherit;text-decoration:none;display:inline-block}
   </div>
 
   <div class="nb" id="nb" hidden>
-    <div class="nb-card">
-      <div class="nb-head">
-        <span class="rm">Nano Banana</span>
-        <span class="cp" id="nb-where"></span>
-        <span class="grow"></span>
-        <button class="lb-x hit" id="nb-x" style="position:static">Esc</button>
-      </div>
-      <div class="nb-stage">
-        <img id="nb-img" alt="The current view, re-rendered as a photograph">
-        <div class="nb-veil" id="nb-veil" hidden><i></i></div>
-      </div>
-      <div class="nb-row">
-        <textarea id="nb-prompt" rows="1" placeholder="Anything to add — time of day, season, a material to change"></textarea>
-        <button class="btn hit" id="nb-swap" disabled>Show the render</button>
-        <a class="btn hit" id="nb-save" download="storeywalk-photograph.png" hidden>Save</a>
-        <button class="btn solid hit" id="nb-run">Render</button>
-      </div>
-      <p class="nb-status" id="nb-status"></p>
-      <p class="nb-note">Generated by Gemini from the frame above. It is a picture of
-        what the scan guessed, not evidence of what the house looks like.</p>
+    <img id="nb-img" alt="The view, re-rendered as a photograph">
+    <div class="head">
+      <span class="rm">Nano Banana</span>
+      <span class="cp" id="nb-where"></span>
+      <span class="stale" id="nb-stale" hidden>the view has moved since</span>
     </div>
+    <p class="nb-status" id="nb-status"></p>
+    <div class="viewbar nb-bar" id="nb-bar">
+      <i id="nb-spin" hidden></i>
+      <textarea id="nb-prompt" rows="1" placeholder="Anything to add — time of day, season, a material to change"></textarea>
+      <button class="btn hit" id="nb-run">Render again</button>
+      <a class="btn hit" id="nb-save" download="storeywalk-photograph.jpg" hidden>Save</a>
+      <button class="btn solid hit" id="nb-toggle">Show the view</button>
+      <button class="btn hit" id="nb-x">Esc</button>
+    </div>
+  </div>
+
+  <div class="nb-chip hit" id="nb-chip" hidden>
+    <b>Nano Banana</b><span><kbd>N</kbd> for the photograph</span>
   </div>
 
   <div class="gate" id="gate">
@@ -314,7 +321,7 @@ a.btn{color:inherit;text-decoration:none;display:inline-block}
         <b>O</b><span>Hang the photographs themselves · click a wall for its room's</span>
         <b>Q</b><span>Turn the lens off — occlusion, bloom, focus and grain</span>
         <b>G</b><span>Pass through walls, for rooms the scan sealed</span>
-        <b>N</b><span>Nano Banana — this view redrawn as a photograph</span>
+        <b>N</b><span>Nano Banana — flip between this view and a photograph of it</span>
         <b>E</b><span>Take the stairs, at the stairwell</span>
         <b>1 &nbsp;2</b><span>Jump to Downstairs / Upstairs</span>
         <b>Tab</b><span>Pull back to the section view</span>

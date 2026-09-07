@@ -96,9 +96,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   padding:1px 6px;margin-right:8px;font-size:12px;font-weight:600}
 
 /* overview controls */
-.viewbar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);
+.viewbar{position:absolute;left:0;right:0;bottom:18px;margin-inline:auto;width:fit-content;
   display:flex;align-items:center;justify-content:center;gap:12px;padding:10px 16px;
-  flex-wrap:wrap;max-width:min(1120px,94vw);
+  flex-wrap:wrap;max-width:min(1280px,96vw);
   background:rgba(20,26,34,.9);border:1px solid var(--line);backdrop-filter:blur(7px)}
 .viewbar label{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px}
 .viewbar input[type=range]{width:132px;accent-color:var(--accent)}
@@ -140,36 +140,45 @@ a.btn{color:inherit;text-decoration:none;display:inline-block}
 .lb-x:hover{color:var(--text);border-color:var(--accent)}
 @media (max-width:760px){.lb-nav{width:40px;height:60px;font-size:24px}}
 
-/* nano banana — the frame handed back as a photograph */
-.nb{position:fixed;inset:0;z-index:6;display:grid;place-items:center;
-  background:rgba(8,10,14,.975);pointer-events:auto;padding:20px}
-.nb-card{width:min(1180px,94vw);max-height:92vh;display:flex;flex-direction:column;gap:12px}
-.nb-head{display:flex;align-items:baseline;gap:12px}
-.nb-head .rm{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
-  font-size:17px;font-weight:600;color:var(--accent)}
-.nb-head .grow{flex:1}
-.nb-model{font-family:var(--mono);font-size:11.5px;color:var(--dim)}
-.nb-stage{position:relative;min-height:0;border:1px solid var(--line);background:var(--surface)}
-.nb-stage img{display:block;width:100%;max-height:62vh;object-fit:contain}
-.nb-veil{position:absolute;inset:0;display:grid;place-items:center;
-  background:rgba(12,15,20,.62);backdrop-filter:blur(2px)}
-.nb-veil i{display:block;width:34px;height:34px;border:2px solid var(--line);
+/* nano banana — the frame handed back as a photograph, at the size the
+   walkthrough itself runs at, so flipping between the two is a flip and not a
+   change of medium */
+.nb{position:fixed;inset:0;z-index:6;pointer-events:auto}
+.nb img{position:absolute;inset:0;display:block;width:100%;height:100%;object-fit:cover;
+  cursor:pointer}
+.nb .head{position:absolute;left:18px;top:18px;display:flex;align-items:baseline;gap:12px;
+  padding:7px 12px;background:rgba(20,26,34,.82);border:1px solid var(--line);
+  backdrop-filter:blur(7px)}
+.nb .head .rm{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
+  font-size:15px;font-weight:600;color:var(--accent)}
+.nb .head .cp{font-size:12.5px;color:var(--muted)}
+.nb .head .stale{font-size:11.5px;color:var(--warn)}
+.nb-bar{width:min(1040px,94vw)}
+.nb-bar textarea{flex:1 1 300px;min-width:180px;height:36px;padding:8px 12px;resize:none;
+  font:inherit;font-size:12.5px;color:var(--text);background:rgba(12,15,20,.6);
+  border:1px solid var(--line)}
+.nb-bar textarea::placeholder{color:var(--dim)}
+.nb-bar textarea:focus{outline:none;border-color:var(--accent)}
+.nb-bar i{display:block;width:15px;height:15px;border:2px solid var(--line);
   border-top-color:var(--accent);border-radius:50%;animation:nb-turn 900ms linear infinite}
 @keyframes nb-turn{to{transform:rotate(1turn)}}
-@media (prefers-reduced-motion:reduce){.nb-veil i{animation-duration:2.4s}}
-.nb-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.nb-row .grow{flex:1}
-.nb-row textarea{flex:1 1 320px;min-width:220px;height:38px;padding:9px 12px;resize:vertical;
-  font:inherit;font-size:12.5px;color:var(--text);background:var(--surface);
-  border:1px solid var(--line)}
-.nb-row textarea::placeholder{color:var(--dim)}
-.nb-row textarea:focus{outline:none;border-color:var(--accent)}
+@media (prefers-reduced-motion:reduce){.nb-bar i{animation-duration:2.4s}}
 .btn:disabled{opacity:.45;cursor:default;border-color:var(--line);color:var(--muted)}
-.nb-status{margin:0;min-height:1.4em;font-size:12.5px;line-height:1.45;color:var(--muted)}
+.nb-status{position:absolute;left:0;right:0;bottom:78px;margin:0 auto;width:fit-content;
+  max-width:min(70ch,90vw);text-align:center;font-size:12.5px;line-height:1.45;
+  color:var(--muted);text-shadow:0 1px 3px rgba(8,10,14,.9)}
 .nb-status.is-busy{color:var(--warn)}
-.nb-status.is-good{color:var(--muted)}
 .nb-status.is-bad{color:var(--bad)}
-.nb-note{margin:0;font-size:11.5px;color:var(--dim);line-height:1.45}
+.nb-status:empty{display:none}
+
+/* left behind over the live view, so the photograph is one press away back */
+.nb-chip{position:absolute;left:18px;top:58px;display:flex;align-items:baseline;gap:9px;
+  padding:7px 12px;background:rgba(20,26,34,.86);border:1px solid var(--line);
+  backdrop-filter:blur(7px);font-size:12px;color:var(--muted)}
+.nb-chip b{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
+  font-size:13px;font-weight:600;color:var(--accent)}
+.nb-chip kbd{font-family:var(--mono);background:var(--accent);color:#0C0F14;
+  padding:1px 6px;font-size:11px;font-weight:600}
 
 /* gate / pause */
 .gate{position:absolute;inset:0;display:grid;place-items:center;
@@ -276,27 +285,25 @@ a.btn{color:inherit;text-decoration:none;display:inline-block}
   </div>
 
   <div class="nb" id="nb" hidden>
-    <div class="nb-card">
-      <div class="nb-head">
-        <span class="rm">Nano Banana</span>
-        <span class="cp" id="nb-where"></span>
-        <span class="grow"></span>
-        <button class="lb-x hit" id="nb-x" style="position:static">Esc</button>
-      </div>
-      <div class="nb-stage">
-        <img id="nb-img" alt="The current view, re-rendered as a photograph">
-        <div class="nb-veil" id="nb-veil" hidden><i></i></div>
-      </div>
-      <div class="nb-row">
-        <textarea id="nb-prompt" rows="1" placeholder="Anything to add — time of day, season, a material to change"></textarea>
-        <button class="btn hit" id="nb-swap" disabled>Show the render</button>
-        <a class="btn hit" id="nb-save" download="storeywalk-photograph.png" hidden>Save</a>
-        <button class="btn solid hit" id="nb-run">Render</button>
-      </div>
-      <p class="nb-status" id="nb-status"></p>
-      <p class="nb-note">Generated by Gemini from the frame above. It is a picture of
-        what the scan guessed, not evidence of what the house looks like.</p>
+    <img id="nb-img" alt="The view, re-rendered as a photograph">
+    <div class="head">
+      <span class="rm">Nano Banana</span>
+      <span class="cp" id="nb-where"></span>
+      <span class="stale" id="nb-stale" hidden>the view has moved since</span>
     </div>
+    <p class="nb-status" id="nb-status"></p>
+    <div class="viewbar nb-bar" id="nb-bar">
+      <i id="nb-spin" hidden></i>
+      <textarea id="nb-prompt" rows="1" placeholder="Anything to add — time of day, season, a material to change"></textarea>
+      <button class="btn hit" id="nb-run">Render again</button>
+      <a class="btn hit" id="nb-save" download="storeywalk-photograph.jpg" hidden>Save</a>
+      <button class="btn solid hit" id="nb-toggle">Show the view</button>
+      <button class="btn hit" id="nb-x">Esc</button>
+    </div>
+  </div>
+
+  <div class="nb-chip hit" id="nb-chip" hidden>
+    <b>Nano Banana</b><span><kbd>N</kbd> for the photograph</span>
   </div>
 
   <div class="gate" id="gate">
@@ -314,7 +321,7 @@ a.btn{color:inherit;text-decoration:none;display:inline-block}
         <b>O</b><span>Hang the photographs themselves · click a wall for its room's</span>
         <b>Q</b><span>Turn the lens off — occlusion, bloom, focus and grain</span>
         <b>G</b><span>Pass through walls, for rooms the scan sealed</span>
-        <b>N</b><span>Nano Banana — this view redrawn as a photograph</span>
+        <b>N</b><span>Nano Banana — flip between this view and a photograph of it</span>
         <b>E</b><span>Take the stairs, at the stairwell</span>
         <b>1 &nbsp;2</b><span>Jump to Downstairs / Upstairs</span>
         <b>Tab</b><span>Pull back to the section view</span>
@@ -3362,9 +3369,14 @@ function togglePost(){ postOn = !postOn; postForced = true; }
 // paint lifted off photographs — convincing as a survey, never as a picture —
 // and this is the one place the viewer stops pretending otherwise.
 //
+// The photograph fills the screen at the size the walkthrough runs at, and N
+// flips between the two. That is the whole point: the same room, the same
+// camera, one of them measured and one of them imagined, and nothing in the
+// way of putting them side by side in time rather than side by side in space.
+//
 // The key lives in the server's .env and never reaches the page, so the whole
 // exchange is one POST to serve.mjs. A viewer opened straight off disk has no
-// server behind it; that is a message in the panel, not a broken button.
+// server behind it; that is a message in the bar, not a broken button.
 
 // What the model is actually asked for. The first draft of this led with what
 // had to be preserved — "keep the camera, keep the geometry" — and the model
@@ -3389,9 +3401,12 @@ const BRIEF = [
   'No text, labels or watermarks.',
 ].join(' ');
 
+// Gemini sees pixels, not metres. Its input is resampled to about a megapixel
+// anyway, so a retina drawing buffer costs upload time and buys nothing.
 const MAX_EDGE = 1536;
 
-let original = null, result = null, busy = false, showing = 'result', probed = false;
+// `shot` is the photograph, `at` is where the camera stood when it was taken.
+let shot = null, at = null, open = false, busy = false;
 
 function say(text, kind = ''){
   const el = $('nb-status');
@@ -3407,113 +3422,124 @@ function grabFrame(){
   ring.visible = false;                     // the floor marker is UI, not room
   renderFrame();
   const scale = Math.min(1, MAX_EDGE / Math.max(canvas.width, canvas.height));
-  const shot = document.createElement('canvas');
-  shot.width = Math.max(1, Math.round(canvas.width * scale));
-  shot.height = Math.max(1, Math.round(canvas.height * scale));
-  shot.getContext('2d').drawImage(canvas, 0, 0, shot.width, shot.height);
+  const frame = document.createElement('canvas');
+  frame.width = Math.max(1, Math.round(canvas.width * scale));
+  frame.height = Math.max(1, Math.round(canvas.height * scale));
+  frame.getContext('2d').drawImage(canvas, 0, 0, frame.width, frame.height);
   ring.visible = wasRing;
-  return shot.toDataURL('image/jpeg', 0.92);
+  at = {mode: view.mode, level: player.level, x: player.x, z: player.z,
+        yaw: player.yaw, pitch: player.pitch, room: whereAmI()};
+  return frame.toDataURL('image/jpeg', 0.92);
 }
 
-function show(which){
-  showing = result && which === 'result' ? 'result' : 'original';
-  $('nb-img').src = showing === 'result' ? result : original;
-  $('nb-swap').textContent = showing === 'result' ? 'Show the render' : 'Show the photograph';
-  $('nb-swap').disabled = !result;
-  $('nb-save').hidden = !result;
-  if (result){
-    $('nb-save').href = result;
+// Whether the photograph is still of what you are looking at. The section view
+// turns on its own, so there it is never anything but stale and saying so would
+// be noise; in walk mode it is the difference between a comparison and a pair
+// of unrelated pictures.
+function stale(){
+  if (!at || at.mode !== view.mode) return !!at;
+  if (view.mode !== 'walk') return false;
+  return at.level !== player.level
+    || Math.hypot(at.x - player.x, at.z - player.z) > 0.25
+    || Math.abs(at.yaw - player.yaw) > 0.05 || Math.abs(at.pitch - player.pitch) > 0.05;
+}
+
+// Three states: the photograph over everything, the live view with a chip to
+// get back, and gone. `focus.enhancing` is the first of them — the keyboard
+// belongs to the walkthrough again the moment the photograph is out of the way.
+function paint(){
+  const over = open && !!shot && focus.enhancing;
+  $('nb').hidden = !(open && (over || busy));
+  $('nb-img').hidden = !over;
+  $('nb-chip').hidden = !(open && shot && !over);
+  $('nb-bar').hidden = !(open && (over || busy));
+  $('nb-spin').hidden = !busy;
+  $('nb-run').disabled = busy;
+  $('nb-toggle').disabled = !shot;
+  $('nb-save').hidden = !shot;
+  $('nb-where').textContent = at ? at.room : '';
+  $('nb-stale').hidden = !(over && stale());
+  if (shot){
+    $('nb-img').src = shot;
+    $('nb-save').href = shot;
     // Which of PNG or JPEG comes back is the model's choice, and a file saved
     // under the wrong extension is one the desktop opens with the wrong thing.
     $('nb-save').download = 'storeywalk-photograph.'
-      + (result.startsWith('data:image/png') ? 'png' : 'jpg');
+      + (shot.startsWith('data:image/png') ? 'png' : 'jpg');
   }
-}
-
-// Whether there is a key behind the server, asked once and only when the panel
-// is first opened: a viewer that never presses the button should not go looking
-// for a server, and one opened off a memory stick has none to find.
-async function probe(){
-  if (probed) return;
-  probed = true;
-  let trouble = '';
-  try {
-    const state = await (await fetch('api/nano-banana')).json();
-    if (!state.configured) trouble = 'The server has no GEMINI_API_KEY. Put one in .env and restart it.';
-  } catch {
-    trouble = 'Nano Banana needs the local server. Run npm start, with GEMINI_API_KEY in .env.';
-  }
-  // The answer can land after the reader has already pressed Render.
-  if (trouble && !busy && !$('nb-status').textContent) say(trouble, 'bad');
-}
-
-function openEnhance(){
-  if (busy) return;
-  original = grabFrame();
-  result = null;
-  focus.enhancing = true;
-  document.exitPointerLock?.();
-  $('nb-where').textContent = view.mode === 'walk' ? whereAmI() : 'Section view';
-  $('nb').hidden = false;
-  show('original');
-  say('');
-  $('nb-run').disabled = false;
   syncCursor();
-  probe();
+}
+
+function show(photograph){
+  focus.enhancing = !!photograph;
+  if (photograph) document.exitPointerLock?.();
+  paint();
 }
 
 function closeEnhance(){
+  open = false;
   focus.enhancing = false;
-  $('nb').hidden = true;
+  shot = null; at = null;
   $('nb-img').removeAttribute('src');
-  original = result = null;
-  syncCursor();
+  say('');
+  paint();
 }
 
-async function run(){
-  if (busy || !original) return;
+async function render(){
+  if (busy) return;
+  const original = grabFrame();
   const extra = $('nb-prompt').value.trim();
-  busy = true;
-  $('nb-run').disabled = true;
-  $('nb-veil').hidden = false;
+  open = true; busy = true;
+  show(!!shot);                 // a re-render leaves the previous one on screen
   say('Rendering — this takes a few seconds.', 'busy');
+  let trouble = '';
   try {
     const res = await fetch('api/nano-banana', {
       method: 'POST',
       headers: {'content-type': 'application/json'},
       body: JSON.stringify({
         image: original,
-        prompt: `${BRIEF} The room is the ${$('nb-where').textContent.toLowerCase()}.`
-          + (extra ? ` ${extra}` : ''),
+        prompt: `${BRIEF} The room is the ${at.room.toLowerCase()}.` + (extra ? ` ${extra}` : ''),
       }),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `The server answered ${res.status}.`);
-    result = data.image;
-    show('result');
-    say(data.text || 'Rendered by ' + (data.model || 'Gemini') + '.', 'good');
+    shot = data.image;
   } catch (err) {
     // fetch only rejects when there was nobody to answer: opened off disk, or
     // served by something that is not serve.mjs.
-    say(err instanceof TypeError
+    trouble = err instanceof TypeError
       ? 'Nano Banana needs the local server. Run npm start, with GEMINI_API_KEY in .env.'
-      : err.message, 'bad');
-  } finally {
-    busy = false;
-    $('nb-run').disabled = false;
-    $('nb-veil').hidden = true;
+      : err.message;
   }
+  busy = false;
+  if (!open) return;            // closed while the post was still out
+  if (trouble){
+    say(trouble, 'bad');
+    if (!shot) open = false;    // nothing to show and nothing to go back to
+    paint();
+    return;
+  }
+  say('');
+  show(true);
+}
+
+// The N key and the button both land here: flip if there is something to flip
+// to, and otherwise go and get one.
+function toggleEnhance(){
+  if (busy) return;
+  if (shot) show(!focus.enhancing);
+  else render();
 }
 
 function initEnhance(){
-  for (const id of ['nbbtn', 'nbbtn2']) $(id).onclick = openEnhance;
+  for (const id of ['nbbtn', 'nbbtn2', 'nb-toggle', 'nb-chip']) $(id).onclick = toggleEnhance;
+  $('nb-img').onclick = () => show(false);
   $('nb-x').onclick = closeEnhance;
-  $('nb-run').onclick = run;
-  $('nb-swap').onclick = () => show(showing === 'result' ? 'original' : 'result');
-  $('nb').addEventListener('mousedown', e => { if (e.target === $('nb')) closeEnhance(); });
+  $('nb-run').onclick = render;
   // Enter sends it; the field still takes a newline on Shift, like a message box.
   $('nb-prompt').addEventListener('keydown', e => {
-    if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); run(); }
+    if (e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); render(); }
   });
 }
 
@@ -3531,8 +3557,9 @@ function initInput(){
       if (k === 'escape') el.blur();
       return;
     }
-    if (focus.enhancing){                                // so does the render panel
+    if (focus.enhancing){            // so does the photograph, over everything
       if (k === 'escape') closeEnhance();
+      if (k === 'n') toggleEnhance();
       e.preventDefault();
       return;
     }
@@ -3550,7 +3577,7 @@ function initInput(){
     if (k === 'o') setPrints(!flags.showPrints);
     if (k === 'q' && CAN_POST) togglePost();
     if (k === 'g') setGhost(!flags.ghost);
-    if (k === 'n') openEnhance();
+    if (k === 'n') toggleEnhance();
     if (k === 'e' && view.mode === 'walk' && stairsNear()) useStairs();
     const n = parseInt(k, 10);
     if (view.mode === 'walk' && n >= 1 && n <= levels.length) spawnOn(n - 1, HOUSE.stairs);

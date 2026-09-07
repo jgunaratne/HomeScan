@@ -84,8 +84,8 @@ async function readBody(req, res){
 
 async function nanoBanana(req, res){
   const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
-  // The panel asks this when it opens, so a viewer served without a key says so
-  // up front rather than after the reader has written a prompt and pressed go.
+  // A health check for the route: `curl localhost:5173/api/nano-banana` says
+  // whether a key was found without spending one.
   if (req.method === 'GET') return json(res, 200, {configured: !!key, model: NB_MODEL});
   if (req.method !== 'POST') return json(res, 405, {error: 'POST a frame here.'});
   if (!key) return json(res, 503, {

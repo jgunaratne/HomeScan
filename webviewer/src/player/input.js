@@ -10,7 +10,7 @@ import { shotAt, wallShotAt, setPrints } from '../photo/prints.js';
 import { setSurfaces } from '../scene/dressing.js';
 import { openShot, stepShot, closeShot } from '../ui/lightbox.js';
 import { syncCursor, toView, setFurniture, setGhost } from '../ui/modes.js';
-import { openEnhance, closeEnhance } from '../ui/enhance.js';
+import { toggleEnhance, closeEnhance } from '../ui/enhance.js';
 import { CAN_POST, togglePost } from '../render/passes.js';
 
 // Keyboard, mouse, wheel and touch. Nothing here decides anything: every
@@ -26,8 +26,9 @@ export function initInput(){
       if (k === 'escape') el.blur();
       return;
     }
-    if (focus.enhancing){                                // so does the render panel
+    if (focus.enhancing){            // so does the photograph, over everything
       if (k === 'escape') closeEnhance();
+      if (k === 'n') toggleEnhance();
       e.preventDefault();
       return;
     }
@@ -45,7 +46,7 @@ export function initInput(){
     if (k === 'o') setPrints(!flags.showPrints);
     if (k === 'q' && CAN_POST) togglePost();
     if (k === 'g') setGhost(!flags.ghost);
-    if (k === 'n') openEnhance();
+    if (k === 'n') toggleEnhance();
     if (k === 'e' && view.mode === 'walk' && stairsNear()) useStairs();
     const n = parseInt(k, 10);
     if (view.mode === 'walk' && n >= 1 && n <= levels.length) spawnOn(n - 1, HOUSE.stairs);
