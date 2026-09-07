@@ -20,28 +20,65 @@ import { syncCursor } from './modes.js';
 // exchange is one POST to serve.mjs. A viewer opened straight off disk has no
 // server behind it; that is a message in the bar, not a broken button.
 
-// What the model is actually asked for. The first draft of this led with what
-// had to be preserved — "keep the camera, keep the geometry" — and the model
-// obliged by handing the render straight back with the bricks slightly redrawn.
-// The instruction has to lead with the change and fence the geometry after it.
-const BRIEF = [
-  'This is an untextured 3D model render of a real room. Reproduce it as a photorealistic',
-  'interior photograph of the same room, shot from the same camera position on a full-frame',
-  'camera with a 24mm lens.',
+// What the model is actually asked for, and the whole feature. Three drafts:
+//
+//  1. Lead with what to preserve — "keep the camera, keep the geometry, add
+//     nothing" — and gemini-2.5-flash hands the render straight back with the
+//     bricks redrawn. Faithful, and not a photograph.
+//  2. Lead with the change — "change everything else" — and you get a
+//     photograph of a room that is not this one: a plain bench comes back as an
+//     upholstered armchair, plain boards as herringbone parquet, painted walls
+//     with a course of brick through them.
+//  3. Lead with the change, then spend most of the brief fencing it. Name what
+//     must survive, list what may not be added, and say the two images have to
+//     lie on top of each other. That is this.
+//
+// Measured against the frame it was given, on edge-map correlation over three
+// runs each, (3) holds 0.695 against (2)'s 0.657 and has a much better worst
+// case. Temperature was tried at 0.1, 0.2 and 0.4 and moved nothing outside the
+// ±0.03 a repeat run moves on its own, so it is not set: it would be a
+// superstition in the request. The prompt is the only lever that worked.
+const brief = walking => [
+  walking
+    ? 'Re-photograph this image. It is a 3D model of a real room, and the result must be the'
+      + ' same image — the same room, the same view — photographed instead of rendered. It is'
+      + ' not a new picture of a similar room.'
+    : 'Re-photograph this image. It is a 3D cutaway model of a real house with its roof off,'
+      + ' standing on open ground and seen from above, and the result must be the same image —'
+      + ' the same model, the same view — photographed instead of rendered. It is a photograph'
+      + ' of this model, not a new picture of a similar house.',
   '',
-  'Keep every wall, window, doorway, stair and piece of furniture exactly where it is and the',
-  'same size. The plan of the room must not change, and nothing new may be added to it.',
+  'Everything below must come out of this unchanged, matching the input pixel for pixel:',
+  '- the camera position, angle and field of view, and the framing at the edges',
+  '- the position, size and outline of every wall, floor, ceiling, window, door, doorway,'
+    + ' stair and railing',
+  '- the number of windows and doors, and the pattern of glazing bars in each window',
+  '- the position, size and shape of every piece of furniture and every fixture already in frame',
+  ...(walking ? [] : ['- the outline of the building on the ground, its room divisions,'
+    + ' and the ground it stands on']),
+  '- the colour of every surface: a sage wall stays that sage, a pale floor stays that tone',
   '',
-  'Change everything else. Give every surface a real material: plank joints and grain in the',
-  'floor, painted drywall with the faint texture of a roller, irregular brick with weathered',
-  'mortar, fabric weave and creases in upholstery, real glass in the windows. Light it with',
-  'true daylight coming through the windows, with soft falloff across the walls, bounced light',
-  'on the ceiling, and contact shadows under everything that touches the floor. Add the small',
-  'honest details a photograph has and a render does not: crisp skirting reveals, faint',
-  'reflections, slight vignetting, fine sensor grain.',
+  'Add nothing at all. No extra furniture, rugs, cushions, throws, curtains, blinds, plants,'
+    + ' artwork, books, ornaments, lamps, ceiling lights, switches, sockets, radiators, fires,'
+    + ' people or animals. A bare wall stays bare. An empty corner stays empty.'
+    + (walking
+        ? ' Whatever is visible through a window stays what is visible through it.'
+        : ' No roof, no extra storey, no landscaping that is not already there.')
+    + ' Remove nothing either.',
   '',
-  'No text, labels or watermarks.',
-].join(' ');
+  'Change one thing only: how real the surfaces and the light are. Give the surfaces that are'
+    + ' already there their true material — grain and plank joints in wood, the tooth of painted'
+    + ' plaster, irregular brick with real mortar, weave in fabric, real glass — and light it'
+    + (walking
+        ? ' with daylight through the windows that are already in the frame, with soft falloff,'
+          + ' bounce, and contact shadows where objects already meet the floor.'
+        : ' with real daylight from the same direction as the shadow already on the ground.')
+    + " Add the ordinary imperfections of a photograph: slight vignetting, fine grain, a real"
+    + " lens's depth of field.",
+  '',
+  'Someone who knows this house must be able to lay your photograph over the render and find'
+    + ' every edge in the same place. No text, labels or watermarks.',
+].join('\n');
 
 // Gemini sees pixels, not metres. Its input is resampled to about a megapixel
 // anyway, so a retina drawing buffer costs upload time and buys nothing.
@@ -142,12 +179,9 @@ async function render(){
       headers: {'content-type': 'application/json'},
       body: JSON.stringify({
         image: original,
-        prompt: BRIEF + (at.mode === 'walk'
-          ? ` The room is the ${at.room.toLowerCase()}.`
-          : ' The subject is a cutaway architectural model of a whole house with its roof off,'
-            + ' seen from above and standing on open ground: photograph it as a model, not as'
-            + ' a room you are standing in.')
-          + (extra ? ` ${extra}` : ''),
+        prompt: brief(at.mode === 'walk')
+          + (at.mode === 'walk' ? `\n\nThe room is the ${at.room.toLowerCase()}.` : '')
+          + (extra ? `\n\n${extra}` : ''),
       }),
     });
     const data = await res.json().catch(() => ({}));

@@ -48,12 +48,37 @@ test('the frame the viewer posts is the shape the server unpacks',()=>{
   assert.ok(!accepts.test(''));
 });
 
-// The brief is the whole feature: an earlier one that led with what to preserve
-// got the render handed straight back. Change first, geometry fenced after.
-test('the brief asks for a photograph before it asks to keep the plan',()=>{
-  const brief=enhance.slice(enhance.indexOf('const BRIEF'),enhance.indexOf('].join'));
-  assert.ok(brief.indexOf('photorealistic')<brief.indexOf('must not change'));
-  assert.ok(/no text, labels or watermarks/i.test(brief));
+// The brief is the whole feature. An earlier one that led with what to preserve
+// got the render handed back untouched; the one after it led with the change and
+// got a photograph of a different room — a plain bench as an upholstered chair,
+// plain boards as herringbone parquet. What holds it together is the fencing
+// after the change, so that is what is checked, not the wording.
+function brief(walking){
+  const src=enhance.slice(enhance.indexOf('const brief ='),enhance.indexOf(".join('\\n');")+12);
+  return new Function(src+';return brief;')()(walking);
+}
+test('both briefs ask for a photograph, then fence it',()=>{
+  for(const walking of [true,false]){
+    const text=brief(walking);
+    assert.ok(!/undefined|\[object/.test(text),'a value leaked into the brief');
+    assert.ok(text.indexOf('photographed instead of rendered')<text.indexOf('unchanged'));
+    assert.match(text,/Add nothing at all/);
+    assert.match(text,/pixel for pixel/);
+    assert.match(text,/lay your photograph over the render/);
+    assert.match(text,/no text, labels or watermarks/i);
+    assert.ok(text.split(/\s+/).length>250,'the fence needs the room to be specific');
+  }
+});
+test('the section view is briefed as a cutaway model, not as a room',()=>{
+  const walk=brief(true), section=brief(false);
+  assert.notEqual(walk,section);
+  assert.match(section,/cutaway model of a real house with its roof off/);
+  assert.match(section,/No roof, no extra storey/);
+  assert.match(walk,/a 3D model of a real room/);
+  assert.match(walk,/visible through a window/);
+  // the footprint and the ground it stands on exist only in the section view
+  assert.ok(section.includes('outline of the building on the ground'));
+  assert.ok(!walk.includes('outline of the building on the ground'));
 });
 
 // Every element the module reaches for has to exist in the page it is bundled

@@ -139,15 +139,30 @@ default is `gemini-3.1-flash-image`, and a 404 on it falls back to
 `curl localhost:5173/api/nano-banana` reports whether a key was found without
 spending one.
 
-**The brief matters more than the model.** The first version of it led with what
-had to be preserved — keep the camera, keep the geometry, add nothing — and
-gemini-2.5-flash-image obliged by handing the render straight back with the
-bricks slightly redrawn. The instruction that works leads with the change (an
-untextured model render, reproduced as a photograph on a 24 mm lens, every
-surface given a real material and real daylight) and fences the geometry after
-it. On the same frame, the same brief and the newer model is the difference
-between a tidier render and a photograph. Whatever is typed into the field on the
-bar is appended, so "at dusk" or "in winter" is a sentence, not a rewrite.
+**The brief matters more than the model**, and it took three drafts to find out
+which way. The first led with what had to be preserved — keep the camera, keep
+the geometry, add nothing — and gemini-2.5-flash obliged by handing the render
+straight back with the bricks redrawn: faithful, and not a photograph. The second
+led with the change — "change everything else" — and got a photograph of a room
+that was not this one, with a plain bench returned as an upholstered armchair,
+plain boards as herringbone parquet, and a course of brick through a painted
+wall. The third leads with the change and then spends most of its length fencing
+it: what must survive, itemised; what may not be added, listed by name; and the
+demand that the two images lie on top of each other. That is the one in
+`src/ui/enhance.js`, and the section view gets its own wording — a cutaway model
+photographed as a model, not as a room you are standing in.
+
+Measured against the frame it was given, on edge-map correlation across three
+runs each, the third brief holds **0.695** to the second's **0.657**, with a much
+better worst case (0.658 against 0.600). The gap looks small because the metric
+is blunt about invented objects; the difference on screen is not small.
+
+Two things that sound like they should help were tried and do not.
+`temperature`, at 0.1, 0.2 and 0.4, moved nothing outside the ±0.03 that a repeat
+run at the same settings moves on its own, so it is not in the request — it would
+be a superstition. And the output already comes back at the input's aspect ratio
+(1306×816 for a 1280×800 frame, 1.600 either way), so there is nothing to pin
+with `imageConfig`. The prompt was the only lever that worked.
 
 The frame is captured straight off the drawing buffer, which is readable only
 inside the task that drew it — this renderer has no `preserveDrawingBuffer` — so
@@ -570,3 +585,12 @@ pushed through the setters in `initControls`, or a button that is on shows as
 off. And an edit that replaced a slice of `template.html` silently deleted the
 whole lightbox block; the suite now checks every `$('id')` in `src/` against the
 template, which catches exactly that.
+
+Nano Banana was introducing furniture, flooring and wall materials that are not
+in the scan. The brief now leads with the change and then fences it at length —
+an itemised list of what must survive, a named list of what may not be added, and
+the demand that the two images lie on top of each other — and the section view is
+briefed as a cutaway model rather than as a room. Edge-map correlation against
+the source rises from 0.657 to 0.695 over three runs each, and a plain bench
+comes back a plain bench. Temperature and aspect-ratio pinning were both measured
+and both do nothing, so neither is in the request.
