@@ -1,4 +1,3 @@
-import { paintSky } from '../photo/sky.js';
 
 // Photo-inferred soffits in the scan's rotated plan frame. Each wedge replaces
 // its part of the flat slab and closes back up to it along the exposed edges.
@@ -30,7 +29,6 @@ export function dressRooflines(L){
       geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
       geo.setAttribute('uv',new THREE.Float32BufferAttribute(vertices[kind].flatMap(p=>[p[0]/1.9,p[2]/1.9+p[1]/1.9]),2));
       geo.computeVertexNormals();
-      paintSky(geo,L.sky,null,0.86,0);
       const mat=(kind==='slope'||spec.returnFinish==='ceil'?room.mats.ceil:room.mats.wall).clone();mat.side=THREE.DoubleSide;
       const mesh=new THREE.Mesh(geo,mat);mesh.name=room.name+' roof '+kind;
       L.roomCeil.add(mesh);

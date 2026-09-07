@@ -126,7 +126,7 @@ const PHYS = {
 function surfMat(canvas, tint, extra, kind){
   const k = PHYS[kind] || PHYS.wall;
   const m = new THREE.MeshStandardMaterial(Object.assign({
-    map: tiling(canvas), color: tint, vertexColors: true,
+    map: tiling(canvas), color: tint,
     roughness: k.roughness, metalness: 0.0, envMapIntensity: k.env,
   }, extra || {}));
   if (k.relief > 0){

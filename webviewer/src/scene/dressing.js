@@ -9,7 +9,6 @@ import { MAT } from './materials.js';
 import { levels } from './levels.js';
 import { TILE, roomAt } from '../photo/rooms.js';
 import { avgMats } from '../photo/relight.js';
-import { paintSky } from '../photo/sky.js';
 import { outdoorWorld } from '../photo/outside.js';
 
 // A wall has two faces and they can be in different rooms — the kitchen side of
@@ -27,7 +26,6 @@ export function dressWalls(L){
     for (let i=0;i<uv.count;i++)
       uv.setXY(i, uv.getX(i)*p.w/TILE.wall, uv.getY(i)*p.h/TILE.wall);
     uv.needsUpdate = true;
-    paintSky(p.mesh.geometry, L.sky, p.mesh, 1.0, 0.10);
   }
 }
 
@@ -96,7 +94,6 @@ export function dressSlabs(L){
       geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
       geo.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
       geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
-      paintSky(geo, L.sky, null, kind === 'ceil' ? 0.86 : 1.0, kind === 'floor' ? 0.025 : 0.0);
       host.add(new THREE.Mesh(geo, mat));
     }
     // Downlights on a 2.4 m grid over the room's own ceiling. They are lamps to

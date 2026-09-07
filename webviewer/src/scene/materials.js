@@ -52,3 +52,7 @@ MAT.dark = new THREE.MeshStandardMaterial({color:0x252a29, roughness:0.48, metal
 // every matte furnishing erased grain and made timber look like ivory.
 for(const name of ['trim','white','wood','fabric','linen','accent','stone'])
   MAT[name].envMapIntensity=0.45;
+
+// r128 takes literal material colours as linear values. These palette entries
+// are display swatches, so decode them once before physically based shading.
+for(const m of new Set(Object.values(MAT)))if(m.isMeshStandardMaterial)m.color.convertSRGBToLinear();

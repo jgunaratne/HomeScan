@@ -1,3 +1,4 @@
+import { dressDaylight } from './daylight.js';
 import { dressArchitecture } from '../scene/architecture.js';
 import { $ } from '../core/util.js';
 import { levels } from '../scene/levels.js';
@@ -44,6 +45,7 @@ export function dressHouse(){
     for (const L of levels){
       L.sky = bakeSky(L);
       dressWalls(L); dressSlabs(L); dressFittings(L);
+      dressDaylight(L);
     }
     hangPrints();
     // The full-size decodes have done their work; hold only the canvases.

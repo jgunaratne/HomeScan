@@ -1,20 +1,13 @@
 import { clamp } from '../core/util.js';
 import { onFloor } from '../core/geometry.js';
 
-// One hemisphere light means a corner eight metres from the glazing is exactly
-// as bright as the sill, and that is the most artificial thing left in the
-// frame. There is no global illumination here, but the plan knows where the
-// light gets in: solid wall stops it, an opening does not. So each storey is
-// rasterised once — walls blocked, every door, window and opening punched back
-// open — and from each cell a fan of rays is walked until it hits something or
-// leaves the building. The fraction that get out is how much sky that spot can
-// see, and it is baked into the vertex colours of the walls, floors and
-// ceilings. Rooms then go bright at the glass and fall away into their corners
-// because of where the windows are, not because a number was chosen.
+// A connected-floor visibility bake supplies low-frequency indirect bounce
+// to the directional daylight volume. Walls stop propagation; openings allow
+// light to reach neighbouring rooms. Direct window light is handled in 3D by
+// daylight.js, so this planar term only stands in for diffuse interreflection.
 const SKY_G = 0.16;          // metres per cell
 const SKY_RAYS = 24;
 const SKY_FAR = 26;          // metres a ray walks before it counts as out
-const SKY_FLOOR = 0.46;      // no surface goes fully dark
 
 export function bakeSky(L){
   const b = L.bounds, pad = 1.2;
@@ -125,7 +118,7 @@ export function bakeSky(L){
 }
 
 // Bilinear, and generous at the edges: this is a lighting term, not a lookup.
-function skyAt(S, x, z){
+export function skyAt(S, x, z){
   const fx = (x - S.x0)/S.g, fz = (z - S.z0)/S.g;
   const i = Math.floor(fx), j = Math.floor(fz);
   const tx = fx - i, tz = fz - j;
@@ -135,39 +128,4 @@ function skyAt(S, x, z){
   };
   return (at(i, j)*(1 - tx) + at(i + 1, j)*tx)*(1 - tz) +
          (at(i, j + 1)*(1 - tx) + at(i + 1, j + 1)*tx)*tz;
-}
-
-// Smooth value noise, metres in. Real paint on real plaster is never one tone
-// across four metres, and the eye reads perfectly even colour as plastic.
-function mottle(x, z){
-  const h = (a, b) => {
-    const n = Math.sin(a*127.1 + b*311.7)*43758.5453;
-    return n - Math.floor(n);
-  };
-  const f = (sx, sz) => {
-    const i = Math.floor(sx), j = Math.floor(sz);
-    const tx = sx - i, tz = sz - j;
-    const u = tx*tx*(3 - 2*tx), v = tz*tz*(3 - 2*tz);
-    return (h(i, j)*(1 - u) + h(i + 1, j)*u)*(1 - v) +
-           (h(i, j + 1)*(1 - u) + h(i + 1, j + 1)*u)*v;
-  };
-  return f(x*0.42, z*0.42)*0.68 + f(x*1.35, z*1.35)*0.32;
-}
-
-// Paint the term into a geometry's vertex colours. Ceilings sit deeper than
-// floors because light arrives from below and from the window head, and a
-// ceiling that reads as bright as its floor is the giveaway of a fake room.
-export function paintSky(geo, S, obj, lift, grain){
-  const pos = geo.attributes.position;
-  const col = new Float32Array(pos.count*3);
-  const v = new THREE.Vector3();
-  for (let i=0;i<pos.count;i++){
-    v.fromBufferAttribute(pos, i);
-    if (obj) obj.localToWorld(v);
-    const s = Math.pow(clamp(skyAt(S, v.x, v.z), 0, 1), 0.78)*lift;
-    let c = clamp(SKY_FLOOR + (1 - SKY_FLOOR)*s, 0, 1);
-    if (grain) c *= 1 + (mottle(v.x + v.y*0.7, v.z) - 0.5)*grain;
-    col[i*3] = col[i*3 + 1] = col[i*3 + 2] = c;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
 }

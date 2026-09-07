@@ -161,22 +161,28 @@ Openings are trimmed after every wall is up: a door leaf has to know what it
 would swing into. All four ways of hanging it are tried and the first that lands
 on clear floor wins; a doorway too tight to swing into simply has no leaf.
 
-**How much sky each surface can see.** One hemisphere light means a corner eight
-metres from the glazing is exactly as bright as the sill, which was the most
-artificial thing left. There is no global illumination here, but the plan knows
-where light gets in: solid wall stops it, an opening does not. Each storey is
-rasterised once — walls blocked, every door, window and opening punched back
-open — and from each cell a fan of 24 rays walks until it hits something or
-leaves the building. The fraction that get out is baked into the vertex colours
-of the walls, floors and ceilings, so rooms go bright at the glass and fall away
-into their corners because of where the windows are, not because a number was
-chosen. Ceilings sit deeper than floors: light arrives from below and from the
-window head, and a ceiling as bright as its floor is the giveaway of a fake room.
+**Daylight shared by the room and its furnishings.** The dressed materials now
+sample a directional lighting volume per storey rather than darkening only wall
+and floor colours. A 32 cm grid at eight heights stores window energy and its
+incoming direction. Each window is sampled at sixteen points, with visibility rays
+clipped against the scan walls, door/window openings, inferred roof slopes, and
+large opaque cabinets/appliances. Interior doors transfer bounce but do not emit
+daylight. The connected-floor sky bake supplies a restrained diffuse bounce term.
 
-Walls are segmented at roughly 0.7 m so the term can vary across one rather than
-only between its corners, and a low-frequency mottle rides on top — real paint on
-real plaster is never one tone across four metres, and perfectly even colour
-reads as plastic.
+A material shader interpolates this field at the fragment's world position and
+uses its normal, so window-facing paint, shaded ceiling slopes, trim and furniture
+share the same illumination. The exterior environment supplies restrained
+reflections instead of unblocked indoor diffuse light. The sun still casts direct
+shadows; its map is 4096 pixels with a tighter frustum and less normal offset to
+reduce bright leaks at wall joints. The static shadow map is refreshed when
+storey, furniture visibility or section placement changes, rather than on camera
+movement. Display palette colours are decoded to linear
+before lighting, retaining the timber and upholstery colour.
+
+This is a low-frequency approximation, not path tracing: sixteen window samples,
+coarse spatial interpolation, and cabinet bounding boxes cannot reproduce every
+contact shadow. Movable furniture is not rebaked when hidden. The fields follow
+the storeys in section view and remain active with the optional lens disabled.
 
 **The lens.** three.js ships its post-processing in `examples/js` and this file
 loads only the core UMD build, so the chain is written out in `src/render/passes.js`:
@@ -212,8 +218,7 @@ The sun casts. Without a shadow map it lit every wall in the house at once,
 inside and out, and no room ever had a lit side and a dark one. With one, almost
 nothing reaches indoors — which is true, and useless, because what lights a room
 is daylight bouncing off every surface and there is no global illumination here.
-So the sun is left to make the patch on the floor and the sky term stands in for
-the bounce.
+So the sun is left to make the patch on the floor and the window lighting volume supplies the indoor bounce.
 
 **The world outside.** Rooms read as sealed boxes until the windows have
 something behind them, and nothing in the scan knows what that is. The

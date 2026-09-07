@@ -15,6 +15,7 @@ import { paintPlan } from '../ui/plan.js';
 import { makeTargets, renderFrame, watchBudget } from './passes.js';
 
 let prev = performance.now();
+let shadowState = '';
 export function frame(now){
   const dt = Math.min((now - prev)/1000, 0.05); prev = now;
 
@@ -105,10 +106,17 @@ export function frame(now){
 
   levels.forEach((L,i) => {
     L.group.position.y = view.mode === 'view' ? view.explode * i : 0;
+    if(L.daylight)L.daylight.origin.y=L.daylight.y+L.group.position.y;
     L.ceil.visible = view.mode === 'walk' && i === player.level;
     L.group.visible = true;
   });
 
+  // The house and sun are static while walking. Rebuild shadows only when
+  // visibility or section placement changes, including active-storey ceilings.
+  const nextShadowState=[flags.surfaced,flags.showFurniture,view.mode,view.explode,player.level].join(':');
+  if(nextShadowState!==shadowState){
+    renderer.shadowMap.needsUpdate=true;shadowState=nextShadowState;
+  }
   watchBudget(dt);
   renderFrame();
   requestAnimationFrame(frame);
