@@ -116,13 +116,13 @@ test('the shipped scan declares finishes that group into one ceiling a storey',(
     if(!woods.has(f)) woods.set(f,new Set());
     woods.get(f).add(r.level);
   }
-  assert.deepEqual([...woods.keys()].sort(),['timber-cherry','timber-maple']);
-  // Every room the photographs show as hardwood has to say so, or it samples
-  // its own boards and reads as a third wood the house does not have.
-  for(const name of ['Great room','Living room','Main-floor bedroom'])
-    assert.equal(rooms.find(r=>r.name===name).finishes.floor,'timber-cherry',name);
-  for(const name of ['Upper family room','East bedroom','South bedroom','West bedroom'])
-    assert.equal(rooms.find(r=>r.name===name).finishes.floor,'timber-maple',name);
+  // One wood, laid everywhere. The photographs show two — reddish cherry
+  // downstairs, light maple upstairs — and this is a deliberate departure from
+  // them, asked for and kept: the house is meant to read as one floor. The
+  // grouping still supports as many woods as a scan wants to name, and putting
+  // the second one back is an edit to this file alone.
+  assert.deepEqual([...woods.keys()],['timber-cherry']);
+  assert.deepEqual([...woods.get('timber-cherry')].sort(),[0,1],'laid on both storeys');
 });
 
 // A hall is a room you walk through and never photograph. Before it was
@@ -139,20 +139,19 @@ test('the halls are declared, photographless, and named onto their storey\'s woo
   }
   const bywood=Object.fromEntries(halls.map(h=>[h.name,h.finishes.floor]));
   assert.equal(bywood['Downstairs hall'],'timber-cherry');
-  assert.equal(bywood['Upstairs hall'],'timber-maple');
+  assert.equal(bywood['Upstairs hall'],'timber-cherry');
 });
 
-// Everything that is not a wet room is hardwood, which is the whole point.
-test('every room is hardwood unless it is a bathroom or the laundry',()=>{
+// Every floor in the house is hardwood but the two bathrooms — including the
+// laundry, whose photograph shows white tile. That is the brief, not the scan.
+test('every room is hardwood unless it is a bathroom',()=>{
   const rooms=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8')).rooms;
-  const wet=new Set(['Hall bathroom','Laundry','Upstairs bathrooms']);
+  const tiled=new Set(['Hall bathroom','Upstairs bathrooms']);
   for(const r of rooms){
-    if(wet.has(r.name)){
+    if(tiled.has(r.name)){
       assert.ok(!r.finishes?.floor,`${r.name} is tiled and must not claim boards`);
       continue;
     }
-    const named=r.finishes?.floor, borrowed=r.floorFrom;
-    assert.ok(named||borrowed,`${r.name} names no floor, so it samples one of its own`);
-    if(named) assert.match(named,/^timber-/);
+    assert.equal(r.finishes?.floor,'timber-cherry',`${r.name} must be the house's one wood`);
   }
 });

@@ -194,17 +194,23 @@ that says `timber-cherry` means the same boards wherever it is standing. Every
 room in a group takes the clearest patch any of them found, and a reviewed
 rectangle scores zero, so a hand-picked crop drives the whole group.
 
-That is why the two hardwoods in this house are named apart rather than separated
-by which storey they sit on. The photographs show reddish cherry downstairs
-(great room, living room, kitchen, entry, main-floor bedroom) and light maple
-upstairs (upper family room and the three bedrooms), so they are `timber-cherry`
-and `timber-maple`, and any floor whose value starts with `timber` is laid as
-planks rather than tiled as a patch. Naming them is also what stops a room the
-photographs plainly show as hardwood — the main-floor bedroom, the upper family
-room — from sampling its own boards and reading as a third wood the house does
-not have. Across the scan that leaves one ceiling a storey, and one material per
-wood: five hardwood rooms downstairs on one floor and four upstairs on another,
-with the two bathrooms and the laundry keeping their own tile.
+One wood is laid through the whole house. `finishes.floor` names it —
+`timber-cherry` — and any value starting with `timber` is laid as planks rather
+than tiled as a patch, so a scan that wants two woods can name them apart and
+they will not merge. This one deliberately does not. The photographs show two:
+reddish cherry downstairs and light maple upstairs. Rendered as two they read as
+two houses, most of all at the head of the stairs where you see both at once, so
+the house is laid as one floor on purpose and the second wood is an edit to
+photos.json away. Everything but the two bathrooms is boards, the laundry
+included, whose photograph shows white tile.
+
+Which patch the wood comes from matters as much as which rooms share it. The
+first crop reviewed for the great room sat in the sheen the window throws across
+the boards, and the whole downstairs came out a pale pink that reads as tile
+rather than timber; the crop 20% further up the frame, away from the glare, is
+the same boards at their own colour. `plankCanvases` builds the planks from the
+patch's mean alone and adds its own grain, so that mean is the entire wood — it
+is worth looking at a reviewed crop rather than trusting its coordinates.
 
 A room whose photographs never showed a ceiling inherits the storey's rather than
 going without one, and `finishes.ceil` is free to name something other than paint
@@ -671,3 +677,13 @@ the laundry, whose anchor is a washer/dryer against one wall of a cupboard rathe
 than a room centre, also declares how far its finishes carry. Measured by
 floor-cell assignment: downstairs 114.1 m² cherry and 12.0 m² tile, upstairs
 88.0 m² maple and 10.7 m² tile, against 126.2 and 98.7 m² of storey.
+
+The floors are one hardwood now, everywhere but the two bathrooms. Two things
+were wrong. The great room's reviewed crop sat in the window's sheen, so the
+downstairs boards came out pale pink — `plankCanvases` takes only the patch mean,
+so a crop in the glare is a floor in the glare; the crop moved up the frame, out
+of it. And the house was laid as the two woods its photographs show, which reads
+as two houses from the head of the stairs. It is one wood on purpose now, cherry,
+with the laundry joining the boards despite its tiled photograph. Verified by
+material identity per floor cell: one material over 207.6 m², tile over the
+17.2 m² of bathroom.
