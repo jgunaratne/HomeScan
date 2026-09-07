@@ -42,7 +42,7 @@ export function indexPhotos(){
   for (const ph of PHOTOS || []){
     let room = photoRooms.find(r => r.level === ph.level && r.name === ph.room);
     if (!room){
-      room = {level:ph.level, name:ph.room, at:ph.at, floorFrom:ph.floorFrom,
+      room = {level:ph.level, name:ph.room, at:ph.at, floorFrom:ph.floorFrom, finishes:ph.finishes,
               shots:[], mats:null};
       photoRooms.push(room);
       if (levels[ph.level]) levels[ph.level].rooms.push(room);
@@ -55,11 +55,31 @@ export function indexPhotos(){
 // Which room a point on this storey belongs to. Anchors are room centres, so the
 // boundary falls near the wall between them — near enough that the wall itself
 // hides it, and in an open plan there is no boundary to hide.
-export function roomAt(L, x, z){
+export function roomAt(L, x, z, visible = false){
   let best = null, bd = ROOM_REACH;
+  let fallback=null, fallbackDistance=ROOM_REACH;
   for (const r of L.rooms){
     const d = Math.hypot(r.at[0] - x, r.at[1] - z);
-    if (d < bd){ bd = d; best = r; }
+    if(d<fallbackDistance){fallback=r;fallbackDistance=d;}
+    if (d < bd && (!visible || clearRoomRay(L,x,z,r.at[0],r.at[1]))){ bd = d; best = r; }
   }
-  return best;
+  return best || fallback;
+}
+
+// Do not paint a wall face with a nearer room that sits behind another wall.
+// Clip the segment to each oriented blocker; open doorways are already absent.
+export function clearRoomRay(L,x,z,tx,tz){
+  for(const b of L.blockers){
+    const c=Math.cos(b.yaw),s=Math.sin(b.yaw),dx=x-b.x,dz=z-b.z;
+    const origin=[c*dx-s*dz,s*dx+c*dz],delta=[c*(tx-x)-s*(tz-z),s*(tx-x)+c*(tz-z)];
+    let enter=0,leave=1;
+    for(let axis=0;axis<2;axis++){
+      const half=axis===0?b.hx:b.hz;
+      if(Math.abs(delta[axis])<1e-9){if(Math.abs(origin[axis])>half){enter=2;break;}continue;}
+      let a=(-half-origin[axis])/delta[axis],d=(half-origin[axis])/delta[axis];
+      if(a>d)[a,d]=[d,a];enter=Math.max(enter,a);leave=Math.min(leave,d);
+    }
+    if(enter<leave&&leave>0.02&&enter<0.98)return false;
+  }
+  return true;
 }

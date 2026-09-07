@@ -1,3 +1,4 @@
+import { buildGarden, lawnMaterial } from './garden.js';
 import { renderer, scene } from '../scene/stage.js';
 import { levels } from '../scene/levels.js';
 import { photoRooms } from './rooms.js';
@@ -5,8 +6,8 @@ import { photoRooms } from './rooms.js';
 // Rooms read as sealed boxes until the windows have something behind them, and
 // nothing in the scan knows what that is. The photographs do: photos.json names
 // a crop of the deck shot — sky, the far hills, the lake — and it is wrapped on
-// a cylinder outside the house with lawn under it. A backdrop, not a place: it
-// does not parallax and it is not to scale, but it is the real view.
+// a cylinder for the distant horizon. The near deck, lawn, and planting are
+// geometry, so their relative positions change as the viewer moves.
 let outdoors = null;
 export function buildOutdoors(){
   const src = photoRooms.flatMap(r => r.shots).find(ph => ph.view && ph.img);
@@ -28,10 +29,8 @@ export function buildOutdoors(){
   probe.width = 1; probe.height = 64;
   const pcx = probe.getContext('2d');
   pcx.drawImage(img, vx + vw/2, vy, 1, vh, 0, 0, 1, 64);
-  const col = row => {
-    const d = pcx.getImageData(0, row, 1, 1).data;
-    return `rgb(${d[0]},${d[1]},${d[2]})`;
-  };
+  const skyPixels=pcx.getImageData(0,0,1,64).data;
+  const col=row=>`rgb(${skyPixels[row*4]},${skyPixels[row*4+1]},${skyPixels[row*4+2]})`;
   const sky = cx.createLinearGradient(0, 0, 0, M*0.45);
   sky.addColorStop(0, col(0));
   sky.addColorStop(1, col(6));
@@ -45,7 +44,8 @@ export function buildOutdoors(){
   if (src.ground){
     const [gx, gy, gw, gh] = cut(src.ground);
     pcx.drawImage(img, gx, gy, gw, gh, 0, 0, 1, 1);
-    lawn = col(0);
+    const pixel=pcx.getImageData(0,0,1,1).data;
+    lawn=`rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
   }
   const down = cx.createLinearGradient(0, M*0.60, 0, M);
   down.addColorStop(0, lawn);
@@ -64,9 +64,9 @@ export function buildOutdoors(){
 
   // Lawn only as far as a lawn goes; past that the photographed ground takes over.
   const grass = new THREE.Mesh(new THREE.CircleGeometry(34, 48),
-    new THREE.MeshBasicMaterial({color:new THREE.Color(lawn), fog:false}));
+    lawnMaterial(img,src.ground,lawn));
   grass.rotation.x = -Math.PI/2;
-  grass.position.y = base - 0.28;
+  grass.position.y = base - 0.28;grass.receiveShadow=true;grass.name='Photo-textured lawn';
 
   // The same world again, small and equirectangular, so physical surfaces have
   // something to reflect. Without it a polished floor reflects nothing and reads
@@ -94,6 +94,7 @@ export function buildOutdoors(){
 
   const g = new THREE.Group();
   g.add(sleeve); g.add(grass);
+  buildGarden(g,levels);
   g.renderOrder = -1;
   scene.add(g);
   return outdoors = {group:g, sky:new THREE.Color(col(2)),

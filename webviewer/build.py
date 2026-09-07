@@ -300,6 +300,7 @@ def load_photos(path, scene, out_dir, inline):
                 'level': n, 'room': room['name'], 'at': [round(v, 3) for v in at],
                 'caption': ph.get('caption', ''), 'file': ph['file'], 'seq': i,
                 'floorFrom': room.get('floorFrom'),
+                'finishes': room.get('finishes'),
                 'view': ph.get('view'), 'ground': ph.get('ground'),
                 'src': ('data:' + mime + ';base64,'
                         + base64.b64encode(f.read_bytes()).decode('ascii')) if inline

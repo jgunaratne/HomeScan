@@ -103,12 +103,9 @@ export function build(L){
     m.position.set(o.c[0], o.c[1], o.c[2]); m.rotation.y = o.yaw;
     // The stairs are the route between storeys, not a furnishing — they stay put.
     (isStair ? shell : furn).add(m);
-    // In the survey the stair is a storey-tinted volume you can see through, and
-    // that is the right answer there. Dressed, a translucent yellow slab in the
-    // middle of a painted room is the loudest wrong thing in the view, so it
-    // becomes what it is: timber. RoomPlan gives a box, not treads, and which
-    // way it climbs is not in the data — so a box is all this claims.
-    const rec = {mesh:m, flat:m.material,
+    // Preserve the original box for survey mode. Photo dressing can replace
+    // it with a flight when an explicit ascent annotation is available.
+    const rec = {mesh:m, category:o.cat, flat:m.material,
                  real: isStair ? MAT.wood : (MAT[REAL[o.cat]] || m.material), built:null};
     if (!isStair){
       const g = fitting({blockers, elevation:L.elevation}, o);

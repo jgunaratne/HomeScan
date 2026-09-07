@@ -36,8 +36,8 @@ export function bakeSky(L){
       }
     }
   };
+  for (const w of L.walls) stamp(w.c[0], w.c[2], w.yaw, w.w/2, 1);
   for (const w of L.walls){
-    stamp(w.c[0], w.c[2], w.yaw, w.w/2, 1);
     for (const h of w.holes){
       const mid = (h.x0 + h.x1)/2;
       stamp(w.c[0] + Math.cos(w.yaw)*mid, w.c[2] - Math.sin(w.yaw)*mid,
@@ -72,24 +72,41 @@ export function bakeSky(L){
     sky[j*nx + i] = open/SKY_RAYS;
   }
 
-  // Twenty-four rays on a 16 cm grid is a coarse estimate, and read back
-  // bilinearly it terraces across a ceiling. Two box passes take that out; the
-  // term is broad by nature and nothing is lost by smoothing it.
-  let cur = sky;
-  for (let pass=0; pass<2; pass++){
-    const next = new Float32Array(nx*nz);
-    for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
-      let sum = 0, n = 0;
-      for (let dj=-1;dj<=1;dj++) for (let di=-1;di<=1;di++){
-        const a = i + di, c = j + dj;
-        if (a < 0 || c < 0 || a >= nx || c >= nz) continue;
-        sum += cur[c*nx + a]; n++;
+  // Diffuse a reflected daylight term through connected free cells. Solid
+  // walls stop propagation; doorways carry light into neighbouring spaces.
+  // This is a static approximation of bounce, not a global illumination solve.
+  const inside = new Uint8Array(nx*nz);
+  for(let j=0;j<nz;j++)for(let i=0;i<nx;i++)
+    inside[j*nx+i]=!solid[j*nx+i]&&onFloor(L,x0+i*SKY_G,z0+j*SKY_G)?1:0;
+  let bounce=Float32Array.from(sky);
+  for(let pass=0;pass<40;pass++){
+    const next=Float32Array.from(bounce);
+    for(let j=1;j<nz-1;j++)for(let i=1;i<nx-1;i++){
+      const k=j*nx+i;if(!inside[k])continue;
+      let sum=0,n=0;
+      for(const neighbour of [k-1,k+1,k-nx,k+nx]){
+        if(!inside[neighbour])continue;
+        sum+=bounce[neighbour];n++;
       }
-      next[j*nx + i] = sum/n;
+      if(n)next[k]=Math.max(sky[k],sum/n*0.985);
     }
-    cur = next;
+    bounce=next;
   }
-  for (let k=0;k<sky.length;k++) if (!solid[k]) sky[k] = cur[k];
+  for(let k=0;k<sky.length;k++)if(inside[k])sky[k]=sky[k]*0.55+bounce[k]*0.45;
+  // Smooth ray quantisation without pulling dark wall cells into the room.
+  for(let pass=0;pass<3;pass++){
+    const next=Float32Array.from(sky);
+    for(let j=1;j<nz-1;j++)for(let i=1;i<nx-1;i++){
+      const k=j*nx+i;if(!inside[k])continue;
+      let sum=sky[k]*2,n=2;
+      for(const neighbour of [k-1,k+1,k-nx,k+nx]){
+        if(!inside[neighbour])continue;
+        sum+=sky[neighbour];n++;
+      }
+      next[k]=sum/n;
+    }
+    sky.set(next);
+  }
 
   // A cell inside a wall has no value of its own; borrow the brightest of its
   // neighbours so surfaces sampled at the wall line are not black.

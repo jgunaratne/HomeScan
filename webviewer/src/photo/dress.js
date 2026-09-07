@@ -1,6 +1,7 @@
+import { dressArchitecture } from '../scene/architecture.js';
 import { $ } from '../core/util.js';
 import { levels } from '../scene/levels.js';
-import { dressWalls, dressSlabs, setSurfaces } from '../scene/dressing.js';
+import { dressWalls, dressSlabs, dressFittings, setSurfaces } from '../scene/dressing.js';
 import { photoRooms } from './rooms.js';
 import { dressRoom, computeAverage, canReadPixels } from './relight.js';
 import { bakeSky } from './sky.js';
@@ -39,9 +40,10 @@ export function dressHouse(){
     }
     computeAverage();
     buildOutdoors();
+    levels.forEach((L,i) => dressArchitecture(L,levels[i+1]));
     for (const L of levels){
       L.sky = bakeSky(L);
-      dressWalls(L); dressSlabs(L);
+      dressWalls(L); dressSlabs(L); dressFittings(L);
     }
     hangPrints();
     // The full-size decodes have done their work; hold only the canvases.

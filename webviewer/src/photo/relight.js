@@ -1,3 +1,4 @@
+import { plankCanvases } from '../scene/textures.js';
 import { renderer } from '../scene/stage.js';
 import { BANDS, FLATTEN, photoRooms } from './rooms.js';
 
@@ -77,11 +78,11 @@ function patchCanvas(img, A, p, flatten){
   return c;
 }
 
-function tiling(canvas){
+function tiling(canvas, colour = true){
   const t = new THREE.CanvasTexture(canvas);
   // Mirrored, so a 128px patch tiles a 4 m wall without a seam every 1.15 m.
   t.wrapS = t.wrapT = THREE.MirroredRepeatWrapping;
-  t.encoding = THREE.sRGBEncoding;
+  t.encoding = colour ? THREE.sRGBEncoding : THREE.LinearEncoding;
   t.anisotropy = renderer.capabilities.getMaxAnisotropy();
   return t;
 }
@@ -129,9 +130,21 @@ function surfMat(canvas, tint, extra, kind){
     roughness: k.roughness, metalness: 0.0, envMapIntensity: k.env,
   }, extra || {}));
   if (k.relief > 0){
-    m.normalMap = tiling(reliefFrom(canvas, k.relief));
+    m.normalMap = tiling(reliefFrom(canvas, k.relief), false);
     m.normalScale = new THREE.Vector2(k.scale, k.scale);
   }
+  return m;
+}
+
+function timberFloor(pick){
+  const tiles = plankCanvases(pick);
+  const m = surfMat(tiles.colour, 0xD0D0D0, {side:THREE.DoubleSide}, 'floor');
+  m.normalMap.dispose();
+  m.normalMap = tiling(reliefFrom(tiles.height, 2), false);
+  m.normalScale.set(0.28, 0.28);
+  m.roughnessMap = tiling(tiles.roughness, false);
+  m.roughness = 0.64;
+  for (const t of [m.map, m.normalMap, m.roughnessMap]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return m;
 }
 
@@ -144,9 +157,29 @@ export function dressRoom(room){
       const p = bestPatch(A, BANDS[kind], kind === 'ceil' ? 0.2 : 0.6,
                           kind === 'ceil' ? 253 : 240, kind === 'floor' ? 9 : 0);
       if (p && (!pick[kind] || p.score < pick[kind].score))
-        pick[kind] = {canvas:patchCanvas(ph.img, A, p, FLATTEN[kind]),
+        pick[kind] = {canvas:patchCanvas(ph.img, A, p, kind==='wall'&&room.finishes?.wall==='paint' ? 1 : FLATTEN[kind]),
                       score:p.score, r:p.r, g:p.g, b:p.b};
     }
+  }
+  // Reviewed rectangles override automatic selection only when their source
+  // decoded successfully. Bad annotations retain the automatic fallback.
+  for(const [kind,sample] of Object.entries(room.finishes?.samples || {})){
+    const ph=room.shots.find(p=>p.file===sample?.file&&p.img);
+    if(!ph||!validSampleRect(sample?.rect))continue;
+    const [x,y,w,h]=sample.rect,c=document.createElement('canvas');c.width=c.height=256;
+    const ctx=c.getContext('2d');
+    ctx.drawImage(ph.img,x*ph.img.naturalWidth,y*ph.img.naturalHeight,w*ph.img.naturalWidth,h*ph.img.naturalHeight,0,0,256,256);
+    const pixels=ctx.getImageData(0,0,256,256);let r=0,g=0,b=0;
+    for(let i=0;i<pixels.data.length;i+=4){r+=pixels.data[i];g+=pixels.data[i+1];b+=pixels.data[i+2];}
+    r/=65536;g/=65536;b/=65536;
+    const flatten=kind==='wall' ? 1 : (FLATTEN[kind] ?? 0.55);
+    for(let i=0;i<pixels.data.length;i+=4){
+      pixels.data[i]+=(r-pixels.data[i])*flatten;
+      pixels.data[i+1]+=(g-pixels.data[i+1])*flatten;
+      pixels.data[i+2]+=(b-pixels.data[i+2])*flatten;
+    }
+    ctx.putImageData(pixels,0,0);
+    pick[kind]={canvas:c,r,g,b,score:0,reviewed:true,file:sample.file,rect:sample.rect};
   }
   if (!pick.wall) return null;
   // A low-confidence wall is brown in the flat survey and painted here: this
@@ -154,7 +187,10 @@ export function dressRoom(room){
   const wall = surfMat(pick.wall.canvas, 0xBFBFBF, null, 'wall');
   return {
     wall, wallLow: wall,
-    floor: pick.floor && surfMat(pick.floor.canvas, 0xB6B6B6, {side:THREE.DoubleSide}, 'floor'),
+    counter: pick.counter && detailMaterial(pick.counter,0.36),
+    brick: pick.brick && detailMaterial(pick.brick,0.94),
+    floor: pick.floor && (room.finishes?.floor === 'timber' ? timberFloor(pick.floor) :
+      surfMat(pick.floor.canvas, 0xB6B6B6, {side:THREE.DoubleSide}, 'floor')),
     ceil:  pick.ceil  && surfMat(pick.ceil.canvas,  0xC6C6C6, {side:THREE.DoubleSide}, 'ceil'),
   };
 }
@@ -205,3 +241,13 @@ export function canReadPixels(img){
 // The average is computed once, after every room has been read.
 export function computeAverage(){ return AVG = houseAverage(); }
 export const avgMats = () => AVG;
+
+export function validSampleRect(rect){
+  return Array.isArray(rect)&&rect.length===4&&rect.every(Number.isFinite)&&
+    rect[0]>=0&&rect[1]>=0&&rect[2]>0&&rect[3]>0&&rect[0]+rect[2]<=1&&rect[1]+rect[3]<=1;
+}
+function detailMaterial(pick,roughness){
+  const map=tiling(pick.canvas),bump=tiling(pick.canvas,false);
+  return new THREE.MeshStandardMaterial({map,bumpMap:bump,bumpScale:0.0008,
+    roughness,envMapIntensity:0.3,color:0xffffff});
+}

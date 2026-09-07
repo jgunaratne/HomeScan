@@ -32,13 +32,13 @@ key.shadow.mapSize.set(2048, 2048);
 key.shadow.camera.left = -16; key.shadow.camera.right = 16;
 key.shadow.camera.top = 16; key.shadow.camera.bottom = -16;
 key.shadow.camera.near = 1; key.shadow.camera.far = 70;
-key.shadow.bias = -0.0018;
-key.shadow.normalBias = 0.14;
+key.shadow.bias = -0.0008;
+key.shadow.normalBias = 0.06;
 scene.add(sky); scene.add(key); scene.add(fill);
 
 export function setLightRig(dressed){
   sky.color.setHex(dressed ? 0xDCE9F6 : 0xC5D8EE);
-  sky.groundColor.setHex(dressed ? 0x6A6152 : 0x2A303A);
+  sky.groundColor.setHex(dressed ? 0xB7B0A3 : 0x2A303A);
   // Standard materials answer to light differently from Lambert, and an
   // environment map is already carrying the ambient — so the fills come down
   // and the sun goes up, which is also what an interior actually looks like.
@@ -50,9 +50,9 @@ export function setLightRig(dressed){
   sky.intensity = dressed ? 1.05 : 0.95;
   // The lake is north-east of the house and every view window faces it.
   key.color.setHex(dressed ? 0xFFF1DA : 0xFFF4E2);
-  key.intensity = dressed ? 2.4 : 0.62;
+  key.intensity = dressed ? 1.8 : 0.62;
   key.position.set(dressed ? 17 : 6, dressed ? 21 : 14, dressed ? -13 : 4);
-  fill.intensity = dressed ? 0.35 : 0.28;
+  fill.intensity = dressed ? 0.24 : 0.28;
   key.castShadow = dressed;
   renderer.shadowMap.enabled = dressed;
   renderer.shadowMap.needsUpdate = true;

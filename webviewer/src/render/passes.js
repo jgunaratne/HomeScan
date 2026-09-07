@@ -60,7 +60,7 @@ vec3 viewPos(vec2 uv){
 const aoMat = shader({
   tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
   uNear:{value:0.05}, uFar:{value:260}, uTexel:{value:new THREE.Vector2()},
-  uRadius:{value:0.55}, uBias:{value:0.028}, uProj:{value:new THREE.Matrix4()},
+  uRadius:{value:0.38}, uBias:{value:0.018}, uProj:{value:new THREE.Matrix4()},
 }, DEPTH_FNS + `
 varying vec2 vUv;
 uniform vec2 uTexel;
@@ -98,6 +98,31 @@ void main(){
   gl_FragColor = vec4(vec3(clamp(1.0 - occ / float(K), 0.0, 1.0)), 1.0);
 }`);
 aoMat.extensions = {derivatives:true};
+
+// Depth-aware filtering keeps contact shadows on their own surfaces instead
+// of smearing furniture silhouettes and window recesses onto the room behind.
+const aoBlurMat = shader({
+  tSrc:{value:null}, tDepth:{value:null}, uDir:{value:new THREE.Vector2()},
+  uNear:{value:0.05}, uFar:{value:260},
+}, `
+varying vec2 vUv;
+uniform sampler2D tSrc, tDepth;
+uniform vec2 uDir;
+uniform float uNear, uFar;
+float distanceAt(vec2 uv){
+  float z = texture2D(tDepth, uv).x * 2.0 - 1.0;
+  return 2.0*uNear*uFar/(uFar+uNear-z*(uFar-uNear));
+}
+void main(){
+  float centre = distanceAt(vUv), sum = 0.0, weight = 0.0;
+  for (int i=-4; i<=4; i++){
+    float f = float(i);
+    vec2 uv = vUv + uDir*f;
+    float w = exp(-f*f/8.0) * exp(-abs(distanceAt(uv)-centre)/0.12);
+    sum += texture2D(tSrc, uv).r*w; weight += w;
+  }
+  gl_FragColor = vec4(vec3(sum/max(weight,0.0001)),1.0);
+}`);
 
 const blurMat = shader({
   tSrc:{value:null}, uDir:{value:new THREE.Vector2()},
@@ -183,9 +208,9 @@ const compMat = shader({
   tSSR:{value:null}, uSSR:{value:0.30},
   tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
   uNear:{value:0.05}, uFar:{value:260},
-  uExposure:{value:1.06}, uBloom:{value:0.14}, uAO:{value:0.72},
+  uExposure:{value:0.98}, uBloom:{value:0.10}, uAO:{value:0.72},
   uFocus:{value:5.5}, uRange:{value:16.0}, uDof:{value:0.55},
-  uVignette:{value:0.22}, uGrain:{value:0.012}, uTime:{value:0},
+  uVignette:{value:0.16}, uGrain:{value:0.004}, uTime:{value:0},
 }, DEPTH_FNS + `
 varying vec2 vUv;
 uniform sampler2D tColor, tAO, tBloom, tFar, tSSR;
@@ -302,10 +327,14 @@ function blur(src, tmp, dst, texel, spread){
 
 export function renderFrame(){
   if (!postOn || !postReady || !flags.surfaced){
+    // Keep highlight rolloff when the optional lens is disabled or too slow.
+    renderer.toneMapping=flags.surfaced?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;
+    renderer.toneMappingExposure=compMat.uniforms.uExposure.value;
     renderer.setRenderTarget(null);
     renderer.render(scene, camera);
     return;
   }
+  renderer.toneMapping=THREE.NoToneMapping;
   const w = RTS.scene.width, h = RTS.scene.height;
 
   renderer.setRenderTarget(RTS.scene);
@@ -323,10 +352,17 @@ export function renderFrame(){
   const quarter = new THREE.Vector2(1/(w>>2), 1/(h>>2));
   aoMat.uniforms.uTexel.value.copy(half);
   draw(aoMat, RTS.ao);
-  // Twelve rotated taps leave a speckle that one narrow blur does not clear —
-  // and a flat ceiling is exactly where it shows. Two widening passes do.
-  blur(RTS.ao, RTS.aoT, RTS.ao, half, 1.7);      // ping-pong: never read what we write
-  blur(RTS.ao, RTS.aoT, RTS.ao, half, 3.1);
+  aoBlurMat.uniforms.tDepth.value = RTS.scene.depthTexture;
+  aoBlurMat.uniforms.uNear.value = camera.near;
+  aoBlurMat.uniforms.uFar.value = camera.far;
+  for (const radius of [1.0, 2.0]){
+    aoBlurMat.uniforms.tSrc.value = RTS.ao.texture;
+    aoBlurMat.uniforms.uDir.value.set(half.x*radius, 0);
+    draw(aoBlurMat, RTS.aoT);
+    aoBlurMat.uniforms.tSrc.value = RTS.aoT.texture;
+    aoBlurMat.uniforms.uDir.value.set(0, half.y*radius);
+    draw(aoBlurMat, RTS.ao);
+  }
 
   // Reflections before the bloom, while b1 is still free to blur them in.
   ssrMat.uniforms.tColor.value = RTS.scene.texture;

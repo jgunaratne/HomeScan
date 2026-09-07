@@ -1,3 +1,5 @@
+import { surfaceTile } from './textures.js';
+
 export const MAT = {
   wall:    new THREE.MeshLambertMaterial({color:0xC9D0D8}),
   wallLow: new THREE.MeshLambertMaterial({color:0xB9A897}),
@@ -8,7 +10,7 @@ export const MAT = {
   // Once there is a world outside, a window's job is to show it, not to be blue
   // — and to catch the sky at a grazing angle, which is what reads as glass.
   pane:    new THREE.MeshStandardMaterial({color:0xF2F8FC, transparent:true, opacity:0.11,
-             roughness:0.03, metalness:0.0, envMapIntensity:2.2,
+             roughness:0.08, metalness:0.0, envMapIntensity:1.2,
              side:THREE.DoubleSide, depthWrite:false}),
   furn:    new THREE.MeshLambertMaterial({color:0x63707F, transparent:true, opacity:0.9}),
   fix:     new THREE.MeshLambertMaterial({color:0x7A8794, transparent:true, opacity:0.9}),
@@ -32,3 +34,21 @@ export const REAL = {
   refrigerator:'steel', television:'screen',
   table:'wood', chair:'wood', bed:'fabric', sofa:'fabric'
 };
+
+// Colour and relief share the same grain so highlights follow the surface.
+for (const [name, kind, depth] of [['wood','wood',0.0015], ['fabric','fabric',0.00035], ['stone','stone',0.0006]]){
+  const tile = surfaceTile(kind);
+  MAT[name].map = tile;
+  MAT[name].bumpMap = tile;
+  MAT[name].bumpScale = depth;
+}
+MAT.linen = MAT.fabric.clone();
+MAT.linen.color.setHex(0xeee7da);
+MAT.accent = MAT.fabric.clone();
+MAT.accent.color.setHex(0x536e68);
+MAT.dark = new THREE.MeshStandardMaterial({color:0x252a29, roughness:0.48, metalness:0.35});
+
+// The sky rig already supplies diffuse fill; strong environment response on
+// every matte furnishing erased grain and made timber look like ivory.
+for(const name of ['trim','white','wood','fabric','linen','accent','stone'])
+  MAT[name].envMapIntensity=0.45;

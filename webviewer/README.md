@@ -142,10 +142,8 @@ the lake instead of a flat studio fill, and the draw distance opens from 40 m to
 Two things this changed in the geometry. Ceilings sit at the storey's *median*
 wall height, so a wall shorter than that left a slot open at the top — harmless
 against a black background, a bright line of sky once there is a sky; any panel
-that reaches its wall's top now grows to meet the ceiling. And the stair, a
-storey-tinted volume you can see through in the survey, becomes timber: RoomPlan
-gives a box rather than treads and does not say which way it climbs, so a box is
-all this claims.
+that reaches its wall's top now grows to meet the ceiling. The stair keeps its measured box in the survey. A photo annotation now
+supplies its ascent direction for the dressed flight described below.
 
 **Fittings.** RoomPlan reports a fitting as a category, a size and a transform:
 a sofa is a 1.94 × 1.05 × 0.85 box that knows it is a sofa. That is exactly the
@@ -255,8 +253,8 @@ come with poses attached and could be projected properly.
 Known tells: a bathroom photographed from its doorway can hand back counter
 rather than floor; a low-confidence wall, brown in the flat survey, is painted
 like any other here; surfaces no room claims take the house's average paint
-rather than a colour of their own; and fittings are RoomPlan's bounding boxes in
-the right material, not furniture.
+rather than a colour of their own; and furniture proportions are inferred from RoomPlan bounds rather than exact
+models of the photographed pieces.
 
 ```json
 {"level": 0, "name": "Kitchen", "at": [-2.6, -2.4], "floorFrom": "Great room",
@@ -326,3 +324,122 @@ still stop you.
   walls, none with an opening.
 - Sketch-grade throughout. Same caveat as the app: good for space planning, not
   for anything anyone will bid against.
+
+## Furniture rendering
+
+The dressed view uses bevelled furniture geometry, individually modelled sofa
+cushions and accent pillows, textured bedding, recessed basins, curved ceramic
+fixtures, and appliance controls and door rims. Wood, fabric and stone use small,
+deterministic canvas textures with matching bump maps; no additional assets or
+network requests are needed. The scan still determines object position and size.
+These are representative furnishings, not replicas of the photographed products.
+The flat survey and furniture toggle retain the original scan boxes and bounds.
+
+Architectural details include bevelled casing with raised edge beads, two-sided
+Shaker-style door rails, lever handles and hinge barrels, plus ceiling downlights
+with separate trim rings and dark baffles. Door styling and hardware are inferred;
+the scan supplies the openings. Unclaimed floor strips stop at footprint gaps,
+so dressing does not bridge empty space outside the scan.
+
+### Photo-guided realism
+
+Optional `finishes` on a room in `photos.json` now records reviewed material
+choices. `floor: "timber"` builds a 1.55 m tile with ten 155 mm boards, staggered
+joints, and separate colour, normal, and roughness maps. The room's extracted
+floor colour supplies the palette; board layout and grain are inferred. Living
+room, great room, and west bedroom use this finish, and the living room and kitchen
+borrow the great room floor through `floorFrom` to keep the connected boards continuous. Other rooms retain their
+photographic patches. The shared world-space UVs keep board direction consistent.
+
+Kitchen `cabinetUpper`, `cabinetLower`, `counter`, and `hardware` colour values
+match the cream, grey-blue, warm stone, and metal finishes visible in its photos.
+They apply to storage in that room through cloned materials. Cabinet fronts have
+raised rails, upholstery has quieter weave and cushion piping, and bedding has
+shallow folds and a turned-back sheet. The photos show mostly empty rooms, so
+furniture continues to be a representative interpretation of the scan bounds.
+
+Window sash rails, gaskets, and sill tracks give glass a recessed seat. Lighting
+uses depth-aware ambient-occlusion filtering to preserve contact edges. Ceiling
+triangle winding now agrees with its downward normals, and shorter slab quads
+smooth the baked daylight interpolation. Normal maps use linear encoding, colour
+maps use sRGB, and reduced film grain keeps painted surfaces cleaner. The lens
+still falls back automatically on slower devices; this is not ray-traced lighting.
+
+
+### Staircase, fireplace, and indirect daylight
+
+The entry room's `finishes.stair` records `riseToward` along the stair object's
+local Z axis and `railSide` along local X. The dressed staircase uses the scanned
+width, run, position, and rotation, with its rise taken from the next storey's
+elevation. White risers and stringers, timber treads and handrail, and dark metal
+balusters follow the living-room photos. Tread count and railing proportions are
+inferred. Matching openings are cut into the dressed lower ceiling and upper
+floor; the flat survey retains the captured slabs. Stairs stay visible when
+furniture is hidden. Navigation still uses **E** to switch storeys; treads do not
+provide continuous vertical walking or fall simulation.
+
+The scan does not classify a fireplace. The living room's `finishes.fireplace`
+therefore explicitly annotates its wall centre and estimated width, height, and
+depth. Dressing requires a matching solid wall with no intersecting opening.
+The brick surround, arched unlit insert, projecting hearth, and timber mantel
+follow the photographs between the two windows. Brick courses use instancing;
+this adds no texture downloads. It is decorative photo-guided geometry, not a
+new measured object or collision boundary, and appears only in the dressed view.
+
+The daylight bake now diffuses an indirect term through connected open cells,
+with solid walls stopping propagation and doorways admitting it. Smoothing also
+respects those boundaries. This softens the falloff away from windows without
+adding per-room lights or per-frame ray tracing. It remains an approximation of
+bounced light, not a physically solved illumination model.
+
+Run `npm test` for stair-cut area and boundary checks and the sealed-room daylight
+regression. These checks use Node alone and require no dependency installation.
+
+### Near exterior and reviewed material patches
+
+`finishes.deck` attaches a photo-guided deck to a matching wall containing a door.
+Its `wallAt`, `width`, and `depth` describe the inferred attachment and size. The
+upper family room now has weathered boards, cable railings, posts, and open pergola
+beams based on its deck photos. It follows its storey in the separated view and
+hides with photo surfaces. Nearby instanced shrubs and a photo-textured lawn add
+parallax and receive daylight; plant placement is inferred and kept clear of the
+scanned footprint. The distant lake remains a photographic backdrop. The deck
+is visual context, not a new navigable area or measured exterior survey.
+
+`finishes.samples` selects explicit material patches using
+`{"file": "room-photo.webp", "rect": [x, y, width, height]}` in normalized image
+coordinates. Reviewed samples currently cover living-room paint and fireplace
+brick, great-room paint, ceiling and timber colour, and kitchen countertop stone.
+They are decoded from the existing photos and flattened to reduce baked lighting.
+Brick and countertops use the reviewed texture itself; the timber generator uses
+the selected floor palette. Automatic selection remains the fallback for missing
+photos or invalid rectangles. No new image downloads are required. `npm test`
+checks rectangle bounds and that each configured source belongs to its room.
+
+The sky probe is now preserved separately from the lawn probe, so sampling grass
+cannot replace the sky's top colour in the reflection environment.
+
+### Rendering and room cleanup
+
+Dressed rendering keeps ACES highlight rolloff when the optional lens is disabled
+or the frame-budget fallback activates. The lens path continues to tone-map only
+in its composite, and the flat survey retains its original rendering. Sun and
+fill intensity, bloom, and matte furnishings' environment response are reduced
+to preserve more material detail in bright areas.
+
+Furniture bevels now have vertices at the bevel boundary, so broad panels remain
+flat instead of interpolating corner shading across an entire board or cabinet.
+Furniture facing uses distance to the wall surface and ignores perpendicular
+side walls. Open-door placement checks along the leaf rather than just its centre,
+reducing intersections with short return walls.
+
+`finishes.wall: "paint"` flattens automatic wall patches to their extracted colour;
+this removes repeated photographic fixtures and shadows from the annotated
+bedrooms, family room, laundry, and entry. Bathroom wall patches retain their
+texture. This pass was reviewed from a viewpoint in each of the twelve photo
+rooms; the original scan and inferred room boundaries still limit placement.
+
+Wall-face material lookup now prefers room anchors with an unobstructed segment
+through the scan's wall blockers. This reduces bathroom texture leaking onto
+adjacent bedroom faces. A nearest-anchor fallback remains for incomplete scans
+or anchors without a clear segment; inferred room boundaries are not exact.

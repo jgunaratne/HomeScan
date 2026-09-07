@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node webviewer/serve.mjs",
     "dev": "node webviewer/serve.mjs --watch",
-    "build": "python3 webviewer/build.py"
+    "build": "python3 webviewer/build.py",
+    "test": "node --test webviewer/tests/*.test.cjs"
   },
   "engines": { "node": ">=18" }
 }
