@@ -468,3 +468,10 @@ vignette are restrained, with grain applied after the sRGB display conversion.
 This remains screen-space rendering: off-camera objects cannot be reflected.
 Validation: browser shader compilation, both render paths, survey toggling and
 resize at 1280×800 and 800×600, plus the geometry/material unit suite.
+
+
+The entry now shares the great room's continuous timber floor and uses a reviewed
+paint sample from the entry photo. Stair flights have a closed painted underside
+and timber end posts. Door frames include recessed jamb liners and stops, with
+handles on the latch edge and hinges at the actual pivot. The scan still contains
+no interior garage doorway; these details do not add an inferred connection.

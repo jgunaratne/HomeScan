@@ -21,6 +21,15 @@ export function casing(host, w, o, elev, t, sill){
   put(0, oh/2 + t/2, ow + t*2, t);
   put(-(ow/2 + t/2), 0, t, oh);
   put( (ow/2 + t/2), 0, t, oh);
+  if(!sill){
+    // Recessed jamb liners and stops give a doorway depth beyond the face trim.
+    for(const s of [-1,1]){
+      put(s*(ow/2-0.012),0,0.024,oh,WALL_T);
+      put(s*(ow/2-0.03),0,0.012,oh,0.028);
+    }
+    put(0,oh/2-0.012,ow,0.024,WALL_T);
+    put(0,oh/2-0.03,ow-0.048,0.012,0.028);
+  }
   // A raised outer bead on each face catches daylight along the casing.
   for (const side of [-1, 1]){
     const z = side*(D/2 + 0.006);
@@ -77,7 +86,7 @@ export function doorLeaf(host, L, w, o, blockers){
     leaf.add(box(MAT.trim, ow - 0.02, oh - 0.03, 0.04, 0, 0, 0));
     // Shaker rails stand proud of the centre panels on both sides.
     const rail = Math.min(0.095, ow*0.12), width = ow - 0.024, height = oh - 0.034;
-    const handleX = hs*(ow/2 - 0.09), handleY = -oh*0.06;
+    const handleX = -hs*(ow/2 - 0.09), handleY = -oh*0.06;
     for (const side of [-1, 1]){
       const z = side*0.025;
       for (const s of [-1, 1]){
@@ -87,10 +96,10 @@ export function doorLeaf(host, L, w, o, blockers){
       leaf.add(box(MAT.trim, width-rail*2, rail, 0.012, 0, -height*0.12, z));
       leaf.add(tube(MAT.steel, 0.027, 0.012, handleX, handleY, side*0.038, 'z'));
       leaf.add(tube(MAT.steel, 0.009, 0.042, handleX, handleY, side*0.059, 'z'));
-      leaf.add(tube(MAT.steel, 0.009, 0.105, handleX-hs*0.045, handleY, side*0.08, 'x'));
+      leaf.add(tube(MAT.steel, 0.009, 0.105, handleX+hs*0.045, handleY, side*0.08, 'x'));
     }
     for (const y of [-height*0.36, 0, height*0.36])
-      leaf.add(tube(MAT.steel, 0.012, 0.075, -hs*width/2, y, 0));
+      leaf.add(tube(MAT.steel, 0.012, 0.075, hs*width/2, y, 0));
     host.add(leaf);
     return;
   }

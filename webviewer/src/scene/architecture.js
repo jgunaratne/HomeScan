@@ -31,6 +31,15 @@ function stairFlight(o, elevation, rise, annotation){
     const stringer = box(MAT.trim,0.045,0.20,Math.hypot(run,rise),s*(w/2-0.025),rise/2-0.08,0);
     stringer.rotation.x = -direction*Math.atan2(rise,run); g.add(stringer);
   }
+  // Close the underside of the flight: separate treads otherwise expose a
+  // sawtooth silhouette and let daylight through the stair from below.
+  const soffit=box(MAT.trim,w-0.06,0.055,Math.hypot(run,rise),0,rise/2-0.09,0);
+  soffit.rotation.x=-direction*Math.atan2(rise,run);g.add(soffit);
+  // The photographed handrail terminates in timber posts, not floating rods.
+  for(const t of [0.5/n,1-0.5/n]){
+    const y=(Math.floor(t*n)+1)*riser;
+    g.add(box(timber,0.065,0.96,0.065,side*(w/2-0.055),y+0.45,zAt(t)));
+  }
   const x = side*(w/2-0.055);
   railBetween(g,timber,new THREE.Vector3(x,riser+0.90,zAt(0.5/n)),
     new THREE.Vector3(x,rise+0.90,zAt(1-0.5/n)),0.027);
