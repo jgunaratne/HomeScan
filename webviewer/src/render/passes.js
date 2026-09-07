@@ -1,3 +1,4 @@
+import { levels } from '../scene/levels.js';
 import { flags } from '../core/state.js';
 import { renderer, scene, camera } from '../scene/stage.js';
 
@@ -139,6 +140,28 @@ void main(){
   gl_FragColor = s;
 }`);
 
+// Bilateral colour blur rejects samples across depth discontinuities. Use
+// premultiplied colour for reflections so invalid rays cannot make dark halos.
+const lensBlurMat = shader({
+  tSrc:{value:null}, tDepth:{value:null}, uDir:{value:new THREE.Vector2()},
+  uNear:{value:0.05},uFar:{value:260},uDepthScale:{value:0.25},
+}, DEPTH_FNS + `
+varying vec2 vUv;
+uniform sampler2D tSrc;
+uniform vec2 uDir;
+uniform float uDepthScale;
+void main(){
+  float centre=linearise(texture2D(tDepth,vUv).x);
+  vec4 colour=vec4(0.0);float total=0.0;
+  for(int i=-4;i<=4;i++){
+    float f=float(i);vec2 uv=clamp(vUv+uDir*f,vec2(0.0),vec2(1.0));
+    float depth=linearise(texture2D(tDepth,uv).x);
+    float weight=exp(-f*f/8.0)*exp(-abs(depth-centre)/max(uDepthScale,centre*0.015));
+    colour+=texture2D(tSrc,uv)*weight;total+=weight;
+  }
+  gl_FragColor=colour/max(total,0.0001);
+}`);
+
 // Only what is brighter than the room blooms — which, indoors, means the
 // windows and the downlights, and that is exactly what blooms in a photograph.
 const brightMat = shader({
@@ -164,12 +187,15 @@ const ssrMat = shader({
   tColor:{value:null}, tDepth:{value:null},
   uProj:{value:new THREE.Matrix4()}, uProjInv:{value:new THREE.Matrix4()},
   uNear:{value:0.05}, uFar:{value:260},
-  uUp:{value:new THREE.Vector3(0,1,0)}, uStride:{value:0.34},
+  uWorldY:{value:new THREE.Vector4()}, uFloorY:{value:new THREE.Vector2()},
+  uUp:{value:new THREE.Vector3(0,1,0)}, uStride:{value:0.18},
 }, DEPTH_FNS + `
 varying vec2 vUv;
 uniform sampler2D tColor;
 uniform mat4 uProj;
 uniform vec3 uUp;
+uniform vec4 uWorldY;
+uniform vec2 uFloorY;
 uniform float uStride;
 void main(){
   vec3 p = viewPos(vUv);
@@ -180,21 +206,25 @@ void main(){
   // makes every ceiling pass for a floor and reflect the room onto itself.
   vec3 n = normalize(cross(dFdx(p), dFdy(p)));
   if (dot(n, -normalize(p)) < 0.0) n = -n;
-  if (dot(n, uUp) < 0.80){ gl_FragColor = vec4(0.0); return; }
+  float worldY=dot(uWorldY,vec4(p,1.0));
+  float floorDistance=min(abs(worldY-uFloorY.x),abs(worldY-uFloorY.y));
+  if (floorDistance>0.035 || dot(n, uUp) < 0.80){ gl_FragColor = vec4(0.0); return; }
   vec3 r = reflect(normalize(p), n);
-  vec3 q = p;
+  vec3 q = p + n*0.025;
   float stride = uStride * (1.0 + fract(sin(dot(vUv, vec2(12.9898, 78.233))) * 43758.5453) * 0.4);
   for (int i = 0; i < 22; i++){
     q += r * stride;
     vec4 c = uProj * vec4(q, 1.0);
     vec2 uv = c.xy / c.w * 0.5 + 0.5;
-    if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) break;
+    if (c.w <= 0.0 || uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) break;
     float sz = viewPos(uv).z;
-    if (sz > q.z + 0.03 && sz < q.z + 1.4){
+    if (sz > q.z + 0.03 && sz < q.z + 0.22){
       vec2 e = abs(uv - 0.5) * 2.0;
-      float edge = smoothstep(1.0, 0.62, max(e.x, e.y));
+      float edge = (1.0 - smoothstep(0.62, 1.0, max(e.x, e.y)));
       float run = 1.0 - float(i) / 22.0;
-      gl_FragColor = vec4(texture2D(tColor, uv).rgb, edge * run);
+      float fresnel=0.04+0.96*pow(1.0-max(dot(n,-normalize(p)),0.0),5.0);
+      float confidence=edge*run*fresnel;
+      gl_FragColor = vec4(texture2D(tColor, uv).rgb*confidence, confidence);
       return;
     }
     stride *= 1.14;
@@ -205,12 +235,12 @@ ssrMat.extensions = {derivatives:true};
 
 const compMat = shader({
   tColor:{value:null}, tAO:{value:null}, tBloom:{value:null}, tFar:{value:null},
-  tSSR:{value:null}, uSSR:{value:0.30},
+  tSSR:{value:null}, uSSR:{value:0.38},
   tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
   uNear:{value:0.05}, uFar:{value:260},
   uExposure:{value:0.98}, uBloom:{value:0.10}, uAO:{value:0.72},
-  uFocus:{value:5.5}, uRange:{value:16.0}, uDof:{value:0.55},
-  uVignette:{value:0.16}, uGrain:{value:0.004}, uTime:{value:0},
+  uFocus:{value:5.5}, uRange:{value:16.0}, uDof:{value:0.30},
+  uVignette:{value:0.09}, uGrain:{value:0.002}, uTime:{value:0},
 }, DEPTH_FNS + `
 varying vec2 vUv;
 uniform sampler2D tColor, tAO, tBloom, tFar, tSSR;
@@ -231,7 +261,9 @@ void main(){
   col = mix(col, texture2D(tFar, vUv).rgb, coc * coc);
 
   vec4 ssr = texture2D(tSSR, vUv);
-  col += ssr.rgb * ssr.a * uSSR;
+  // Confidence is already in the blurred RGB. Blend radiance instead of
+  // adding energy, which made pale floors glow and doubled window highlights.
+  col = col*(1.0-ssr.a*uSSR) + ssr.rgb*uSSR;
 
   col *= mix(1.0, texture2D(tAO, vUv).r, uAO);
   col += texture2D(tBloom, vUv).rgb * uBloom;
@@ -240,11 +272,12 @@ void main(){
   vec2 d = vUv - 0.5;
   col *= 1.0 - uVignette * dot(d, d) * 1.9;
 
-  // Grain last, and in display space, so it reads as film rather than noise.
+  // Exact linear-to-sRGB transfer, followed by low-amplitude display grain.
+  col=mix(col*12.92,1.055*pow(max(col,0.0),vec3(1.0/2.4))-0.055,step(vec3(0.0031308),col));
   float g = fract(sin(dot(vUv * (1.0 + uTime), vec2(12.9898, 78.233))) * 43758.5453);
   col += (g - 0.5) * uGrain;
 
-  gl_FragColor = vec4(pow(max(col, 0.0), vec3(0.4545454)), 1.0);
+  gl_FragColor = vec4(clamp(col,0.0,1.0), 1.0);
 }`);
 
 // Rendering off-screen loses the multisampling, so the edges come back here.
@@ -325,6 +358,13 @@ function blur(src, tmp, dst, texel, spread){
   draw(blurMat, dst);
 }
 
+function lensBlur(src,tmp,dst,texel,spread){
+  const u=lensBlurMat.uniforms;
+  u.tDepth.value=RTS.scene.depthTexture;u.uNear.value=camera.near;u.uFar.value=camera.far;
+  u.tSrc.value=src.texture;u.uDir.value.set(texel.x*spread,0);draw(lensBlurMat,tmp);
+  u.tSrc.value=tmp.texture;u.uDir.value.set(0,texel.y*spread);draw(lensBlurMat,dst);
+}
+
 export function renderFrame(){
   if (!postOn || !postReady || !flags.surfaced){
     // Keep highlight rolloff when the optional lens is disabled or too slow.
@@ -371,9 +411,13 @@ export function renderFrame(){
   ssrMat.uniforms.uProj.value.copy(camera.projectionMatrix);
   ssrMat.uniforms.uNear.value = camera.near;
   ssrMat.uniforms.uFar.value = camera.far;
+  const world=camera.matrixWorld.elements;
+  ssrMat.uniforms.uWorldY.value.set(world[1],world[5],world[9],world[13]);
+  const floorY=i=>levels[i]?levels[i].elevation+levels[i].group.position.y+0.006:-10000;
+  ssrMat.uniforms.uFloorY.value.set(floorY(0),floorY(1));
   ssrMat.uniforms.uUp.value.set(0, 1, 0).transformDirection(camera.matrixWorldInverse);
   draw(ssrMat, RTS.ssr);
-  blur(RTS.ssr, RTS.b1, RTS.ssr, half, 1.5);   // gloss, not a mirror
+  lensBlur(RTS.ssr, RTS.b1, RTS.ssr, half, 1.3);   // gloss, not a mirror
 
   brightMat.uniforms.tSrc.value = RTS.scene.texture;
   draw(brightMat, RTS.b0);
@@ -391,13 +435,7 @@ export function renderFrame(){
   // Out of focus is its own chain. Reusing the bloom pyramid for it was the
   // obvious economy and quite wrong: that buffer holds the bright pass, so
   // everything soft came back milky with the windows smeared through it.
-  blurMat.uniforms.tSrc.value = RTS.scene.texture;
-  blurMat.uniforms.uDir.value.set(2.0/w, 0);
-  draw(blurMat, RTS.d1);
-  blurMat.uniforms.tSrc.value = RTS.d1.texture;
-  blurMat.uniforms.uDir.value.set(0, quarter.y * 2.0);
-  draw(blurMat, RTS.d0);
-  blur(RTS.d0, RTS.d1, RTS.d0, quarter, 2.0);
+  lensBlur(RTS.scene, RTS.d1, RTS.d0, quarter, 0.75);
 
   compMat.uniforms.tColor.value = RTS.scene.texture;
   compMat.uniforms.tAO.value = RTS.ao.texture;

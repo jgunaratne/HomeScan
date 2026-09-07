@@ -453,3 +453,13 @@ roof dimensions are visual estimates, with the east soffit limited to the
 end-wall band to keep the scanned high window clear; they are not roof measurements.
 Both rooms now use photo-coloured timber boards. Paint has independent fine
 bump texture, and timber has finer grain and softened board-edge relief.
+
+The lens now uses depth-aware colour filtering for soft reflections and focus,
+so distant window colours are less likely to smear across nearby surfaces.
+Reflections are restricted to the two storeys' floor elevations, use Fresnel
+falloff and premultiplied confidence, and blend with the scene instead of adding
+brightness. Ray hits use a tighter thickness tolerance. Depth of field and
+vignette are restrained, with grain applied after the sRGB display conversion.
+This remains screen-space rendering: off-camera objects cannot be reflected.
+Validation: browser shader compilation, both render paths, survey toggling and
+resize at 1280×800 and 800×600, plus the geometry/material unit suite.
