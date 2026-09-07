@@ -92,11 +92,17 @@ stick with no server behind it, and that is a concatenation, not a build system.
 | `F` / `G` | Show or hide furniture / pass through walls |
 | `P` | The dressed house, or the flat survey |
 | `O` | Hang the photographs themselves as prints |
+| `N` | Nano Banana — flip between this view and a photograph of it |
 | Click a wall | Open the pictures that room's surfaces came from |
 | Click a print | Open it full size · `←` `→` for the rest of that room, Esc to close |
 | `Q` | Take the lens off — occlusion, bloom, focus, grain |
-| `N` | Nano Banana — this view handed back as a photograph |
 | `Tab` | Section view — a dollhouse with a storey-separation slider |
+
+Each toolbar button carries its own key, so the table above is learnable from
+the bar rather than from this file. A toggle that is on is lit; the label stays
+a noun and never flips between two verbs, which is why nothing in `src/` writes
+button text any more — `aria-pressed` carries the state and the stylesheet
+draws it. The full sentence for each lives in its `title`.
 
 ## Nano Banana
 
@@ -553,3 +559,14 @@ line that remains, so both toolbars had been shrink-to-fitting into 640 px on a
 Validation: the unit suite, plus a headless browser run of the whole path —
 render, flip, walk, flip back to the moved-view marker, save, Escape — against
 the live model.
+
+The HUD is compact: the rail is one line and its metadata has moved to the card
+that introduces the scan, the section and plan panels have lost their captions
+and their second lines, and both toolbars are key-led nouns at about two thirds
+of the height they were. It reclaims roughly a fifth of the screen — a
+walkthrough should be mostly the house. Two things worth knowing came out of it.
+Toggle state now lives entirely in `aria-pressed`, so the boot flags have to be
+pushed through the setters in `initControls`, or a button that is on shows as
+off. And an edit that replaced a slice of `template.html` silently deleted the
+whole lightbox block; the suite now checks every `$('id')` in `src/` against the
+template, which catches exactly that.

@@ -1,6 +1,6 @@
 import { $, clamp } from '../core/util.js';
 import { EYE } from '../core/constants.js';
-import { len, area, toggleUnit, unitName } from '../core/units.js';
+import { len, area, toggleUnit } from '../core/units.js';
 import { player, view, nav, flags, pointer, focus } from '../core/state.js';
 import { canvas } from '../scene/stage.js';
 import { levels } from '../scene/levels.js';
@@ -14,7 +14,7 @@ export function syncCursor(){
   $('cross').hidden = !(walking && pointer.lockLook);
   canvas.style.cursor = focus.hoverShot && !pointer.lockLook ? 'pointer'
     : !walking ? 'grab' : pointer.lockLook ? 'none' : 'crosshair';
-  $('looktog').textContent = pointer.lockLook ? 'Free cursor' : 'Mouse look';
+  $('looktog').setAttribute('aria-pressed', String(pointer.lockLook));
   paintShot();
 }
 let litShot = null;
@@ -56,10 +56,7 @@ export function toView(){
 export function setFurniture(on){
   flags.showFurniture = on;
   for (const L of levels) L.furn.visible = on;
-  for (const id of ['furntog','furntog2']){
-    $(id).textContent = on ? 'Hide furniture' : 'Show furniture';
-    $(id).setAttribute('aria-pressed', String(!on));
-  }
+  for (const id of ['furntog','furntog2']) $(id).setAttribute('aria-pressed', String(on));
 }
 export function paintGap(){
   const L = levels[player.level];
@@ -68,7 +65,6 @@ export function paintGap(){
 }
 export function setGhost(on){
   flags.ghost = on;
-  $('ghosttog').textContent = on ? 'Solid walls' : 'Pass through walls';
   $('ghosttog').setAttribute('aria-pressed', String(on));
 }
 
@@ -101,6 +97,11 @@ export function initControls(){
   $('justlook').onclick = () => { $('gate').hidden = true; toView(); };
   $('explode').oninput = e => { view.explode = +e.target.value; };
 
+  // The buttons carry their state in the lit style now, so the boot flags have
+  // to be pushed through the setters rather than assumed from the markup.
+  setFurniture(flags.showFurniture);
+  setGhost(flags.ghost);
+
   $('eyeh').oninput = e => setEye(+e.target.value);
   let saved = null;
   try { saved = localStorage.getItem('storeywalk.eye'); } catch {}
@@ -109,7 +110,6 @@ export function initControls(){
   $('units').onclick = () => {
     const u = toggleUnit();
     $('units').textContent = u;
-    $('sec-unit').textContent = unitName();
     paintMeta(); paintStoreys(); paintGap();
     $('eyeh-v').textContent = len(flags.eyeH);
   };

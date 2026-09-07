@@ -1,4 +1,3 @@
-import { $ } from '../core/util.js';
 import { HOUSE } from '../core/data.js';
 import { player, nav } from '../core/state.js';
 import { onFloor } from '../core/geometry.js';
@@ -20,7 +19,7 @@ export function spawnOn(i, at){
   ring.material.color.setHex(L.tint);
   document.documentElement.style.setProperty('--accent',
     '#' + L.tint.toString(16).padStart(6,'0'));
-  paintStoreys(); $('plan-name').textContent = L.name;
+  paintStoreys();
   paintGap();
 }
 

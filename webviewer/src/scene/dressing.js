@@ -194,7 +194,5 @@ export function setSurfaces(on){
     scene.environment = on ? world.env : null;
   }
   setLightRig(on);
-  $('surftog').textContent = on ? 'Flat surfaces' : 'Photo surfaces';
-  $('surftog2').textContent = $('surftog').textContent;
   for (const id of ['surftog','surftog2']) $(id).setAttribute('aria-pressed', String(on));
 }

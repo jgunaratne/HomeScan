@@ -70,7 +70,8 @@ function grabFrame(){
   frame.getContext('2d').drawImage(canvas, 0, 0, frame.width, frame.height);
   ring.visible = wasRing;
   at = {mode: view.mode, level: player.level, x: player.x, z: player.z,
-        yaw: player.yaw, pitch: player.pitch, room: whereAmI()};
+        yaw: player.yaw, pitch: player.pitch,
+        room: view.mode === 'walk' ? whereAmI() : 'Section view'};
   return frame.toDataURL('image/jpeg', 0.92);
 }
 
@@ -141,7 +142,12 @@ async function render(){
       headers: {'content-type': 'application/json'},
       body: JSON.stringify({
         image: original,
-        prompt: `${BRIEF} The room is the ${at.room.toLowerCase()}.` + (extra ? ` ${extra}` : ''),
+        prompt: BRIEF + (at.mode === 'walk'
+          ? ` The room is the ${at.room.toLowerCase()}.`
+          : ' The subject is a cutaway architectural model of a whole house with its roof off,'
+            + ' seen from above and standing on open ground: photograph it as a model, not as'
+            + ' a room you are standing in.')
+          + (extra ? ` ${extra}` : ''),
       }),
     });
     const data = await res.json().catch(() => ({}));

@@ -143,10 +143,7 @@ export function setPrints(on){
   flags.showPrints = on;
   for (const L of levels) L.prints.visible = on;
   if (!on){ focus.hoverShot = null; paintShot(); }
-  for (const id of ['printtog','printtog2']){
-    $(id).textContent = on ? 'Hide prints' : 'Show prints';
-    $(id).setAttribute('aria-pressed', String(on));
-  }
+  for (const id of ['printtog','printtog2']) $(id).setAttribute('aria-pressed', String(on));
 }
 
 // Which print the cursor is on. Only this storey's while walking — from

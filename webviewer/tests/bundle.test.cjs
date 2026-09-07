@@ -34,3 +34,25 @@ test('every export in src uses a form the bundler strips',()=>{
       assert.ok(strips.test(line),`${path.basename(file)}: ${line.slice(0,72)}`);
   }
 });
+
+// Every id any module reaches for has to exist in the page it is bundled into.
+// A null here is a TypeError during boot and a viewer that never comes up, and
+// it is exactly what an edit to template.html can take out by accident — this
+// caught a whole lightbox block deleted by a careless slice.
+test('every element id the viewer reaches for is in the template',()=>{
+  const page=fs.readFileSync(path.join(__dirname,'../template.html'),'utf8');
+  const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
+    const full=path.join(dir,e.name);
+    return e.isDirectory()?walk(full):e.name.endsWith('.js')?[full]:[];
+  });
+  let checked=0;
+  for(const file of walk(path.join(__dirname,'../src'))){
+    const src=fs.readFileSync(file,'utf8');
+    for(const m of src.matchAll(/\$\('([A-Za-z][\w-]*)'\)/g)){
+      assert.ok(page.includes(`id="${m[1]}"`),
+        `${path.basename(file)} wants #${m[1]}, which is not in template.html`);
+      checked++;
+    }
+  }
+  assert.ok(checked>40,`only found ${checked} id lookups — the scan is not working`);
+});

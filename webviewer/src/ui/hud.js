@@ -24,11 +24,9 @@ export function paintMeta(){
   $('m-area').textContent = area(HOUSE.levels.reduce((a,L) => a + L.areaSqM, 0));
   const many = HOUSE.levels.length > 1;
   $('m-storeys').hidden = !many;
-  $('rise-row').hidden = !many;
   if (many){
     $('m-nlev').textContent = HOUSE.levels.length;
     $('m-rise').textContent = len(HOUSE.storeyRise);
-    $('rise-v').textContent = '+' + len(HOUSE.storeyRise);
   }
 }
 export function paintStoreys(){
@@ -42,9 +40,9 @@ export function paintStoreys(){
     b.style.setProperty('--tint', '#' + L.tint.toString(16).padStart(6,'0'));
     b.innerHTML =
       `<span class="lvl">${L.elevation > 0 ? '+' : ''}${L.elevation.toFixed(2)}</span>` +
-      `<span><span class="nm">${L.name}</span><span class="sub">` +
-      `${L.walls.length} walls · ${len(L.ceiling)} ceiling</span></span>` +
+      `<span class="nm">${L.name}</span>` +
       `<span class="ar">${area(L.areaSqM)}</span>`;
+    b.title = `${L.name} · ${L.walls.length} walls · ${len(L.ceiling)} ceiling`;
     b.onclick = () => spawnOn(i, HOUSE.stairs);
     host.appendChild(b);
   });
