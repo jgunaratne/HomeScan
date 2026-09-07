@@ -185,18 +185,31 @@ real-world scale (1.15 m, 1.55 m, 1.9 m per repeat, mirrored so there is no seam
 **Rooms that share a finish share a material.** Each room picks its patch out of
 its own photographs, and two pictures of one ceiling — different corner,
 different daylight — do not pick the same off-white. Left alone that reads as the
-ceiling changing colour at a doorway, which is a thing the house does not do. So
-a ceiling is grouped by storey, every room on it taking the clearest patch any of
-them found; a floor is grouped only across rooms that declare the same
-`finishes.floor`, because tile, boards and vinyl are all real and merging them
-would be a lie. On this scan that takes the ground floor from seven ceilings to
-one and the upper from five to one, and merges the three upstairs bedrooms' three
-timber floors into one — while the hall bathroom, the main-floor bedroom and the
-laundry each rightly keep their own. A room whose photographs never showed a
-ceiling inherits the storey's rather than going without one. `finishes.ceil` is
-free to name something other than paint, and a room that does forms its own
-group. Grouping runs before `floorFrom`, so a borrowed floor carries the shared
-boards outward rather than being overwritten by them.
+ceiling changing colour at a doorway, which is a thing the house does not do.
+
+A ceiling groups by storey: it is one paint over one storey, and the storey above
+may well have been painted on a different day. A floor groups across the whole
+house, because what `finishes.floor` declares is the material itself — a room
+that says `timber-cherry` means the same boards wherever it is standing. Every
+room in a group takes the clearest patch any of them found, and a reviewed
+rectangle scores zero, so a hand-picked crop drives the whole group.
+
+That is why the two hardwoods in this house are named apart rather than separated
+by which storey they sit on. The photographs show reddish cherry downstairs
+(great room, living room, kitchen, entry, main-floor bedroom) and light maple
+upstairs (upper family room and the three bedrooms), so they are `timber-cherry`
+and `timber-maple`, and any floor whose value starts with `timber` is laid as
+planks rather than tiled as a patch. Naming them is also what stops a room the
+photographs plainly show as hardwood — the main-floor bedroom, the upper family
+room — from sampling its own boards and reading as a third wood the house does
+not have. Across the scan that leaves one ceiling a storey, and one material per
+wood: five hardwood rooms downstairs on one floor and four upstairs on another,
+with the two bathrooms and the laundry keeping their own tile.
+
+A room whose photographs never showed a ceiling inherits the storey's rather than
+going without one, and `finishes.ceil` is free to name something other than paint
+for a room that should not join. Grouping runs before `floorFrom`, so a borrowed
+floor carries the shared boards outward rather than being overwritten by them.
 
 **How a patch is chosen.** Each photograph is read down to 320 px and scanned
 with a 24 px window over the band where that surface tends to sit — the top
@@ -619,3 +632,13 @@ declared finish, the clearest patch in each group winning for all of it. Verifie
 by instrumenting a build to report material identity per room against the same
 build without the change: 7 ceilings to 1 and 5 to 1, and the upstairs floors
 from 5 distinct to 3, with the bathroom, bedroom and laundry keeping their own.
+
+The hardwood is now one material per wood across the whole house rather than one
+per storey. `finishes.floor` names the material — `timber-cherry` downstairs,
+`timber-maple` upstairs — so the declaration groups house-wide instead of being
+split by which storey a room sits on, and the main-floor bedroom and upper family
+room, both plainly hardwood in their photographs and both previously undeclared,
+now say so instead of sampling a third and fourth wood of their own. The two
+woods are genuinely different in the photographs and stay apart. Verified the
+same way as before, by material identity per room: five hardwood rooms downstairs
+on one floor material, four upstairs on another, tile untouched.

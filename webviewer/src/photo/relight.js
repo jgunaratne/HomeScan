@@ -142,6 +142,11 @@ function surfMat(canvas, tint, extra, kind){
   return m;
 }
 
+// Boards are laid as planks rather than tiled as a patch, and the wood is named
+// after itself — timber-cherry, timber-maple — so that two floors of different
+// wood can both be boards without becoming one another.
+const isTimber = finish => typeof finish === 'string' && finish.startsWith('timber');
+
 function timberFloor(pick){
   const tiles = plankCanvases(pick);
   const m = surfMat(tiles.colour, 0xD0D0D0, {side:THREE.DoubleSide}, 'floor');
@@ -195,7 +200,7 @@ export function dressRoom(room){
     wall, wallLow: wall,
     counter: pick.counter && detailMaterial(pick.counter,0.36),
     brick: pick.brick && detailMaterial(pick.brick,0.94),
-    floor: pick.floor && (room.finishes?.floor === 'timber' ? timberFloor(pick.floor) :
+    floor: pick.floor && (isTimber(room.finishes?.floor) ? timberFloor(pick.floor) :
       surfMat(pick.floor.canvas, 0xB6B6B6, {side:THREE.DoubleSide}, 'floor')),
     ceil:  pick.ceil  && surfMat(pick.ceil.canvas,  0xC6C6C6, {side:THREE.DoubleSide}, 'ceil'),
   };
@@ -219,9 +224,15 @@ export function dressRoom(room){
 // forms its own group and keeps its own material.
 export function shareFinishes(){
   const groups = new Map();
+  // A ceiling groups by storey: it is one paint over one storey, and the storey
+  // above may well have been painted on a different day. A floor groups across
+  // the whole house, because what it declares is the material itself — a room
+  // that says timber-cherry means the same boards wherever it is standing. That
+  // is also why the two hardwoods in this house are named apart rather than
+  // separated by which storey they happen to be on.
   const keyOf = (room, kind) => {
-    const finish = kind === 'ceil' ? (room.finishes?.ceil ?? 'paint') : room.finishes?.floor;
-    return finish ? `${room.level}/${kind}/${finish}` : null;
+    if (kind === 'ceil') return `${room.level}/ceil/${room.finishes?.ceil ?? 'paint'}`;
+    return room.finishes?.floor ? `floor/${room.finishes.floor}` : null;
   };
   for (const room of photoRooms){
     if (!room.mats) continue;
@@ -229,17 +240,19 @@ export function shareFinishes(){
       const key = keyOf(room, kind);
       if (!key) continue;
       let group = groups.get(key);
-      if (!group) groups.set(key, group = {rooms:[], best:null});
+      // The kind is carried, not parsed back out of the key: the two kinds no
+      // longer key alike, and reading it off by position quietly wrote the
+      // material to room.mats['timber-cherry'] instead of room.mats.floor.
+      if (!group) groups.set(key, group = {kind, rooms:[], best:null});
       group.rooms.push(room);
       const pick = room.pick && room.pick[kind];
       if (pick && room.mats[kind] && (!group.best || pick.score < group.best.score))
         group.best = {score: pick.score, mat: room.mats[kind]};
     }
   }
-  for (const [key, group] of groups){
+  for (const group of groups.values()){
     if (!group.best) continue;
-    const kind = key.split('/')[1];
-    for (const room of group.rooms) room.mats[kind] = group.best.mat;
+    for (const room of group.rooms) room.mats[group.kind] = group.best.mat;
   }
   return groups;
 }
