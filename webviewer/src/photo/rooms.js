@@ -1,4 +1,4 @@
-import { PHOTOS } from '../core/data.js';
+import { PHOTOS, ROOMS } from '../core/data.js';
 import { levels } from '../scene/levels.js';
 
 // The scan carries geometry and nothing at all about how the house looks. What
@@ -43,13 +43,23 @@ export function indexPhotos(){
     let room = photoRooms.find(r => r.level === ph.level && r.name === ph.room);
     if (!room){
       room = {level:ph.level, name:ph.room, at:ph.at, floorFrom:ph.floorFrom, finishes:ph.finishes,
-              shots:[], mats:null};
+              reach:ph.reach, shots:[], mats:null};
       photoRooms.push(room);
       if (levels[ph.level]) levels[ph.level].rooms.push(room);
     }
     room.shots.push(ph);
   }
   for (const r of photoRooms) r.shots.sort((a,b) => a.seq - b.seq);
+
+  // The rooms nobody photographed. They are here for their anchor above all:
+  // a space with no anchor belongs to whichever room's anchor happens to be
+  // nearest, and a hall's nearest neighbour is usually a bathroom.
+  for (const r of ROOMS || []){
+    const room = {level:r.level, name:r.name, at:r.at, floorFrom:r.floorFrom,
+                  finishes:r.finishes, reach:r.reach, shots:[], mats:null, declared:true};
+    photoRooms.push(room);
+    if (levels[r.level]) levels[r.level].rooms.push(room);
+  }
 }
 
 // Which room a point on this storey belongs to. Anchors are room centres, so the
@@ -57,10 +67,16 @@ export function indexPhotos(){
 // hides it, and in an open plan there is no boundary to hide.
 export function roomAt(L, x, z, visible = false){
   let best = null, bd = ROOM_REACH;
-  let fallback=null, fallbackDistance=ROOM_REACH;
+  let fallback = null, fallbackDistance = ROOM_REACH;
   for (const r of L.rooms){
     const d = Math.hypot(r.at[0] - x, r.at[1] - z);
-    if(d<fallbackDistance){fallback=r;fallbackDistance=d;}
+    // Most anchors are room centres and want the default reach. A few are not:
+    // the laundry's is its washer/dryer, standing against one wall of a
+    // cupboard, and nearest-anchor handed that cupboard four times its own
+    // floor. `reach` is for that case — a corridor with an anchor of its own
+    // needs none.
+    if (d > Math.min(ROOM_REACH, r.reach ?? ROOM_REACH)) continue;
+    if (d < fallbackDistance){ fallback = r; fallbackDistance = d; }
     if (d < bd && (!visible || clearRoomRay(L,x,z,r.at[0],r.at[1]))){ bd = d; best = r; }
   }
   return best || fallback;

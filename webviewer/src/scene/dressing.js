@@ -19,7 +19,7 @@ export function dressWalls(L){
     const nx = Math.sin(p.yaw), nz = Math.cos(p.yaw), off = WALL_T/2 + 0.3;
     const front = roomAt(L, p.x + nx*off, p.z + nz*off, true);
     const back  = roomAt(L, p.x - nx*off, p.z - nz*off, true);
-    const side = m => (m || avgMats()).wall;
+    const side = m => (m && m.wall) || avgMats().wall;
     p.photo = [p.flat, p.flat, p.flat, p.flat, side(front?.mats), side(back?.mats)];
     // The repeat lives in the geometry, so every wall in a room shares a material.
     const uv = p.mesh.geometry.attributes.uv;
@@ -66,7 +66,7 @@ export function dressSlabs(L){
     for (const [kind, host, y, up] of [
       ['floor', L.roomFloor, L.elevation + 0.006, 1],
       ['ceil',  L.roomCeil,  L.elevation + L.ceiling, -1]]){
-      const mat = room.mats[kind];
+      const mat = room.mats[kind] || BARE.mats[kind];
       if (!mat) continue;
       const pos = [], uv = [], nor = [], T = TILE[kind];
       for (const [x0,x1,z0,z1] of quads){

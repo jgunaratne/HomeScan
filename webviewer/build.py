@@ -275,7 +275,7 @@ def load_photos(path, scene, out_dir, inline):
     doc = json.loads(path.read_text())
     root = path.parent / doc.get('dir', '.')
     rel = os.path.relpath(root, out_dir)
-    out, missing = [], 0
+    out, rooms, missing = [], [], 0
     for room in doc.get('rooms') or []:
         n = room['level']
         if not 0 <= n < len(scene['levels']):
@@ -285,6 +285,17 @@ def load_photos(path, scene, out_dir, inline):
         if not any(in_poly(f['poly'], *at) for f in scene['levels'][n]['floors']):
             print(f'  ! {room["name"]}: anchor {at} is not on {scene["levels"][n]["name"]}\'s '
                   'floor — its photos will land on the nearest wall anyway', file=sys.stderr)
+        # A hall is a room you walk through and never photograph. Without an
+        # anchor of its own it goes to whichever anchor is nearest, and a small
+        # bathroom two metres away beats every other room in the house to it.
+        # Declared here, it takes its finishes by name instead of by sampling.
+        if not room.get('photos'):
+            rooms.append({'level': n, 'name': room['name'],
+                          'at': [round(v, 3) for v in at],
+                          'floorFrom': room.get('floorFrom'),
+                'reach': room.get('reach'),
+                          'finishes': room.get('finishes')})
+            continue
         for i, ph in enumerate(room['photos']):
             f = root / ph['file']
             if not f.exists():
@@ -300,6 +311,7 @@ def load_photos(path, scene, out_dir, inline):
                 'level': n, 'room': room['name'], 'at': [round(v, 3) for v in at],
                 'caption': ph.get('caption', ''), 'file': ph['file'], 'seq': i,
                 'floorFrom': room.get('floorFrom'),
+                'reach': room.get('reach'),
                 'finishes': room.get('finishes'),
                 'view': ph.get('view'), 'ground': ph.get('ground'),
                 'src': ('data:' + mime + ';base64,'
@@ -308,7 +320,7 @@ def load_photos(path, scene, out_dir, inline):
             })
     if missing:
         print(f'  ! {missing} photo(s) skipped', file=sys.stderr)
-    return out
+    return out, rooms
 
 
 def main():
@@ -332,18 +344,19 @@ def main():
     args = ap.parse_args()
 
     scene = build_scene(Path(args.scan))
-    photos = []
+    photos, declared = [], []
     pjson = Path(args.photos)
     out_dir = Path(args.out).resolve().parent
     if not args.no_photos and pjson.exists():
-        photos = load_photos(pjson, scene, out_dir, args.inline_photos)
+        photos, declared = load_photos(pjson, scene, out_dir, args.inline_photos)
 
     html = Path(args.template).read_text()
     if '/*__BUNDLE__*/' not in html:
         sys.exit(f'{args.template} has no /*__BUNDLE__*/ placeholder')
     code, nmods = bundle(Path(args.src) / 'main.js')
     html = html.replace('/*__BUNDLE__*/', code)
-    for token, value in (('/*__HOUSE__*/null', scene), ('/*__PHOTOS__*/null', photos)):
+    for token, value in (('/*__HOUSE__*/null', scene), ('/*__PHOTOS__*/null', photos),
+                         ('/*__ROOMS__*/null', declared)):
         if token not in html:
             sys.exit(f'{args.src} has no {token} placeholder')
         html = html.replace(token, json.dumps(value, separators=(',', ':')))

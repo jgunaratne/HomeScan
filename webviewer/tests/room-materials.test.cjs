@@ -18,3 +18,12 @@ test('material lookup retains a nearest-anchor fallback for incomplete room geom
  assert.equal(roomAt(L,0,1,true),r);
  assert.equal(roomAt(L,30,30,true),null);
 });
+test('a room may say how far its finishes carry',()=>{
+ const closet={name:'Laundry',at:[0,0],reach:1.6},hall={name:'Hall',at:[4,0]};
+ const L={rooms:[closet,hall],blockers:[]};
+ assert.equal(roomAt(L,1,0,true),closet,'inside its reach the closet still wins');
+ assert.equal(roomAt(L,2,0,true),hall,'past it the corridor takes over, though it is further');
+ // Without the limit the closet would hold everything up to the halfway line.
+ const unbounded={name:'Laundry',at:[0,0]};
+ assert.equal(roomAt({rooms:[unbounded,hall],blockers:[]},2,0,true),unbounded);
+});

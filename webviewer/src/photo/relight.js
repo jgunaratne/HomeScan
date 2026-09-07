@@ -192,6 +192,12 @@ export function dressRoom(room){
     ctx.putImageData(pixels,0,0);
     pick[kind]={canvas:c,r,g,b,score:0,reviewed:true,file:sample.file,rect:sample.rect};
   }
+  // A declared room — a hall, say — has no photographs at all. It still gets a
+  // materials object, empty, because the finish groups fill its floor and
+  // ceiling by name and its walls fall back to the house average. A room that
+  // has photographs but no usable wall in any of them is a different case, and
+  // stays undressed.
+  if (!room.shots.length) return {wall:null, wallLow:null, floor:null, ceil:null};
   if (!pick.wall) return null;
   // A low-confidence wall is brown in the flat survey and painted here: this
   // view is about what the house looks like, and P still gives the other one.

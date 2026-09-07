@@ -211,6 +211,24 @@ going without one, and `finishes.ceil` is free to name something other than pain
 for a room that should not join. Grouping runs before `floorFrom`, so a borrowed
 floor carries the shared boards outward rather than being overwritten by them.
 
+**A hall is a room you never photograph.** Rooms are matched to floor by nearest
+anchor, so a space with no anchor of its own goes to whoever is closest — and the
+closest thing to a corridor is usually a bathroom door. The laundry held 24.3 m²
+of white tile through the downstairs hall and the upstairs bathrooms 15.7 m² of
+it through the landing. A room in photos.json may therefore have `"photos": []`:
+it is there for its anchor above all, and takes its finishes by name instead of
+by sampling, with its walls falling back to the house average. The two halls in
+this scan are declared at the centres RoomPlan labelled `unidentified`.
+
+An anchor that is not a room centre needs one thing more. The laundry's is its
+washer/dryer, standing against one wall of a cupboard, so even with the hall
+declared it reached out over four times its own floor; `"reach"` says in metres
+how far a room's finishes carry, and exists for that case alone. A corridor with
+an anchor of its own needs none, which is why only the laundry has one. Across
+this scan the floor now divides as 114.1 m² of cherry and 12.0 m² of tile
+downstairs, 88.0 m² of maple and 10.7 m² of tile upstairs — every square metre
+hardwood but the two bathrooms and the laundry.
+
 **How a patch is chosen.** Each photograph is read down to 320 px and scanned
 with a 24 px window over the band where that surface tends to sit — the top
 tenth for ceiling, the middle third for wall, the bottom quarter for floor.
@@ -642,3 +660,14 @@ now say so instead of sampling a third and fourth wood of their own. The two
 woods are genuinely different in the photographs and stay apart. Verified the
 same way as before, by material identity per room: five hardwood rooms downstairs
 on one floor material, four upstairs on another, tile untouched.
+
+The hallways are hardwood now, and the reason they were not is worth keeping.
+Nothing in photos.json described a hall, so the corridors fell to whichever
+anchor was nearest, and a small wet room beside a corridor beats every other room
+in the house to it: the laundry was laying 24.3 m² of white tile downstairs and
+the upstairs bathrooms 15.7 m² across the landing. Both halls are declared rooms
+now, photographless, present for their anchor and naming their storey's boards;
+the laundry, whose anchor is a washer/dryer against one wall of a cupboard rather
+than a room centre, also declares how far its finishes carry. Measured by
+floor-cell assignment: downstairs 114.1 m² cherry and 12.0 m² tile, upstairs
+88.0 m² maple and 10.7 m² tile, against 126.2 and 98.7 m² of storey.

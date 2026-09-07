@@ -124,3 +124,35 @@ test('the shipped scan declares finishes that group into one ceiling a storey',(
   for(const name of ['Upper family room','East bedroom','South bedroom','West bedroom'])
     assert.equal(rooms.find(r=>r.name===name).finishes.floor,'timber-maple',name);
 });
+
+// A hall is a room you walk through and never photograph. Before it was
+// declared, the space went to whichever anchor was nearest, and the nearest
+// anchor to a corridor is usually a bathroom door: the laundry held 24.3 m² of
+// white tile downstairs and the upstairs bathrooms 15.7 m² of it.
+test('the halls are declared, photographless, and named onto their storey\'s wood',()=>{
+  const rooms=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8')).rooms;
+  const halls=rooms.filter(r=>!r.photos||!r.photos.length);
+  assert.equal(halls.length,2);
+  for(const hall of halls){
+    assert.ok(hall.at&&hall.at.length===2,`${hall.name} needs an anchor above all else`);
+    assert.match(hall.finishes.floor,/^timber-/,`${hall.name} must name its boards`);
+  }
+  const bywood=Object.fromEntries(halls.map(h=>[h.name,h.finishes.floor]));
+  assert.equal(bywood['Downstairs hall'],'timber-cherry');
+  assert.equal(bywood['Upstairs hall'],'timber-maple');
+});
+
+// Everything that is not a wet room is hardwood, which is the whole point.
+test('every room is hardwood unless it is a bathroom or the laundry',()=>{
+  const rooms=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8')).rooms;
+  const wet=new Set(['Hall bathroom','Laundry','Upstairs bathrooms']);
+  for(const r of rooms){
+    if(wet.has(r.name)){
+      assert.ok(!r.finishes?.floor,`${r.name} is tiled and must not claim boards`);
+      continue;
+    }
+    const named=r.finishes?.floor, borrowed=r.floorFrom;
+    assert.ok(named||borrowed,`${r.name} names no floor, so it samples one of its own`);
+    if(named) assert.match(named,/^timber-/);
+  }
+});
