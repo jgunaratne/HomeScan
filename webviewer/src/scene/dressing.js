@@ -1,3 +1,4 @@
+import { dressRooflines } from './rooflines.js';
 import { inStairCut, cutSlabQuad } from './architecture.js';
 import { $ } from '../core/util.js';
 import { WALL_T } from '../core/constants.js';
@@ -35,13 +36,14 @@ export function dressWalls(L){
 // runs into quads. Boundaries land on the 10 cm grid, which is finer than the
 // walls that sit on top of them.
 export function dressSlabs(L){
+  dressRooflines(L);
   const g = 0.1, b = L.bounds;
   const nx = Math.ceil((b.x1-b.x0)/g), nz = Math.ceil((b.z1-b.z0)/g);
   // false = off the storey's floor entirely; null = on it but in no room.
   const own = new Array(nx*nz).fill(false);
   for (let j=0;j<nz;j++) for (let i=0;i<nx;i++){
     const x = b.x0 + (i+0.5)*g, z = b.z0 + (j+0.5)*g;
-    if (onFloor(L, x, z)) own[j*nx+i] = roomAt(L, x, z);
+    if (onFloor(L, x, z)) own[j*nx+i] = roomAt(L, x, z, true);
   }
   // The whole footprint has to be covered exactly once. Cells no room claims —
   // the garage, the far end of a hall — go in their own bucket and keep the flat
@@ -78,7 +80,9 @@ export function dressSlabs(L){
           const a = x0+(x1-x0)*q/steps, b = x0+(x1-x0)*(q+1)/steps;
           const c = [[a,z0],[b,z0],[b,z1],[a,z1]];
           // Keep ceiling winding consistent with its downward normals.
-          for(const polygon of cutSlabQuad(c,cut))for(let i=1;i<polygon.length-1;i++){
+          let pieces=cutSlabQuad(c,cut);
+          if(kind==='ceil')for(const roof of L.roofCuts)pieces=pieces.flatMap(p=>cutSlabQuad(p,roof));
+          for(const polygon of pieces)for(let i=1;i<polygon.length-1;i++){
             const [p0,p1,p2]=[polygon[0],polygon[i],polygon[i+1]];
             if(Math.abs((p1[0]-p0[0])*(p2[1]-p0[1])-(p2[0]-p0[0])*(p1[1]-p0[1]))<1e-10)continue;
             for(const t of (up>0 ? [0,i+1,i] : [0,i,i+1])){
@@ -98,7 +102,7 @@ export function dressSlabs(L){
     // Downlights on a 2.4 m grid over the room's own ceiling. They are lamps to
     // look at rather than lamps that light: one light per room would mean a
     // dozen in a single forward-rendered pass.
-    if (room.bare) continue;
+    if (room.bare || room.finishes?.roof) continue;
     const seen = new Set();
     for (const [x0,x1,z0,z1] of quads){
       const gz = Math.round((z0+z1)/2/2.4)*2.4;

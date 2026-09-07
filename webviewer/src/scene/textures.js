@@ -11,6 +11,8 @@ export function surfaceTile(kind){
     if (kind === 'wood'){
       const grain = Math.sin(x*0.34 + Math.sin(y*0.025)*2 + Math.sin(y*0.08)*0.5);
       v = 229 + grain*4 + noise*5 + Math.sin(x*1.7 + Math.sin(y*0.04))*2;
+    } else if (kind === 'plaster'){
+      v = 180 + noise*45;
     } else if (kind === 'fabric'){
       v = 235 + ((x%4 < 2) !== (y%4 < 2) ? 2 : -2) + noise*5;
     } else {
@@ -43,13 +45,17 @@ export function plankCanvases(pick){
     const segment = along < 0.48 ? 0 : 1;
     const variation = (hash(row*13+segment*43)-0.5)*0.24;
     const seam = across < 0.012 || across > 0.988 || along < 0.002 || Math.abs(along-0.48)<0.002;
-    const grain = Math.sin(across*95 + Math.sin(y/N*Math.PI*2)*1.6 + row)*0.018;
+    const wave = Math.sin(y/N*Math.PI*2+row)*1.6;
+    const grain = Math.sin(across*95 + wave + row)*0.012
+      + Math.sin(across*283 + wave*2.3)*0.006
+      + (hash(x+y*N)-0.5)*0.009;
+    const bevel = Math.min(1, Math.min(across,1-across)/0.026);
     const i = (y*N+x)*4;
     for (const [kind, out] of Object.entries(data)){
       for (let ch=0;ch<3;ch++){
         const base = [pick.r,pick.g,pick.b][ch];
         out.data[i+ch] = kind === 'colour' ? base*(1+variation+grain)*(seam?0.72:1) :
-          kind === 'height' ? (seam?105:180+grain*160) : (seam?225:155+variation*100+grain*150);
+          kind === 'height' ? (seam?120:160+bevel*20+grain*160) : (seam?225:155+variation*100+grain*150);
       }
       out.data[i+3]=255;
     }

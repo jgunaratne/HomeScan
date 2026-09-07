@@ -1,4 +1,4 @@
-import { plankCanvases } from '../scene/textures.js';
+import { plankCanvases, surfaceTile } from '../scene/textures.js';
 import { renderer } from '../scene/stage.js';
 import { BANDS, FLATTEN, photoRooms } from './rooms.js';
 
@@ -132,6 +132,12 @@ function surfMat(canvas, tint, extra, kind){
   if (k.relief > 0){
     m.normalMap = tiling(reliefFrom(canvas, k.relief), false);
     m.normalScale = new THREE.Vector2(k.scale, k.scale);
+  }
+  if(kind==='wall'||kind==='ceil'){
+    // Independent micro-relief catches grazing light without tiling shadows
+    // or fixtures from the source photograph into otherwise clean paint.
+    m.bumpMap=surfaceTile('plaster');
+    m.bumpScale=kind==='wall'?0.00035:0.00020;
   }
   return m;
 }

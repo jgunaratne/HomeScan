@@ -109,7 +109,7 @@
     {
       "level": 1,
       "name": "East bedroom",
-      "finishes": {"wall": "paint"},
+      "finishes": {"wall": "paint", "floor": "timber", "roof": {"yaw": -0.49781, "u0": 0.29, "u1": 2.92, "v0": -6.51, "v1": -5.95, "returnFinish": "ceil", "high": 2.365, "low": 1.45}, "samples": {"floor": {"file": "east-bedroom-1.webp", "rect": [0.38, 0.84, 0.2, 0.08]}, "ceil": {"file": "east-bedroom-1.webp", "rect": [0.5, 0.02, 0.15, 0.08]}}},
       "at": [3.3, -3.0],
       "anchor": "section 2 (bedroom)",
       "photos": [
@@ -121,7 +121,7 @@
     {
       "level": 1,
       "name": "South bedroom",
-      "finishes": {"wall": "paint"},
+      "finishes": {"wall": "paint", "floor": "timber", "roof": {"yaw": -0.49781, "u0": 0.33, "u1": 2.88, "v0": 3.34, "v1": 5.96, "high": 2.365, "low": 1.4}, "samples": {"floor": {"file": "south-bedroom-1.webp", "rect": [0.38, 0.84, 0.2, 0.08]}, "ceil": {"file": "south-bedroom-1.webp", "rect": [0.15, 0.02, 0.15, 0.04]}}},
       "at": [0.1, 2.9],
       "anchor": "section 3 (bedroom)",
       "photos": [

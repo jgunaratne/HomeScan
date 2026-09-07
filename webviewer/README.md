@@ -443,3 +443,13 @@ Wall-face material lookup now prefers room anchors with an unobstructed segment
 through the scan's wall blockers. This reduces bathroom texture leaking onto
 adjacent bedroom faces. A nearest-anchor fallback remains for incomplete scans
 or anchors without a clear segment; inferred room boundaries are not exact.
+
+Photo-inferred roof wedges now replace portions of the east and south bedroom
+ceilings. `finishes.roof` stores an oriented plan rectangle, high/low heights
+above the storey, and its scan yaw. The slope has closed vertical returns;
+its footprint is subtracted from the dressed slab, and generic downlights are
+omitted in these rooms. The survey retains its measured flat ceiling. These
+roof dimensions are visual estimates, with the east soffit limited to the
+end-wall band to keep the scanned high window clear; they are not roof measurements.
+Both rooms now use photo-coloured timber boards. Paint has independent fine
+bump texture, and timber has finer grain and softened board-edge relief.
