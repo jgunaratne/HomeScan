@@ -182,6 +182,22 @@ is assigned to a room, and each room's material is lifted out of its own
 pictures — a patch of plain wall, a patch of floor, a patch of ceiling, tiled at
 real-world scale (1.15 m, 1.55 m, 1.9 m per repeat, mirrored so there is no seam).
 
+**Rooms that share a finish share a material.** Each room picks its patch out of
+its own photographs, and two pictures of one ceiling — different corner,
+different daylight — do not pick the same off-white. Left alone that reads as the
+ceiling changing colour at a doorway, which is a thing the house does not do. So
+a ceiling is grouped by storey, every room on it taking the clearest patch any of
+them found; a floor is grouped only across rooms that declare the same
+`finishes.floor`, because tile, boards and vinyl are all real and merging them
+would be a lie. On this scan that takes the ground floor from seven ceilings to
+one and the upper from five to one, and merges the three upstairs bedrooms' three
+timber floors into one — while the hall bathroom, the main-floor bedroom and the
+laundry each rightly keep their own. A room whose photographs never showed a
+ceiling inherits the storey's rather than going without one. `finishes.ceil` is
+free to name something other than paint, and a room that does forms its own
+group. Grouping runs before `floorFrom`, so a borrowed floor carries the shared
+boards outward rather than being overwritten by them.
+
 **How a patch is chosen.** Each photograph is read down to 320 px and scanned
 with a 24 px window over the band where that surface tends to sit — the top
 tenth for ceiling, the middle third for wall, the bottom quarter for floor.
@@ -594,3 +610,12 @@ briefed as a cutaway model rather than as a room. Edge-map correlation against
 the source rises from 0.657 to 0.695 over three runs each, and a plain bench
 comes back a plain bench. Temperature and aspect-ratio pinning were both measured
 and both do nothing, so neither is in the request.
+
+Floors and ceilings no longer vary room to room within a storey. The variation
+was sampling noise, not the house: every room chose its own patch, so one paint
+came out as seven off-whites downstairs and five upstairs, and three bedrooms
+laid three different timbers. Ceilings are now grouped by storey and floors by
+declared finish, the clearest patch in each group winning for all of it. Verified
+by instrumenting a build to report material identity per room against the same
+build without the change: 7 ceilings to 1 and 5 to 1, and the upstairs floors
+from 5 distinct to 3, with the bathroom, bedroom and laundry keeping their own.

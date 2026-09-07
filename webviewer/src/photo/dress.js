@@ -4,7 +4,7 @@ import { $ } from '../core/util.js';
 import { levels } from '../scene/levels.js';
 import { dressWalls, dressSlabs, dressFittings, setSurfaces } from '../scene/dressing.js';
 import { photoRooms } from './rooms.js';
-import { dressRoom, computeAverage, canReadPixels } from './relight.js';
+import { dressRoom, shareFinishes, computeAverage, canReadPixels } from './relight.js';
 import { bakeSky } from './sky.js';
 import { buildOutdoors } from './outside.js';
 import { hangPrints, setPrints } from './prints.js';
@@ -31,6 +31,9 @@ export function dressHouse(){
       return flat('the photographs are linked files and this page is not being served, '
                   + 'so the browser will not let their pixels be read.');
     for (const r of photoRooms) r.mats = dressRoom(r);
+    // One ceiling to a storey, and one material per declared floor finish,
+    // before anything borrows: a borrowed floor should carry the shared boards.
+    shareFinishes();
     // A room photographed from its doorway can show no floor at all — the
     // kitchen's bottom band is worktop — so photos.json may name a room to
     // borrow the boards from.

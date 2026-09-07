@@ -201,6 +201,49 @@ export function dressRoom(room){
   };
 }
 
+// Rooms that share a finish have to share a material, not merely a similar one.
+// Every room picks its own patch out of its own photographs, and two pictures of
+// one ceiling — taken from different corners, under different daylight — do not
+// pick the same off-white. On screen that reads as the ceiling changing colour
+// at a doorway, which is a thing the house does not do.
+//
+// A ceiling is one paint over a storey, so every room on the storey joins one
+// group. A floor is not: tile, boards and vinyl are all real, so only rooms that
+// say they have the same floor share one. The clearest patch in the group wins
+// — the lowest score is the flattest and the closest to its band's median, and a
+// reviewed rectangle from photos.json scores zero and so always wins. A room
+// with no usable patch of its own inherits the group's, which is how a bathroom
+// photographed from the doorway gets a ceiling at all.
+//
+// `finishes.ceil` is free to name something other than paint; a room that does
+// forms its own group and keeps its own material.
+export function shareFinishes(){
+  const groups = new Map();
+  const keyOf = (room, kind) => {
+    const finish = kind === 'ceil' ? (room.finishes?.ceil ?? 'paint') : room.finishes?.floor;
+    return finish ? `${room.level}/${kind}/${finish}` : null;
+  };
+  for (const room of photoRooms){
+    if (!room.mats) continue;
+    for (const kind of ['floor','ceil']){
+      const key = keyOf(room, kind);
+      if (!key) continue;
+      let group = groups.get(key);
+      if (!group) groups.set(key, group = {rooms:[], best:null});
+      group.rooms.push(room);
+      const pick = room.pick && room.pick[kind];
+      if (pick && room.mats[kind] && (!group.best || pick.score < group.best.score))
+        group.best = {score: pick.score, mat: room.mats[kind]};
+    }
+  }
+  for (const [key, group] of groups){
+    if (!group.best) continue;
+    const kind = key.split('/')[1];
+    for (const room of group.rooms) room.mats[kind] = group.best.mat;
+  }
+  return groups;
+}
+
 // Surfaces no room claims — the garage, the far end of a hall — take the house's
 // own average rather than the flat survey grey. Standing in a photographed room
 // and seeing one brown low-confidence panel among the paint reads as a fault;
