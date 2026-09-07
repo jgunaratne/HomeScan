@@ -95,7 +95,49 @@ stick with no server behind it, and that is a concatenation, not a build system.
 | Click a wall | Open the pictures that room's surfaces came from |
 | Click a print | Open it full size · `←` `→` for the rest of that room, Esc to close |
 | `Q` | Take the lens off — occlusion, bloom, focus, grain |
+| `N` | Nano Banana — this view handed back as a photograph |
 | `Tab` | Section view — a dollhouse with a storey-separation slider |
+
+## Nano Banana
+
+The `Nano Banana` button in either toolbar takes the frame on screen and posts it
+to Gemini's image model, which sends back a photograph of the same room. It is
+the one place the viewer stops pretending: the geometry is sketch-grade LiDAR and
+the paint is lifted off a handful of photographs, so the walkthrough is credible
+as a survey and never as a picture. This is what the room might look like, drawn
+by something that has seen a great many rooms.
+
+```sh
+cp .env.example .env       # at the repo root
+# GEMINI_API_KEY=…         from https://aistudio.google.com/apikey
+npm start
+```
+
+The key is read by `serve.mjs` and never reaches the page — this is a server
+route, not a `fetch` from the browser, and that is the whole reason for it.
+A viewer opened straight off disk has no server behind it, so the button says so
+rather than failing silently. `GEMINI_IMAGE_MODEL` overrides the model; the
+default is `gemini-3.1-flash-image`, and a 404 on it falls back to
+`gemini-2.5-flash-image`, which not every key is cleared past.
+
+**The brief matters more than the model.** The first version of it led with what
+had to be preserved — keep the camera, keep the geometry, add nothing — and
+gemini-2.5-flash-image obliged by handing the render straight back with the
+bricks slightly redrawn. The instruction that works leads with the change (an
+untextured model render, reproduced as a photograph on a 24 mm lens, every
+surface given a real material and real daylight) and fences the geometry after
+it. On the same frame, the same brief and the newer model is the difference
+between a tidier render and a photograph. Whatever is typed into the field on the
+panel is appended, so "at dusk" or "in winter" is a sentence, not a rewrite.
+
+The frame is captured straight off the drawing buffer, which is readable only
+inside the task that drew it — this renderer has no `preserveDrawingBuffer` — so
+`renderFrame()` and the read happen without yielding in between. It goes up as a
+JPEG no wider than 1536 px: the model resamples to about a megapixel anyway.
+
+What comes back is generated. It is a picture of what the scan guessed, at the
+resolution of a model's idea of a house, and it is not evidence of anything —
+which is what the line under the panel says.
 
 ## The photographs
 
@@ -475,3 +517,12 @@ paint sample from the entry photo. Stair flights have a closed painted underside
 and timber end posts. Door frames include recessed jamb liners and stops, with
 handles on the latch edge and hinges at the actual pivot. The scan still contains
 no interior garage doorway; these details do not add an inferred connection.
+
+The walkthrough can now hand its own frame to Gemini and show the photograph that
+comes back, behind a `Nano Banana` button in both toolbars and the `N` key. The
+key lives in `.env` at the repo root and is read by the server, so the page never
+holds it; a viewer opened off disk reports that rather than failing. Validation:
+the .env parser and the request shape under the unit suite, plus a headless
+browser run of the whole path — capture, post, swap, save, Escape — against the
+live model, with the prompt field proved not to fire the viewer's single-letter
+toggles.

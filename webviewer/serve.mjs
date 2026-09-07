@@ -4,7 +4,7 @@
 import { createServer } from 'node:http';
 import { spawnSync } from 'node:child_process';
 import { readdir, readFile, stat } from 'node:fs/promises';
-import { existsSync, watch } from 'node:fs';
+import { existsSync, readFileSync, watch } from 'node:fs';
 import { extname, join, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -33,6 +33,109 @@ async function sources() {
   return out;
 }
 const OPEN = !flag('--no-open');
+
+// .env, read the way the other projects in this tree read it: KEY=value lines,
+// optional quotes, `#` comments, and a real shell variable always wins. Both
+// the repo root and webviewer/ are looked at so the key can live wherever the
+// rest of the toolbox keeps it. No dotenv dependency — see the note above.
+function loadEnv(){
+  for (const file of [resolve(ROOT, '..', '.env'), join(ROOT, '.env')]){
+    let text;
+    try { text = readFileSync(file, 'utf8'); } catch { continue; }
+    for (const line of text.split('\n')){
+      const m = /^\s*(?:export\s+)?([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/.exec(line);
+      if (!m) continue;
+      let v = m[2].trim();
+      if (/^"(.*)"$|^'(.*)'$/s.test(v)) v = v.slice(1, -1);
+      else v = v.replace(/\s+#.*$/, '').trim();
+      if (process.env[m[1]] === undefined) process.env[m[1]] = v;
+    }
+  }
+}
+loadEnv();
+
+// Nano Banana. The walkthrough posts the frame it just drew and gets a
+// photograph of it back. The key stays here: the page never sees it, which is
+// the whole reason this is a server route and not a fetch from the browser.
+const GEMINI = 'https://generativelanguage.googleapis.com/v1beta/models';
+// Nano Banana 2 by default. On the same frame and the same brief, 2.5-flash
+// returns the render with better bricks; 3.1-flash returns a photograph. The
+// older model stays as the fallback because not every key is cleared for the
+// newer one, and a 404 for the model is indistinguishable from a typo in .env.
+const NB_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image';
+const NB_FALLBACK = 'gemini-2.5-flash-image';
+const NB_MAX = 24 * 1024 * 1024;    // a cap, not an expectation: a frame is ~150 KB
+
+const json = (res, code, body) => res.writeHead(code, {
+  'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store',
+}).end(JSON.stringify(body));
+
+async function readBody(req, res){
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req){
+    size += chunk.length;
+    if (size > NB_MAX){ json(res, 413, {error: 'Frame too large.'}); req.destroy(); return null; }
+    chunks.push(chunk);
+  }
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+  catch { json(res, 400, {error: 'Body was not JSON.'}); return null; }
+}
+
+async function nanoBanana(req, res){
+  const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY || '';
+  // The panel asks this when it opens, so a viewer served without a key says so
+  // up front rather than after the reader has written a prompt and pressed go.
+  if (req.method === 'GET') return json(res, 200, {configured: !!key, model: NB_MODEL});
+  if (req.method !== 'POST') return json(res, 405, {error: 'POST a frame here.'});
+  if (!key) return json(res, 503, {
+    error: 'No GEMINI_API_KEY. Put one in .env next to package.json, then restart the server.',
+  });
+
+  const body = await readBody(req, res);
+  if (!body) return;
+  const m = /^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/s.exec(body.image || '');
+  if (!m) return json(res, 400, {error: 'No frame in the request.'});
+  const prompt = String(body.prompt || '').trim();
+  if (!prompt) return json(res, 400, {error: 'No prompt in the request.'});
+
+  const ask = model => fetch(`${GEMINI}/${model}:generateContent`, {
+    method: 'POST',
+    headers: {'content-type': 'application/json', 'x-goog-api-key': key},
+    body: JSON.stringify({
+      contents: [{role: 'user', parts: [
+        {inlineData: {mimeType: m[1], data: m[2]}},
+        {text: prompt},
+      ]}],
+      generationConfig: {responseModalities: ['TEXT', 'IMAGE']},
+    }),
+  });
+
+  let data, model = NB_MODEL;
+  try {
+    let r = await ask(model);
+    if (r.status === 404 && model !== NB_FALLBACK){ model = NB_FALLBACK; r = await ask(model); }
+    data = await r.json();
+    if (!r.ok) return json(res, r.status, {error: data?.error?.message || `Gemini returned ${r.status}.`});
+  } catch (err) {
+    return json(res, 502, {error: `Could not reach Gemini: ${err.message}`});
+  }
+
+  const candidate = data?.candidates?.[0];
+  let image = null, text = '';
+  for (const part of candidate?.content?.parts || []){
+    const inline = part.inlineData || part.inline_data;
+    if (inline && !image) image = `data:${inline.mimeType || inline.mime_type};base64,${inline.data}`;
+    else if (part.text) text += part.text;
+  }
+  // A refusal comes back as a perfectly successful response with prose in it,
+  // so the reason has to be dug out rather than reported as "no image".
+  if (!image) return json(res, 502, {
+    error: text.trim() || `${model} returned no image`
+      + (candidate?.finishReason ? ` (${candidate.finishReason}).` : '.'),
+  });
+  json(res, 200, {image, text: text.trim(), model});
+}
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
@@ -71,6 +174,10 @@ async function staleness() {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   const rel = decodeURIComponent(url.pathname);
+  if (rel === '/api/nano-banana'){
+    await nanoBanana(req, res).catch(err => json(res, 500, {error: err.message}));
+    return;
+  }
   const file = resolve(ROOT, '.' + (rel === '/' ? '/index.html' : rel));
   if (file !== ROOT && !file.startsWith(ROOT + sep)) {
     res.writeHead(403).end('Forbidden');

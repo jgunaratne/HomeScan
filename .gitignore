@@ -18,3 +18,7 @@ xcuserdata/
 
 # Node
 node_modules/
+
+# Secrets — the Gemini key the Nano Banana button needs (see .env.example)
+.env
+.env.local

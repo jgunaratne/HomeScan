@@ -2,6 +2,7 @@ import { indexPhotos } from './photo/rooms.js';
 import { markSealed } from './player/collision.js';
 import { dressHouse } from './photo/dress.js';
 import { initLightbox } from './ui/lightbox.js';
+import { initEnhance } from './ui/enhance.js';
 import { initControls, syncCursor } from './ui/modes.js';
 import { initInput } from './player/input.js';
 import { paintMeta } from './ui/hud.js';
@@ -19,6 +20,7 @@ markSealed();           // find floor the scan enclosed with no way in
 dressHouse();           // decode the pictures, then dress the house (async)
 
 initLightbox();
+initEnhance();
 initControls();
 initInput();
 

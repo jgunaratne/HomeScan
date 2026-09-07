@@ -22,5 +22,7 @@ export const flags = {surfaced:true, showPrints:false, showFurniture:true,
 export const pointer = {drag:null, press:null, lockLook:false, stick:null, look:null};
 export const keys = Object.create(null);
 
-// The photograph under the cursor, and the one open full-size over everything.
-export const focus = {hoverShot:null, lbShot:null};
+// The photograph under the cursor, the one open full-size over everything, and
+// whether the Nano Banana panel is up — each of the three owns the keyboard
+// while it is, so the frame and the input both have to be able to ask.
+export const focus = {hoverShot:null, lbShot:null, enhancing:false};

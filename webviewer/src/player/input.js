@@ -10,6 +10,7 @@ import { shotAt, wallShotAt, setPrints } from '../photo/prints.js';
 import { setSurfaces } from '../scene/dressing.js';
 import { openShot, stepShot, closeShot } from '../ui/lightbox.js';
 import { syncCursor, toView, setFurniture, setGhost } from '../ui/modes.js';
+import { openEnhance, closeEnhance } from '../ui/enhance.js';
 import { CAN_POST, togglePost } from '../render/passes.js';
 
 // Keyboard, mouse, wheel and touch. Nothing here decides anything: every
@@ -17,6 +18,19 @@ import { CAN_POST, togglePost } from '../render/passes.js';
 export function initInput(){
   addEventListener('keydown', e => {
     const k = e.key.toLowerCase();
+    // A field the reader is typing into owns its own keystrokes: the viewer's
+    // single-letter toggles must not fire inside the Nano Banana prompt, and
+    // the arrow keys belong to the eye-height slider while it has the focus.
+    const el = e.target;
+    if (el && (el.tagName === 'TEXTAREA' || el.tagName === 'INPUT')){
+      if (k === 'escape') el.blur();
+      return;
+    }
+    if (focus.enhancing){                                // so does the render panel
+      if (k === 'escape') closeEnhance();
+      e.preventDefault();
+      return;
+    }
     if (focus.lbShot){                                   // the lightbox owns the keyboard
       if (k === 'escape') closeShot();
       if (k === 'arrowleft') stepShot(-1);
@@ -31,6 +45,7 @@ export function initInput(){
     if (k === 'o') setPrints(!flags.showPrints);
     if (k === 'q' && CAN_POST) togglePost();
     if (k === 'g') setGhost(!flags.ghost);
+    if (k === 'n') openEnhance();
     if (k === 'e' && view.mode === 'walk' && stairsNear()) useStairs();
     const n = parseInt(k, 10);
     if (view.mode === 'walk' && n >= 1 && n <= levels.length) spawnOn(n - 1, HOUSE.stairs);
