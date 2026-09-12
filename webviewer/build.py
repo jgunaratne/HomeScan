@@ -386,6 +386,18 @@ def edit_walls(scene, path):
             if len(level['walls']) == before:
                 print(f'  ! {room["name"]}: no wall at {at} to remove', file=sys.stderr)
             removed += before - len(level['walls'])
+        for seg in fin.get('addWalls') or []:
+            # A wall the scan never had, from one point to another at the
+            # storey's ceiling height: the end of a closet strip opened to the
+            # room, which was closed by a wall the scan did not record.
+            (ax, az), (bx, bz) = seg['from'], seg['to']
+            dx, dz = bx - ax, bz - az
+            length = math.hypot(dx, dz)
+            h = seg.get('h', level['ceiling'])
+            level['walls'].append({'c': [round((ax + bx)/2, 3), round(level['elevation'] + h/2, 3), round((az + bz)/2, 3)],
+                                   'w': round(length, 3), 'h': round(h, 3),
+                                   'yaw': round(math.atan2(-dz, dx), 5), 'conf': 'annotated', 'holes': []})
+            patched += 1
         for poly in fin.get('floorPatches') or []:
             level['floors'].append({'poly': [[round(x, 3), round(z, 3)] for x, z in poly],
                                     'ceiling': level['ceiling']})
@@ -465,7 +477,7 @@ def main():
     if pjson.exists():
         removed, patched = edit_walls(scene, pjson)
         if removed or patched:
-            print(f'  {removed} wall(s) removed, {patched} floor patch(es) added from photos.json annotations')
+            print(f'  {removed} wall(s) removed, {patched} wall(s) or floor patch(es) added from photos.json annotations')
         cut = cut_openings(scene, pjson)
         if cut:
             print(f'  {cut} opening(s) cut from photos.json annotations')

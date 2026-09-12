@@ -643,15 +643,20 @@ floor is satin rather than matte, so the screen-space reflections have
 something to do.
 
 **The rooms, as they are now used.** Downstairs: the dining room has a 96"
-Linden and eight Slope chairs on a rug and nothing else; the living room its
+Linden with a turned bowl on it and eight Slope chairs tucked in, on a rug,
+and nothing else; the living room its
 Metro 98", two Cavetts, the coffee table and the television over the plaster
-fireplace; the main-floor bedroom is a media room — the Andes sectional facing
-a 72" television over the Anton console, a bookcase beside it — with the
-scanned bed and nightstands dropped. Upstairs: the primary and west bedrooms
+fireplace; the main-floor bedroom is a media room — its closet opened up into a
+recess (`openings` of kind `opening` across the closet's whole width, and the
+wardrobe block the scan saw inside it dropped) with a 72" television over the
+Anton console in it, the Andes sectional facing it from across the room and a
+bookcase on the window wall. Upstairs: the primary and west bedrooms
 are bedrooms; the two rooms under the roof slopes are offices, a Parsons desk
 and a Slope office chair each with a Woodwind bookcase, and the east one has
-its closet taken out — the wall removed and the closet's strip added back as
-floor by `finishes.removeWalls` and `finishes.floorPatches`. The two upstairs
+its closet taken out — the wall removed, the closet's strip added back as
+floor and its open end to the outside closed with a wall the scan never had,
+by `finishes.removeWalls`, `floorPatches` and `addWalls` — with the desk on
+the far wall where the closet was. The two upstairs
 bathrooms are two rooms either side of one wall, each with its shower at the
 far end and its toilet and vanity along one wall; the north one has a door cut
 from the primary bedroom, which makes it the en-suite. The door from the

@@ -182,8 +182,15 @@ function books(g, x, y, z, turn = 0.2){
   }
 }
 function bowl(g, x, y, z, r = 0.14){
-  const b = new THREE.Mesh(new THREE.SphereGeometry(r, 24, 12, 0, Math.PI*2, Math.PI/2, Math.PI/2), MAT.porcelain);
-  b.material = MAT.porcelain; b.scale.y = 0.5; b.position.set(x, y + r*0.5, z); g.add(b);
+  // A turned profile with a real wall: outside up to the rim, then back down
+  // the inside to a foot. A hemisphere with one face culled looked like a
+  // hole in the table.
+  const pts = [];
+  for (let i=0;i<=8;i++){ const a = i/8*Math.PI/2; pts.push(new THREE.Vector2(r*0.25 + r*0.75*Math.sin(a), r*0.5*(1 - Math.cos(a)))); }
+  for (let i=8;i>=0;i--){ const a = i/8*Math.PI/2; pts.push(new THREE.Vector2(Math.max(0.001, (r - 0.008)*0.25 + (r - 0.008)*0.75*Math.sin(a)), 0.012 + r*0.5*(1 - Math.cos(a)))); }
+  pts.unshift(new THREE.Vector2(0.001, 0)); pts.push(new THREE.Vector2(0.001, 0.012));
+  const b = new THREE.Mesh(new THREE.LatheGeometry(pts, 32), MAT.porcelain);
+  b.position.set(x, y, z); g.add(b);
 }
 function vase(g, x, y, z){
   g.add(tube(MAT.charcoal, 0.045, 0.26, x, y + 0.13, z));
@@ -293,7 +300,7 @@ export const MAKERS = {
     g.add(box(M(m.top), w, t, d, 0, y0 + h - t/2, 0));
     g.add(box(M(m.top), w - leg*2, 0.06, d - leg*2, 0, y0 + h - t - 0.03, 0));
     legs(g, M(m.leg), w, h, d, y0, leg, leg/2, h - t);
-    bowl(g, 0, y0 + h, 0, 0.17);
+    bowl(g, 0, y0 + h, 0, 0.16);
   },
   // Room & Board Slim: a square steel frame with a floating oak top.
   endTable(g, w, h, d, f, m){
