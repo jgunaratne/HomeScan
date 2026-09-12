@@ -100,29 +100,43 @@ test('an undressed room contributes nothing and receives nothing',()=>{
 });
 
 // The scan this viewer ships with, as a guard on the data rather than the code.
+// Finishes at the top of photos.json are every room's defaults, the way
+// build.py merges them, so the checks below look at what each room ends up
+// with rather than at what it writes down.
+const shipped=()=>{
+  const doc=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8'));
+  return doc.rooms.map(r=>({...r,finishes:{...(doc.finishes||{}),...(r.finishes||{})}}));
+};
 test('the shipped scan declares finishes that group into one ceiling a storey',()=>{
-  const rooms=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8')).rooms;
+  const rooms=shipped();
   for(const level of [0,1]){
     const on=rooms.filter(r=>r.level===level);
     assert.ok(on.length>1);
-    assert.ok(on.every(r=>!r.finishes?.ceil),
-      `L${level} names a ceiling finish, so it no longer groups into one`);
+    assert.equal(new Set(on.map(r=>r.finishes.ceil)).size,1,
+      `L${level} names more than one ceiling finish, so it no longer groups into one`);
   }
   const woods=new Map();
   for(const r of rooms){
-    const f=r.finishes?.floor;
+    const f=r.finishes.floor;
     if(!f) continue;
-    assert.match(f,/^timber-[a-z]+$/,`${r.name} names a floor the plank builder will not lay`);
+    assert.match(f,/^(timber|tile)-[a-z-]+$/,`${r.name} names a floor nothing will lay`);
+    if(!f.startsWith('timber')) continue;
     if(!woods.has(f)) woods.set(f,new Set());
     woods.get(f).add(r.level);
   }
-  // One wood, laid everywhere. The photographs show two — reddish cherry
-  // downstairs, light maple upstairs — and this is a deliberate departure from
-  // them, asked for and kept: the house is meant to read as one floor. The
-  // grouping still supports as many woods as a scan wants to name, and putting
-  // the second one back is an edit to this file alone.
-  assert.deepEqual([...woods.keys()],['timber-cherry']);
-  assert.deepEqual([...woods.get('timber-cherry')].sort(),[0,1],'laid on both storeys');
+  // One wood, laid everywhere, and not one the photographs show: the house is
+  // laid in white oak as a proposal, from the palette rather than a sample.
+  // The grouping still supports as many woods as a scan wants to name.
+  assert.deepEqual([...woods.keys()],['timber-white-oak']);
+  assert.deepEqual([...woods.get('timber-white-oak')].sort(),[0,1],'laid on both storeys');
+});
+
+// The renovation paints every wall one white, and it does so once, at the top
+// of the file. A room that wrote its own wall finish would silently keep it.
+test('every room is painted the one white, by default rather than each by hand',()=>{
+  const doc=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8'));
+  assert.match(doc.finishes.wall,/^#[0-9a-f]{6}$/i);
+  for(const r of doc.rooms) assert.ok(!r.finishes?.wall,`${r.name} overrides the house paint`);
 });
 
 // A hall is a room you walk through and never photograph. Before it was
@@ -130,7 +144,7 @@ test('the shipped scan declares finishes that group into one ceiling a storey',(
 // anchor to a corridor is usually a bathroom door: the laundry held 24.3 m² of
 // white tile downstairs and the upstairs bathrooms 15.7 m² of it.
 test('the halls are declared, photographless, and named onto their storey\'s wood',()=>{
-  const rooms=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8')).rooms;
+  const rooms=shipped();
   const halls=rooms.filter(r=>!r.photos||!r.photos.length);
   assert.equal(halls.length,2);
   for(const hall of halls){
@@ -138,20 +152,20 @@ test('the halls are declared, photographless, and named onto their storey\'s woo
     assert.match(hall.finishes.floor,/^timber-/,`${hall.name} must name its boards`);
   }
   const bywood=Object.fromEntries(halls.map(h=>[h.name,h.finishes.floor]));
-  assert.equal(bywood['Downstairs hall'],'timber-cherry');
-  assert.equal(bywood['Upstairs hall'],'timber-cherry');
+  assert.equal(bywood['Downstairs hall'],'timber-white-oak');
+  assert.equal(bywood['Upstairs hall'],'timber-white-oak');
 });
 
 // Every floor in the house is hardwood but the two bathrooms — including the
 // laundry, whose photograph shows white tile. That is the brief, not the scan.
 test('every room is hardwood unless it is a bathroom',()=>{
-  const rooms=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8')).rooms;
+  const rooms=shipped();
   const tiled=new Set(['Hall bathroom','Upstairs bathrooms']);
   for(const r of rooms){
     if(tiled.has(r.name)){
-      assert.ok(!r.finishes?.floor,`${r.name} is tiled and must not claim boards`);
+      assert.equal(r.finishes.floor,'tile-porcelain',`${r.name} is tiled`);
       continue;
     }
-    assert.equal(r.finishes?.floor,'timber-cherry',`${r.name} must be the house's one wood`);
+    assert.equal(r.finishes.floor,'timber-white-oak',`${r.name} must be the house's one wood`);
   }
 });

@@ -276,8 +276,12 @@ def load_photos(path, scene, out_dir, inline):
     root = path.parent / doc.get('dir', '.')
     rel = os.path.relpath(root, out_dir)
     out, rooms, missing = [], [], 0
+    # Finishes declared at the top of the file are every room's defaults — one
+    # paint through the house, one floor — and a room's own entries win.
+    defaults = doc.get('finishes') or {}
     for room in doc.get('rooms') or []:
         n = room['level']
+        room['finishes'] = {**defaults, **(room.get('finishes') or {})}
         if not 0 <= n < len(scene['levels']):
             print(f'  ! {room["name"]}: no level {n}, skipped', file=sys.stderr)
             continue
@@ -293,8 +297,11 @@ def load_photos(path, scene, out_dir, inline):
             rooms.append({'level': n, 'name': room['name'],
                           'at': [round(v, 3) for v in at],
                           'floorFrom': room.get('floorFrom'),
-                'reach': room.get('reach'),
-                          'finishes': room.get('finishes')})
+                          'reach': room.get('reach'),
+                          'finishes': room.get('finishes'),
+                          'furnishings': room.get('furnishings'),
+                          'place': room.get('place'),
+                          'drop': room.get('drop')})
             continue
         for i, ph in enumerate(room['photos']):
             f = root / ph['file']
@@ -313,6 +320,9 @@ def load_photos(path, scene, out_dir, inline):
                 'floorFrom': room.get('floorFrom'),
                 'reach': room.get('reach'),
                 'finishes': room.get('finishes'),
+                'furnishings': room.get('furnishings'),
+                'place': room.get('place'),
+                'drop': room.get('drop'),
                 'view': ph.get('view'), 'ground': ph.get('ground'),
                 'src': ('data:' + mime + ';base64,'
                         + base64.b64encode(f.read_bytes()).decode('ascii')) if inline
@@ -321,6 +331,78 @@ def load_photos(path, scene, out_dir, inline):
     if missing:
         print(f'  ! {missing} photo(s) skipped', file=sys.stderr)
     return out, rooms
+
+
+def load_swatches(here, out_dir, inline):
+    """The material swatches in swatches/, as name -> src, the way photos are.
+
+    Linked by relative path, or inlined as data URIs for the one-file build:
+    they are read into textures at dress time exactly as the photographs are
+    read into surfaces, so they obey the same serving rules.
+    """
+    folder = here / 'swatches'
+    manifest = folder / 'swatches.json'
+    if not manifest.exists():
+        return {}
+    doc = json.loads(manifest.read_text())
+    rel = os.path.relpath(folder, out_dir)
+    out = {}
+    for name, spec in (doc.get('swatches') or {}).items():
+        f = folder / f'{name}.jpg'
+        if not f.exists():
+            print(f'  ! swatch {name}: not fetched (python3 webviewer/swatches/fetch.py), skipped', file=sys.stderr)
+            continue
+        out[name] = {
+            'metres': spec.get('metres', 0.3),
+            'src': ('data:image/jpeg;base64,' + base64.b64encode(f.read_bytes()).decode('ascii')) if inline
+                   else PurePosixPath(rel.replace(os.sep, '/'), f.name).as_posix(),
+        }
+    return out
+
+
+def cut_openings(scene, path):
+    """Doors and openings the scan missed, cut into its walls from photos.json.
+
+    RoomPlan records the openings it saw; a door it did not — the one from the
+    garage into the laundry, behind a workbench — leaves a room sealed. A room
+    may annotate `finishes.openings` with the wall (by its centre, as the
+    fireplace does), a point along it, a width, a height and a kind, and the
+    hole goes into the wall record before anything downstream reads it, so the
+    panels, the collision, the flood fill, the daylight and the plan all see a
+    doorway that is simply there.
+    """
+    doc = json.loads(path.read_text())
+    cut = 0
+    for room in doc.get('rooms') or []:
+        n = room['level']
+        for o in (room.get('finishes') or {}).get('openings') or []:
+            if not 0 <= n < len(scene['levels']):
+                continue
+            walls = scene['levels'][n]['walls']
+            wall = min(walls, key=lambda w: math.hypot(w['c'][0] - o['wallAt'][0], w['c'][2] - o['wallAt'][1]))
+            if math.hypot(wall['c'][0] - o['wallAt'][0], wall['c'][2] - o['wallAt'][1]) > 0.1:
+                print(f'  ! {room["name"]}: no wall at {o["wallAt"]} to cut an opening in', file=sys.stderr)
+                continue
+            along, width, height = o.get('along', 0.0), o['width'], o.get('height', 2.03)
+            wall['holes'].append({'k': o.get('kind', 'door'),
+                                  'x0': round(along - width / 2, 3), 'x1': round(along + width / 2, 3),
+                                  'y0': round(-wall['h'] / 2, 3), 'y1': round(-wall['h'] / 2 + height, 3)})
+            cut += 1
+    # Door styles annotate existing scan holes, without opening another gap.
+    for room in doc.get('rooms') or []:
+        n = room['level']
+        for spec in (room.get('finishes') or {}).get('doors') or []:
+            if not 0 <= n < len(scene['levels']):
+                raise ValueError(f'{room["name"]}: invalid door level {n}')
+            candidates = [(w, h) for w in scene['levels'][n]['walls']
+                          if math.hypot(w['c'][0] - spec['wallAt'][0],
+                                        w['c'][2] - spec['wallAt'][1]) < 0.1
+                          for h in w['holes'] if h['k'] == 'door'
+                          and abs((h['x0'] + h['x1']) / 2 - spec['along']) < 0.1]
+            if len(candidates) != 1 or spec['style'] != 'closet-slider':
+                raise ValueError(f'{room["name"]}: ambiguous or unsupported door annotation {spec}')
+            candidates[0][1]['style'] = spec['style']
+    return cut
 
 
 def main():
@@ -347,8 +429,13 @@ def main():
     photos, declared = [], []
     pjson = Path(args.photos)
     out_dir = Path(args.out).resolve().parent
+    if pjson.exists():
+        cut = cut_openings(scene, pjson)
+        if cut:
+            print(f'  {cut} opening(s) cut from photos.json annotations')
     if not args.no_photos and pjson.exists():
         photos, declared = load_photos(pjson, scene, out_dir, args.inline_photos)
+    swatches = load_swatches(here, out_dir, args.inline_photos) if not args.no_photos else {}
 
     html = Path(args.template).read_text()
     if '/*__BUNDLE__*/' not in html:
@@ -356,7 +443,7 @@ def main():
     code, nmods = bundle(Path(args.src) / 'main.js')
     html = html.replace('/*__BUNDLE__*/', code)
     for token, value in (('/*__HOUSE__*/null', scene), ('/*__PHOTOS__*/null', photos),
-                         ('/*__ROOMS__*/null', declared)):
+                         ('/*__ROOMS__*/null', declared), ('/*__SWATCHES__*/null', swatches)):
         if token not in html:
             sys.exit(f'{args.src} has no {token} placeholder')
         html = html.replace(token, json.dumps(value, separators=(',', ':')))
@@ -375,6 +462,8 @@ def main():
         rooms = len({(p['level'], p['room']) for p in photos})
         how = 'inlined' if args.inline_photos else 'linked'
         print(f'  {len(photos)} photos across {rooms} rooms, {how}')
+    if swatches:
+        print(f'  {len(swatches)} material swatches')
 
 
 if __name__ == '__main__':

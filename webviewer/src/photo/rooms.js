@@ -43,7 +43,7 @@ export function indexPhotos(){
     let room = photoRooms.find(r => r.level === ph.level && r.name === ph.room);
     if (!room){
       room = {level:ph.level, name:ph.room, at:ph.at, floorFrom:ph.floorFrom, finishes:ph.finishes,
-              reach:ph.reach, shots:[], mats:null};
+              furnishings:ph.furnishings, place:ph.place, drop:ph.drop, reach:ph.reach, shots:[], mats:null};
       photoRooms.push(room);
       if (levels[ph.level]) levels[ph.level].rooms.push(room);
     }
@@ -56,7 +56,7 @@ export function indexPhotos(){
   // nearest, and a hall's nearest neighbour is usually a bathroom.
   for (const r of ROOMS || []){
     const room = {level:r.level, name:r.name, at:r.at, floorFrom:r.floorFrom,
-                  finishes:r.finishes, reach:r.reach, shots:[], mats:null, declared:true};
+                  finishes:r.finishes, furnishings:r.furnishings, place:r.place, drop:r.drop, reach:r.reach, shots:[], mats:null, declared:true};
     photoRooms.push(room);
     if (levels[r.level]) levels[r.level].rooms.push(room);
   }

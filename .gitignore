@@ -22,3 +22,7 @@ node_modules/
 # Secrets — the Gemini key the Nano Banana button needs (see .env.example)
 .env
 .env.local
+
+# macOS resource forks and Finder metadata that ride along with photographs
+._*
+.DS_Store

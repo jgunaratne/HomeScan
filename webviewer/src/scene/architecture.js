@@ -15,7 +15,8 @@ function railBetween(g, material, a, b, radius){
 // bounds alone cannot establish either. Geometry stays in the scan's footprint.
 function stairFlight(o, elevation, rise, annotation){
   const g = new THREE.Group(), w = o.d[0], run = o.d[2];
-  const timber=MAT.wood.clone();timber.color.setHex(0x99704a).convertSRGBToLinear();timber.envMapIntensity=0.4;
+  // White oak treads and handrail, to match the floor they land on.
+  const timber=MAT.oak;
   const direction = annotation.riseToward === 1 ? 1 : -1;
   const side = annotation.railSide === -1 ? -1 : 1;
   const n = Math.max(3, Math.round(rise/0.18)), going = run/n, riser = rise/n;
@@ -106,6 +107,32 @@ function brickFireplace(w,h,d,photoBrick){
   g.name='Photo-guided brick fireplace';return g;
 }
 
+// A contemporary surround for the same opening: a smooth plastered chimney
+// breast the full width of the annotation, a wide low firebox in black steel
+// with a slot of flame-black glass, a raised quartz hearth, and a floating oak
+// mantel shelf. Drawn when the annotation says `"finish": "plaster"`; the
+// brick surround the photographs show is the default.
+function plasterFireplace(w,h,d,tv){
+  const g=new THREE.Group();
+  const iron=new THREE.MeshStandardMaterial({color:0x161916,roughness:0.72,envMapIntensity:0.15});
+  iron.color.convertSRGBToLinear();
+  g.add(box(MAT.plaster,w,h,d,0,h/2,0));
+  const fw=Math.min(w*0.62,1.1),fh=Math.min(h*0.34,0.5),fy=0.14+fh/2;
+  g.add(box(iron,fw,fh,0.04,0,fy,d/2-0.012));
+  g.add(box(MAT.screen,fw-0.05,fh-0.05,0.02,0,fy,d/2-0.026));
+  g.add(box(MAT.lamp,fw*0.7,0.012,0.02,0,fy-fh/2+0.05,d/2-0.03));
+  g.add(box(MAT.quartz,w+0.16,0.06,d+0.32,0,0.03,0.16));
+  g.add(box(MAT.oak,w*0.9,0.05,0.2,0,h*0.62,d/2+0.1));
+  // A television over the mantel, flush-mounted on the breast: a slim black
+  // panel with a dark screen, its bottom edge a hand above the shelf.
+  if(tv>0){
+    const th=tv*9/16,y=h*0.62+0.03+0.14+th/2;
+    g.add(box(MAT.black,tv,th,0.03,0,y,d/2+0.015));
+    g.add(box(MAT.screen,tv-0.02,th-0.02,0.006,0,y,d/2+0.033));
+  }
+  g.name='Plaster fireplace, as proposed';return g;
+}
+
 export function dressArchitecture(L,next){
   for(const room of L.rooms){
     const annotation=room.finishes?.stair;
@@ -129,7 +156,8 @@ export function dressArchitecture(L,next){
     if(spec.width>w.w||w.holes.some(o=>o.x0<spec.width/2&&o.x1>-spec.width/2&&w.c[1]+o.y0<L.elevation+spec.height))continue;
     const nx=Math.sin(w.yaw),nz=Math.cos(w.yaw);
     const side=(room.at[0]-w.c[0])*nx+(room.at[1]-w.c[2])*nz>=0?1:-1;
-    const g=brickFireplace(spec.width,spec.height,spec.depth,room.mats?.brick);
+    const g=spec.finish==='plaster'?plasterFireplace(spec.width,spec.height,spec.depth,spec.tv)
+      :brickFireplace(spec.width,spec.height,spec.depth,room.mats?.brick);
     g.position.set(w.c[0]+nx*side*(WALL_T/2+spec.depth/2),L.elevation,w.c[2]+nz*side*(WALL_T/2+spec.depth/2));
     g.rotation.y=w.yaw+(side<0?Math.PI:0);L.trim.add(g);
   }

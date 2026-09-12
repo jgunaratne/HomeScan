@@ -17,7 +17,8 @@ import { makeTargets, renderFrame, watchBudget } from './passes.js';
 let prev = performance.now();
 let shadowState = '';
 export function frame(now){
-  const dt = Math.min((now - prev)/1000, 0.05); prev = now;
+  const frameTime = (now - prev)/1000;
+  const dt = Math.min(frameTime, 0.05); prev = now;
 
   if (view.mode === 'walk'){
     const L = levels[player.level];
@@ -117,7 +118,7 @@ export function frame(now){
   if(nextShadowState!==shadowState){
     renderer.shadowMap.needsUpdate=true;shadowState=nextShadowState;
   }
-  watchBudget(dt);
+  watchBudget(frameTime);
   renderFrame();
   requestAnimationFrame(frame);
 }
@@ -126,11 +127,8 @@ export function resize(){
   const w = innerWidth, h = innerHeight;
   renderer.setSize(w, h, false);
   camera.aspect = w/h; camera.updateProjectionMatrix();
-  // Five full-screen passes: the buffers follow the drawing buffer, but capped,
-  // because a retina panel would otherwise cost four times the fill for nothing
-  // the eye can find once FXAA and a little grain are over the top.
-  const dpr = Math.min(renderer.getPixelRatio(), 1.5);
-  makeTargets(Math.max(2, Math.round(w*dpr)), Math.max(2, Math.round(h*dpr)));
+  // The quality tier controls render resolution independently of CSS size.
+  makeTargets(w,h);
 }
 
 // Frame the whole house for the section view: the orbit sits at half the storey

@@ -115,6 +115,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
   background:color-mix(in srgb,var(--accent) 10%,transparent)}
 .btn[aria-pressed="true"] kbd{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 35%,transparent)}
 a.btn{color:inherit;text-decoration:none}
+#graphics-quality{background:#202730;color:var(--text);color-scheme:dark;max-width:160px}
 .btn.solid{background:var(--accent);border-color:var(--accent);color:#0C0F14}
 .btn.solid kbd{color:#0C0F14;border-color:rgba(12,15,20,.35)}
 .btn.solid:hover{color:#0C0F14;filter:brightness(1.08)}
@@ -228,6 +229,12 @@ a.btn{color:inherit;text-decoration:none}
       </div>
       <div class="grow"></div>
       <p class="caveat">Sketch-grade capture, not a measured survey</p>
+      <select class="btn hit" id="graphics-quality" aria-label="Rendering quality" title="Rendering quality: Auto adjusts to sustained frame rate">
+        <option value="auto">Auto (high)</option>
+        <option value="high">High</option>
+        <option value="balanced">Balanced</option>
+        <option value="performance">Performance</option>
+      </select>
       <button class="btn hit" id="units">m</button>
     </div>
 
@@ -329,7 +336,7 @@ a.btn{color:inherit;text-decoration:none}
         <b>F</b><span>Show or hide the furniture</span>
         <b>P</b><span>Photographic surfaces, or the flat survey</span>
         <b>O</b><span>Hang the photographs themselves · click a wall for its room's</span>
-        <b>Q</b><span>Turn the lens off — occlusion, bloom, focus and grain</span>
+        <b>Q</b><span>Turn the lens off — reflections, bounce light, antialiasing, bloom and focus</span>
         <b>G</b><span>Pass through walls, for rooms the scan sealed</span>
         <b>N</b><span>Nano Banana — flip between this view and a photograph of it</span>
         <b>E</b><span>Take the stairs, at the stairwell</span>

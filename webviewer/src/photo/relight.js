@@ -1,6 +1,7 @@
-import { plankCanvases, surfaceTile } from '../scene/textures.js';
+import { plankCanvases, tileCanvases, surfaceTile } from '../scene/textures.js';
 import { renderer } from '../scene/stage.js';
 import { BANDS, FLATTEN, photoRooms } from './rooms.js';
+import { swatchesLoaded } from '../scene/swatches.js';
 
 // Read the picture down to a size worth scanning. Everything below works on this
 // copy; the winning patch is then re-cut from the full-resolution original.
@@ -147,16 +148,70 @@ function surfMat(canvas, tint, extra, kind){
 // wood can both be boards without becoming one another.
 const isTimber = finish => typeof finish === 'string' && finish.startsWith('timber');
 
-function timberFloor(pick){
-  const tiles = plankCanvases(pick);
+// Finishes the house does not have yet. A wood named here is laid from this
+// table rather than sampled from the photographs — the photographs show cherry,
+// and the point of naming white oak is to see the house without it. The colour
+// is the boards' own under neutral light; `boards` is how many make up one
+// 1.55 m tile, so 8 is a 190 mm contemporary wide plank against the 155 mm
+// board the sampled woods use, with quieter board-to-board variation and a
+// matte oil finish. A wood not in the table keeps the sampling.
+export const WOODS = {
+  'timber-white-oak': {r:192, g:172, b:146, boards:8, length:3.6, vary:0.10, contrast:0.7, roughness:0.52,
+                       swatch:'white_oak', lift:0.14, desat:0.35},
+};
+// Large-format porcelain for the bathrooms, `across` tiles to the 1.55 m
+// repeat — two, so each is 775 mm, a 30" rectified tile.
+export const TILES = {
+  'tile-porcelain': {r:206, g:203, b:197, across:2, roughness:0.5},
+};
+// A wall or ceiling finish may name a paint outright, as '#rrggbb'. That is
+// what "paint all the walls white" is: not a sample flattened to its own
+// colour, but a colour the photographs never had.
+export const paintOf = finish => {
+  if (typeof finish !== 'string' || !/^#[0-9a-f]{6}$/i.test(finish)) return null;
+  const n = parseInt(finish.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+  const c = document.createElement('canvas');
+  c.width = c.height = 8;
+  const cx = c.getContext('2d');
+  cx.fillStyle = finish; cx.fillRect(0, 0, 8, 8);
+  return {canvas:c, r, g, b, score:0, named:true};
+};
+
+function timberFloor(pick, spec = {}){
+  const tiles = plankCanvases(pick, spec);
   const m = surfMat(tiles.colour, 0xD0D0D0, {side:THREE.DoubleSide}, 'floor');
   m.normalMap.dispose();
   m.normalMap = tiling(reliefFrom(tiles.height, 2), false);
-  m.normalScale.set(0.28, 0.28);
+  m.normalScale.set(spec.boards ? 0.2 : 0.28, spec.boards ? 0.2 : 0.28);
   m.roughnessMap = tiling(tiles.roughness, false);
-  m.roughness = 0.64;
+  m.roughness = spec.roughness ?? 0.64;
+  for (const t of [m.map, m.normalMap, m.roughnessMap]){
+    t.wrapS = t.wrapT = THREE.RepeatWrapping;
+    // The floor's UVs are in 1.55 m tiles; a longer tile repeats less often
+    // along the boards.
+    if (spec.length > 0) t.repeat.set(1, 1.55/spec.length);
+  }
+  return m;
+}
+function tileFloor(pick, spec){
+  const tiles = tileCanvases(pick, spec);
+  const m = surfMat(tiles.colour, 0xD0D0D0, {side:THREE.DoubleSide}, 'floor');
+  m.normalMap.dispose();
+  m.normalMap = tiling(reliefFrom(tiles.height, 1.5), false);
+  m.normalScale.set(0.2, 0.2);
+  m.roughnessMap = tiling(tiles.roughness, false);
+  m.roughness = spec.roughness ?? 0.5;
   for (const t of [m.map, m.normalMap, m.roughnessMap]) t.wrapS = t.wrapT = THREE.RepeatWrapping;
   return m;
+}
+// A floor named from the tables above, or null for one that is sampled.
+function namedFloor(finish){
+  const spec = WOODS[finish] || TILES[finish];
+  if (!spec) return null;
+  // A wood with a swatch is cut from the retailer's photograph of the board
+  // rather than drawn; the palette colour stands in if the swatch is missing.
+  const image = spec.swatch && swatchesLoaded[spec.swatch]?.img;
+  return {spec, mat: WOODS[finish] ? timberFloor(spec, image ? {...spec, image} : spec) : tileFloor(spec, spec)};
 }
 
 export function dressRoom(room){
@@ -192,12 +247,20 @@ export function dressRoom(room){
     ctx.putImageData(pixels,0,0);
     pick[kind]={canvas:c,r,g,b,score:0,reviewed:true,file:sample.file,rect:sample.rect};
   }
+  // A named paint replaces whatever the photographs offered, and scores zero
+  // so it wins its group the way a reviewed crop does.
+  for (const kind of ['wall','ceil']){
+    const paint = paintOf(room.finishes?.[kind]);
+    if (paint) pick[kind] = paint;
+  }
+  const named = namedFloor(room.finishes?.floor);
+  if (named) pick.floor = {score:0, named:true, r:named.spec.r, g:named.spec.g, b:named.spec.b};
   // A declared room — a hall, say — has no photographs at all. It still gets a
   // materials object, empty, because the finish groups fill its floor and
-  // ceiling by name and its walls fall back to the house average. A room that
-  // has photographs but no usable wall in any of them is a different case, and
-  // stays undressed.
-  if (!room.shots.length) return {wall:null, wallLow:null, floor:null, ceil:null};
+  // ceiling by name and its walls fall back to the house average — or to a
+  // paint it names itself. A room that has photographs but no usable wall in
+  // any of them is a different case, and stays undressed.
+  if (!room.shots.length && !pick.wall) return {wall:null, wallLow:null, floor:null, ceil:null};
   if (!pick.wall) return null;
   // A low-confidence wall is brown in the flat survey and painted here: this
   // view is about what the house looks like, and P still gives the other one.
@@ -206,8 +269,8 @@ export function dressRoom(room){
     wall, wallLow: wall,
     counter: pick.counter && detailMaterial(pick.counter,0.36),
     brick: pick.brick && detailMaterial(pick.brick,0.94),
-    floor: pick.floor && (isTimber(room.finishes?.floor) ? timberFloor(pick.floor) :
-      surfMat(pick.floor.canvas, 0xB6B6B6, {side:THREE.DoubleSide}, 'floor')),
+    floor: named?.mat || (pick.floor && (isTimber(room.finishes?.floor) ? timberFloor(pick.floor) :
+      surfMat(pick.floor.canvas, 0xB6B6B6, {side:THREE.DoubleSide}, 'floor'))),
     ceil:  pick.ceil  && surfMat(pick.ceil.canvas,  0xC6C6C6, {side:THREE.DoubleSide}, 'ceil'),
   };
 }

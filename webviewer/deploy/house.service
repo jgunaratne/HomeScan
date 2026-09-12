@@ -1,0 +1,30 @@
+[Unit]
+Description=House — the HomeScan walkthrough, behind nginx at http://house.local
+After=network.target
+
+# The repo lives on the USB drive, which fstab mounts with nofail — systemd
+# would not otherwise wait for it, and the unit could start against an empty
+# mountpoint.
+RequiresMountsFor=/mnt/usbdrive
+
+[Service]
+Type=simple
+User=junius
+WorkingDirectory=/mnt/usbdrive/HomeScan
+
+# Bound to loopback on purpose. nginx is the only thing that should reach it —
+# binding 0.0.0.0 would expose the site on the LAN at :3010, bypassing the vhost.
+# --no-open: there is no browser to launch on a headless box, and xdg-open
+# would only log an error. The server still rebuilds index.html on start when
+# src/, template.html or photos.json is newer than it.
+ExecStart=/home/junius/.local/bin/node webviewer/serve.mjs --host 127.0.0.1 --port 3010 --no-open
+Restart=on-failure
+RestartSec=5
+
+# serve.mjs reads GEMINI_API_KEY for the Nano Banana route from .env at the
+# repo root or in webviewer/; without one the button says so and the rest of
+# the viewer is unaffected.
+Environment=HOME=/home/junius
+
+[Install]
+WantedBy=multi-user.target

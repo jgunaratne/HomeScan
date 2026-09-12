@@ -8,6 +8,7 @@ import { dressRoom, shareFinishes, computeAverage, canReadPixels } from './relig
 import { bakeSky } from './sky.js';
 import { buildOutdoors } from './outside.js';
 import { hangPrints, setPrints } from './prints.js';
+import { swatchList, applySwatches } from '../scene/swatches.js';
 
 // Everything the photographs pay for, in the order it has to happen. They are
 // already in the file as data URIs, so this is a decode, not a fetch — a few
@@ -30,6 +31,9 @@ export function dressHouse(){
     if (!canReadPixels(first.img))
       return flat('the photographs are linked files and this page is not being served, '
                   + 'so the browser will not let their pixels be read.');
+    // The retailers' swatches go onto the materials first: everything built
+    // from here on is made of them.
+    applySwatches(swatches);
     for (const r of photoRooms) r.mats = dressRoom(r);
     // One ceiling to a storey, and one material per declared floor finish,
     // before anything borrows: a borrowed floor should carry the shared boards.
@@ -56,7 +60,8 @@ export function dressHouse(){
     setSurfaces(true);
     setPrints(false);
   };
-  for (const r of photoRooms) for (const ph of r.shots){
+  const swatches = swatchList();
+  for (const ph of [...photoRooms.flatMap(r => r.shots), ...swatches]){
     left++;
     const img = new Image();
     img.onload = () => { ph.img = img; settle(); };

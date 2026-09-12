@@ -9,17 +9,26 @@
     "Optional \"floorFrom\": \"<room>\" borrows another room's floor, for a room",
     "photographed from its doorway that shows no floor of its own.",
     "One photo may carry \"view\" and \"ground\" — [x, y, w, h] in 0..1 of that",
-    "picture — naming the crop the world outside the windows is built from."
+    "picture — naming the crop the world outside the windows is built from.",
+    "Top-level 'finishes' are every room's defaults and a room's own win. A wall or",
+    "ceiling may name a paint as '#rrggbb'; a floor may name a wood or tile from the",
+    "palette in src/photo/relight.js (timber-white-oak, tile-porcelain) and is laid",
+    "from the palette rather than sampled. 'furnishings' maps a scanned category to",
+    "a product in src/scene/products.js. 'kitchen' and 'bath' lay out a room; see",
+    "src/scene/kitchen.js and src/scene/bath.js for their shape."
   ],
   "dir": "3028-photos",
+  "finishes": {"wall": "#F4F2EE", "ceil": "#FAF9F6", "floor": "timber-white-oak", "boards": -0.51},
   "rooms": [
     {
       "level": 0,
       "name": "Living room",
       "floorFrom": "Great room",
-      "finishes": {"floor": "timber-cherry", "fireplace": {"wallAt": [4.973, -4.721], "width": 1.65, "height": 1.55, "depth": 0.38}, "samples": {"wall": {"file": "living-room-1.webp", "rect": [0.49, 0.38, 0.08, 0.14]}, "brick": {"file": "living-room-1.webp", "rect": [0.066, 0.46, 0.035, 0.035]}}},
+      "finishes": {"fireplace": {"wallAt": [4.973, -4.721], "width": 1.65, "height": 1.55, "depth": 0.38, "finish": "plaster", "tv": 1.45}},
       "at": [4.2, -2.6],
       "anchor": "section 0 (livingRoom)",
+      "furnishings": {"sofa": "roomandboard/metro-sofa-98", "chair": "crateandbarrel/cavett-leather-chair", "storage": ["westelm/mid-century-media-console-80", "crateandbarrel/parsons-console"]},
+      "place": [{"product": "crateandbarrel/parsons-coffee-table", "at": [3.99, -2.77], "yaw": 2.63}, {"product": "crateandbarrel/cavett-leather-chair", "at": [3.3, -5.05], "yaw": -0.2}, {"rug": [3.2, 2.4], "at": [4.1, -2.9], "yaw": 2.63}],
       "photos": [
         {"file": "living-room-1.webp", "caption": "Fireplace wall, with the stair rail beyond"},
         {"file": "living-room-2.webp", "caption": "Fireplace between the two view windows"},
@@ -30,9 +39,10 @@
     {
       "level": 0,
       "name": "Great room",
-      "finishes": {"floor": "timber-cherry", "samples": {"floor": {"file": "great-room-1.webp", "rect": [0.45, 0.72, 0.14, 0.07]}, "wall": {"file": "great-room-1.webp", "rect": [0.51, 0.52, 0.08, 0.12]}, "ceil": {"file": "great-room-1.webp", "rect": [0.38, 0.035, 0.16, 0.08]}}},
+      "finishes": {"sliders": [[-2.022, -6.453]]},
       "at": [0.4, -5.6],
       "anchor": "sofa and dining table cluster",
+      "furnishings": {"sofa": "westelm/andes-sofa-76", "table": ["roomandboard/linden-table-72", "roomandboard/slim-end-table"], "chair": "westelm/slope-dining-chair", "storage": "roomandboard/woodwind-bookcase"},
       "photos": [
         {"file": "great-room-1.webp", "caption": "Picture window, open through to the living room"},
         {"file": "great-room-2.webp", "caption": "Dining end, looking into the kitchen"},
@@ -42,7 +52,7 @@
     {
       "level": 0,
       "name": "Kitchen",
-      "finishes": {"floor": "timber-cherry", "cabinetUpper": "#ded4bd", "cabinetLower": "#9299a6", "counter": "#c6b58e", "hardware": "#b7a078", "samples": {"counter": {"file": "kitchen-1.webp", "rect": [0.85, 0.75, 0.1, 0.05]}}},
+      "finishes": {"kitchen": {"runs": [{"wallAt": [-3.02, -0.5], "start": -1.995, "uppers": true, "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.47]]}, {"wallAt": [-3.9, -3.14], "start": -1.27, "uppers": true, "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.375]]}, {"wallAt": [-0.99, -1.5], "start": -1.795, "uppers": true, "units": [["base", 0.6], ["base", 0.6], ["base", 0.545]]}]}},
       "at": [-2.6, -2.4],
       "anchor": "section 4 (kitchen)",
       "floorFrom": "Great room",
@@ -55,10 +65,11 @@
     {
       "level": 0,
       "name": "Entry and stair",
-      "finishes": {"floor": "timber-cherry", "stair": {"riseToward": -1, "railSide": 1}, "wall": "paint", "samples": {"wall": {"file": "entry-and-stair-1.webp", "rect": [0.17, 0.27, 0.12, 0.18]}}},
+      "finishes": {"stair": {"riseToward": -1, "railSide": 1}},
       "floorFrom": "Great room",
       "at": [2.4, 0.7],
       "anchor": "front door to the stairwell",
+      "furnishings": {"storage": "crateandbarrel/parsons-console"},
       "photos": [
         {"file": "entry-and-stair-1.webp", "caption": "In at the front door, stair straight ahead"}
       ]
@@ -68,6 +79,7 @@
       "name": "Hall bathroom",
       "at": [-3.5, -0.1],
       "anchor": "section 5 (bathroom)",
+      "finishes": {"floor": "tile-porcelain", "bath": {"showers": [{"wallAt": [-5.39, -0.48], "width": 0.85, "depth": 0.9}]}},
       "photos": [
         {"file": "hall-bathroom-1.webp", "caption": "Tub and vanity"}
       ]
@@ -75,9 +87,10 @@
     {
       "level": 0,
       "name": "Main-floor bedroom",
-      "finishes": {"floor": "timber-cherry", "wall": "paint"},
+      "finishes": {"doors": [{"wallAt": [-2.391, 3.071], "along": 0.8565, "style": "closet-slider", "source": "august2026/IMG_0705.jpeg"}]},
       "at": [-4.8, 2.4],
       "anchor": "section 2 (bedroom)",
+      "furnishings": {"bed": "roomandboard/hudson-bed-queen", "storage": ["roomandboard/hudson-dresser", "roomandboard/hudson-nightstand"]},
       "photos": [
         {"file": "main-floor-bedroom-1.webp", "caption": "Closet wall, bathroom through the near door"},
         {"file": "main-floor-bedroom-2.webp", "caption": "From the closet back toward the bathroom"}
@@ -87,7 +100,7 @@
       "level": 0,
       "name": "Laundry",
       "reach": 1.6,
-      "finishes": {"floor": "timber-cherry", "wall": "paint"},
+      "finishes": {"openings": [{"wallAt": [-1.0, 3.32], "along": 0, "width": 0.85, "height": 2.03, "kind": "door"}]},
       "at": [-1.3, 2.3],
       "anchor": "washer/dryer fitting",
       "photos": [
@@ -96,10 +109,11 @@
     },
     {
       "level": 1,
-      "name": "Upper family room",
-      "finishes": {"deck": {"wallAt": [0.66, -7.052], "width": 4.4, "depth": 2.8}, "floor": "timber-cherry", "wall": "paint"},
+      "name": "Primary bedroom",
+      "finishes": {"sliders": [[0.66, -7.052]], "deck": {"wallAt": [0.66, -7.052], "width": 4.4, "depth": 2.8}},
       "at": [-0.4, -5.4],
-      "anchor": "section 0 — clerestory band and the deck slider",
+      "anchor": "section 0 — clerestory band and the deck slider; scanned as a family room, furnished as the primary bedroom",
+      "furnishings": {"bed": "roomandboard/hudson-bed-queen", "storage": ["roomandboard/hudson-dresser", "roomandboard/hudson-nightstand"]},
       "photos": [
         {"file": "upper-family-room-1.webp", "caption": "Clerestory windows and the slider to the deck"},
         {"file": "upper-family-room-2.webp", "caption": "Slider out to the covered deck"},
@@ -111,9 +125,10 @@
     {
       "level": 1,
       "name": "East bedroom",
-      "finishes": {"wall": "paint", "floor": "timber-cherry", "roof": {"yaw": -0.49781, "u0": 0.29, "u1": 2.92, "v0": -6.51, "v1": -5.95, "returnFinish": "ceil", "high": 2.365, "low": 1.45}, "samples": {"floor": {"file": "east-bedroom-1.webp", "rect": [0.38, 0.84, 0.2, 0.08]}, "ceil": {"file": "east-bedroom-1.webp", "rect": [0.5, 0.02, 0.15, 0.08]}}},
+      "finishes": {"openings": [{"wallAt": [1.189, -3.382], "along": 0, "width": 0.8, "height": 2.03, "kind": "door", "source": "east-bedroom-2.webp", "estimated": true}], "doors": [{"wallAt": [2.801, -4.546], "along": 0.0155, "style": "closet-slider", "source": "august2026/IMG_0708.jpeg"}], "roof": {"yaw": -0.49781, "u0": 0.29, "u1": 2.92, "v0": -6.51, "v1": -4.15, "returnFinish": "ceil", "high": 2.365, "low": 1.45}},
       "at": [3.3, -3.0],
       "anchor": "section 2 (bedroom)",
+      "furnishings": {"bed": "westelm/anton-bed-full", "chair": "westelm/slope-dining-chair", "storage": "roomandboard/woodwind-bookcase"},
       "photos": [
         {"file": "east-bedroom-1.webp", "caption": "Sloped ceiling, both windows"},
         {"file": "east-bedroom-2.webp", "caption": "Closet wall under the slope"},
@@ -123,9 +138,11 @@
     {
       "level": 1,
       "name": "South bedroom",
-      "finishes": {"wall": "paint", "floor": "timber-cherry", "roof": {"yaw": -0.49781, "u0": 0.33, "u1": 2.88, "v0": 3.34, "v1": 5.96, "high": 2.365, "low": 1.4}, "samples": {"floor": {"file": "south-bedroom-1.webp", "rect": [0.38, 0.84, 0.2, 0.08]}, "ceil": {"file": "south-bedroom-1.webp", "rect": [0.15, 0.02, 0.15, 0.04]}}},
+      "finishes": {"roof": {"yaw": -0.49781, "u0": 0.33, "u1": 2.88, "v0": 3.34, "v1": 5.96, "high": 2.365, "low": 1.4}},
       "at": [0.1, 2.9],
       "anchor": "section 3 (bedroom)",
+      "furnishings": {"bed": "westelm/anton-bed-full", "table": "roomandboard/hudson-nightstand"},
+      "place": [{"product": "roomandboard/hudson-nightstand", "at": [-0.26, 1.96], "yaw": -0.5}, {"product": "roomandboard/hudson-dresser", "at": [0.55, 4.38], "yaw": -2.07}],
       "photos": [
         {"file": "south-bedroom-1.webp", "caption": "Under the slope, sconce wall"},
         {"file": "south-bedroom-2.webp", "caption": "Sconce wall, door out to the landing"}
@@ -134,9 +151,12 @@
     {
       "level": 1,
       "name": "West bedroom",
-      "finishes": {"floor": "timber-cherry", "wall": "paint"},
+      "finishes": {},
       "at": [-4.5, 2.4],
       "anchor": "section 1 — the large corner room",
+      "furnishings": {"chair": "westelm/slope-leather-chair"},
+      "drop": [[-4.23, 3.76], [-5.94, 3.25], [-3.54, 4.54]],
+      "place": [{"product": "roomandboard/hudson-bed-queen", "at": [-4.89, 2.80], "yaw": 2.64}, {"product": "roomandboard/hudson-nightstand", "at": [-4.30, 4.06], "yaw": 2.64}, {"product": "roomandboard/hudson-nightstand", "at": [-6.26, 2.99], "yaw": 2.64}, {"product": "roomandboard/hudson-dresser", "at": [-6.0, 1.75], "yaw": 1.073}],
       "photos": [
         {"file": "west-bedroom-1.webp", "caption": "Glass door at the left, bathroom through the far door"},
         {"file": "west-bedroom-2.webp", "caption": "Window wall, bathroom and hall beyond"},
@@ -149,6 +169,7 @@
       "name": "Upstairs bathrooms",
       "at": [-3.3, -0.7],
       "anchor": "section 5 — two toilets, so two rooms merged",
+      "finishes": {"floor": "tile-porcelain", "bath": {"drop": [[-2.36, -0.49], [-3.31, -1.09]], "showers": [{"wallAt": [-5.25, -0.81], "width": 1.4, "depth": 0.8}, {"wallAt": [-4.5, -2.2], "width": 1.43, "depth": 0.9}], "vanities": [{"wallAt": [-3.29, -2.43], "along": -0.5, "width": 0.9}]}},
       "photos": [
         {"file": "upstairs-bathrooms-1.webp", "caption": "Tiled shower and vessel basin"},
         {"file": "upstairs-bathrooms-2.webp", "caption": "Granite vanity and glass shower"}
@@ -157,18 +178,23 @@
     {
       "level": 0,
       "name": "Downstairs hall",
-      "finishes": {"floor": "timber-cherry"},
+      "finishes": {},
       "at": [0.0, 0.4],
       "anchor": "section 4 (unidentified) — the hall past the laundry",
-      "photos": []
+      "furnishings": {"storage": "roomandboard/woodwind-bookcase"},
+      "photos": [
+
+      ]
     },
     {
       "level": 1,
       "name": "Upstairs hall",
-      "finishes": {"floor": "timber-cherry"},
+      "finishes": {},
       "at": [-0.9, -1.3],
       "anchor": "section 5 (unidentified) — the landing outside the bathrooms",
-      "photos": []
+      "photos": [
+
+      ]
     }
   ]
 }

@@ -1,10 +1,17 @@
-import { HOUSE } from '../core/data.js';
+import { HOUSE, PHOTOS, ROOMS } from '../core/data.js';
 import { WALL_T, BAND_LO, BAND_HI } from '../core/constants.js';
 import { panels, boxEdges, shapeFrom } from '../core/geometry.js';
 import { scene } from './stage.js';
 import { MAT, REAL } from './materials.js';
 import { casing, doorLeaf, FIXTURES } from './joinery.js';
 import { fitting } from './fittings.js';
+
+// Exterior doors photos.json calls sliders, by the centre of their wall: a
+// `"sliders": [[x, z], ...]` under a room's finishes. Every other door to
+// outside is a hinged leaf, or a pair.
+const SLIDERS = new Set();
+for (const r of [...(PHOTOS || []), ...(ROOMS || [])])
+  for (const [x, z] of r.finishes?.sliders || []) SLIDERS.add(x.toFixed(2) + ',' + z.toFixed(2));
 
 export const levels = HOUSE.levels.map(L => build(L));
 
@@ -63,8 +70,8 @@ export function build(L){
       // A skirting on every stretch that reaches the floor — which, because
       // panels() has already cut the openings out, is exactly the right ones.
       if (cy - ph/2 - L.elevation < 0.03 && ph > 0.4){
-        const bh = 0.1;
-        const b = new THREE.Mesh(new THREE.BoxGeometry(pw, bh, WALL_T + 0.034), MAT.trim);
+        const bh = 0.07;                   // a flat 70 mm skirting, square-edged
+        const b = new THREE.Mesh(new THREE.BoxGeometry(pw, bh, WALL_T + 0.024), MAT.trim);
         b.position.set(cx, L.elevation + bh/2 + 0.008, cz); b.rotation.y = w.yaw;
         trim.add(b);
       }
@@ -77,6 +84,13 @@ export function build(L){
         blockers.push(b); plan.push(b);
       }
     }
+    // Closed closet panels must also stop the player and read closed in plan.
+    for(const o of w.holes.filter(o=>o.style==='closet-slider')){
+      const mid=(o.x0+o.x1)/2;
+      const b={x:w.c[0]+Math.cos(w.yaw)*mid,z:w.c[2]-Math.sin(w.yaw)*mid,
+        yaw:w.yaw,hx:(o.x1-o.x0)/2,hz:WALL_T/2};
+      blockers.push(b);plan.push(b);
+    }
     holeWalls.push(w);
   }
 
@@ -84,8 +98,8 @@ export function build(L){
   // it would swing into, and that is not known until the last panel exists.
   for (const w of holeWalls){
     for (const o of w.holes){
-      casing(trim, w, o, L.elevation, o.k === 'window' ? 0.055 : 0.065, o.k === 'window');
-      if (o.k === 'door') doorLeaf(trim, L, w, o, blockers);
+      casing(trim, w, o, L.elevation, 0.045, o.k === 'window');
+      if (o.k === 'door') doorLeaf(trim, L, w, o, blockers, SLIDERS);
       if (o.k !== 'window') continue;
       const cx = w.c[0] + Math.cos(w.yaw)*(o.x0+o.x1)/2;
       const cz = w.c[2] - Math.sin(w.yaw)*(o.x0+o.x1)/2;
@@ -105,7 +119,7 @@ export function build(L){
     (isStair ? shell : furn).add(m);
     // Preserve the original box for survey mode. Photo dressing can replace
     // it with a flight when an explicit ascent annotation is available.
-    const rec = {mesh:m, category:o.cat, flat:m.material,
+    const rec = {mesh:m, category:o.cat, src:o, flat:m.material,
                  real: isStair ? MAT.wood : (MAT[REAL[o.cat]] || m.material), built:null};
     if (!isStair){
       const g = fitting({blockers, elevation:L.elevation}, o);
@@ -116,7 +130,7 @@ export function build(L){
       o.c[0], o.c[1], o.c[2], o.d[0]/2, o.d[1]/2, o.d[2]/2, o.yaw);
     const base = o.c[1] - o.d[1]/2 - L.elevation;
     if (!isStair && o.d[1] > 0.45 && base < BAND_HI - 0.2)
-      objBlockers.push({x:o.c[0], z:o.c[2], yaw:o.yaw, hx:o.d[0]/2, hz:o.d[2]/2});
+      objBlockers.push({x:o.c[0], z:o.c[2], yaw:o.yaw, hx:o.d[0]/2, hz:o.d[2]/2, src:o});
   }
 
   const lines = new THREE.LineSegments(

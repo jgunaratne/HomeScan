@@ -56,3 +56,18 @@ test('every element id the viewer reaches for is in the template',()=>{
   }
   assert.ok(checked>40,`only found ${checked} id lookups — the scan is not working`);
 });
+
+// The bundler strips import lines and leaves every name as it was declared,
+// so `import { loaded as swatches }` would leave `swatches` undefined at run
+// time and nothing but the browser would say so.
+test('no import renames a binding, which the bundler cannot honour',()=>{
+  const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>{
+    const full=path.join(dir,e.name);
+    return e.isDirectory()?walk(full):e.name.endsWith('.js')?[full]:[];
+  });
+  for(const file of walk(path.join(__dirname,'../src'))){
+    const src=fs.readFileSync(file,'utf8');
+    for(const m of src.matchAll(/^import\s*\{([^}]*)\}/gm))
+      assert.ok(!/\bas\b/.test(m[1]),`${path.basename(file)}: import {${m[1].trim()}} renames a binding`);
+  }
+});

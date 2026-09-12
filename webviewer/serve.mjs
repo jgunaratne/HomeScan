@@ -14,6 +14,10 @@ const flag = n => args.includes(n);
 const opt = (n, d) => { const i = args.indexOf(n); return i < 0 ? d : args[i + 1]; };
 
 const PORT = Number(opt('--port', process.env.PORT || 5173));
+// Every interface by default, so a phone on the LAN can open the walkthrough
+// straight off `npm start`; `--host 127.0.0.1` for a deployment where nginx is
+// the only thing meant to reach it (see deploy/).
+const HOST = opt('--host', process.env.HOST || '0.0.0.0');
 const WATCH = flag('--watch');
 // What index.html is built from; any of them going newer means a rebuild. The
 // viewer's own source is the src/ tree, walked rather than listed.
@@ -203,7 +207,7 @@ server.on('error', err => {
 const why = await staleness();
 if (why) rebuild(why + ' is newer');
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   const url = `http://localhost:${PORT}/`;
   console.log(`\n  HomeScan walkthrough  ${url}`);
   console.log(`  serving ${ROOT}${WATCH ? '  (watching src/, template.html, photos.json)' : ''}`);

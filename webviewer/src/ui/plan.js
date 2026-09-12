@@ -28,7 +28,11 @@ export function paintPlan(){
   }
 
   mx.fillStyle = 'rgba(139,152,169,.34)';
-  for (const o of (flags.showFurniture ? L.objects : [])){
+  // The dressed house draws what the dressing laid out in place of the
+  // scanned boxes it replaced; the survey draws the scan.
+  const boxes = !flags.showFurniture ? [] : !flags.surfaced ? L.objects
+    : L.objects.filter(o => !o.replaced).concat(L.planBoxes || []);
+  for (const o of boxes){
     mx.save(); mx.translate(X(o.c[0]), Z(o.c[2])); mx.rotate(-o.yaw);
     mx.fillRect(-o.d[0]*s/2, -o.d[2]*s/2, o.d[0]*s, o.d[2]*s);
     mx.restore();

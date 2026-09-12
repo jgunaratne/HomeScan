@@ -32,6 +32,7 @@ serving the committed file if that rebuild cannot run.
 
 ```sh
 npm start -- --port 8080   # different port
+npm start -- --host 127.0.0.1   # loopback only, for a deployment behind nginx
 npm start -- --no-open     # don't launch a browser
 python3 webviewer/build.py path/to/scan-dir   # any scan in the SPEC §5.1 layout
 python3 webviewer/build.py <scan> -o out.html
@@ -43,6 +44,26 @@ python3 webviewer/build.py --inline-photos    # one portable file, ~5 MB
 `template.html` at the `/*__BUNDLE__*/` placeholder, and writes the geometry in at
 `/*__HOUSE__*/null`. It does the same for `photos.json` at `/*__PHOTOS__*/null`.
 Edit `src/` and `template.html`, never `index.html` — the latter is generated.
+
+## Serving it on the LAN
+
+On the Pi this repo lives on, the walkthrough is a system service at
+**http://house.local**, following the pattern the other sites on that box use:
+`serve.mjs` on loopback port 3010, an nginx vhost in front of it, and an avahi
+alias publishing the name for whatever address DHCP has handed the host.
+Everything for it is in `webviewer/deploy/`, and one command installs or
+re-installs the lot:
+
+```sh
+sudo webviewer/deploy/install.sh
+```
+
+It is HTTP only, on purpose — the viewer needs no secure context, and one name
+over one scheme skips the self-signed interstitial — and unauthenticated like
+its neighbours. The service rebuilds `index.html` on start when the source is
+newer, so after editing `src/` or `photos.json`: `sudo systemctl restart house`.
+The Nano Banana button reports "no key" until a `.env` with `GEMINI_API_KEY`
+exists at the repo root; add one and restart the service.
 
 ## Layout
 
@@ -194,15 +215,16 @@ that says `timber-cherry` means the same boards wherever it is standing. Every
 room in a group takes the clearest patch any of them found, and a reviewed
 rectangle scores zero, so a hand-picked crop drives the whole group.
 
-One wood is laid through the whole house. `finishes.floor` names it —
-`timber-cherry` — and any value starting with `timber` is laid as planks rather
-than tiled as a patch, so a scan that wants two woods can name them apart and
-they will not merge. This one deliberately does not. The photographs show two:
-reddish cherry downstairs and light maple upstairs. Rendered as two they read as
-two houses, most of all at the head of the stairs where you see both at once, so
-the house is laid as one floor on purpose and the second wood is an edit to
-photos.json away. Everything but the two bathrooms is boards, the laundry
-included, whose photograph shows white tile.
+One wood is laid through the whole house. `finishes.floor` names it, and any
+value starting with `timber` is laid as planks rather than tiled as a patch, so
+a scan that wants two woods can name them apart and they will not merge. This
+one deliberately does not. The photographs show two: reddish cherry downstairs
+and light maple upstairs. Rendered as two they read as two houses, most of all
+at the head of the stairs where you see both at once, so the house is laid as
+one floor on purpose. It is now laid in white oak from the palette rather than
+in either sampled wood — see *The renovation* below — and either of the real
+woods is an edit to photos.json away. Everything but the two bathrooms is
+boards, the laundry included, whose photograph shows white tile.
 
 Which patch the wood comes from matters as much as which rooms share it. The
 first crop reviewed for the great room sat in the sheen the window throws across
@@ -434,11 +456,219 @@ of the naming here — great room, entry, laundry, which of the three upstairs
 bedrooms — is a reading of the capture against the photographs. The rooms carried
 by the geometry are solid: the kitchen has the refrigerator and both ovens, the
 laundry has the washer/dryer, the entry has the front door and the stair, the
-upper family room has the 2.07 m clerestory band and the 1.66 m slider that the
-two deck photographs look back through. Which bedroom is which is the judgement
+room with the 2.07 m clerestory band and the 1.66 m slider that the two deck
+photographs look back through was scanned as a family room and is furnished as
+the primary bedroom. Which bedroom is which is the judgement
 call, and `photos.json` is where to correct it. The scan's own sixth space
 downstairs — windowless, one 5.35 m opening — reads as the garage, and no
 photograph was taken of it.
+
+## The renovation
+
+Everything above dresses the house in what the photographs show. On top of that
+sits a second layer that dresses it in what it could be — white walls, white oak
+floors, a kitchen laid out again, the bathrooms brought up to date, and furniture
+named from three retailers — and it is driven entirely from `photos.json`, so
+taking it off is a matter of deleting the lines. Nothing in this layer is
+measured; it is a proposal drawn over a survey, and `P` still gives the survey.
+
+**Finishes are named, not sampled.** The top of `photos.json` now carries a
+`finishes` block that every room inherits, with a room's own entries winning:
+
+```json
+"finishes": {"wall": "#F4F2EE", "ceil": "#FAF9F6", "floor": "timber-white-oak"}
+```
+
+A wall or ceiling may name a paint outright as `#rrggbb`, and that is what
+"paint all the walls white" is — not a photograph's patch flattened to its own
+colour, but a colour the photographs never had, which the declared halls take
+as readily as the photographed rooms. A floor may name a wood or a tile from
+the palette in `src/photo/relight.js`, and is then laid from the palette rather
+than from a patch: `timber-white-oak` is a 190 mm plank (eight to the 1.55 m
+tile, against ten of the sampled woods) in the colour of oiled white oak, with
+quieter board-to-board variation and a matte finish; `tile-porcelain` is a
+775 mm rectified porcelain with a 2 mm joint, for the two bathrooms. A wood
+not in the palette is still sampled from its room's photographs exactly as
+before, so the cherry and maple this house actually has are one line away.
+The grouping that makes one finish one material house-wide is unchanged and
+still what keeps the boards continuous through every doorway.
+
+**The furniture is named from Crate & Barrel, Room & Board and West Elm.** A
+room may carry `furnishings`, a map from a scanned category to a product:
+
+```json
+"furnishings": {"sofa": "westelm/andes-sofa-76", "table": "roomandboard/linden-table-72"}
+```
+
+The products are in `src/scene/products.js`, each with its retailer, name,
+link, finish and catalogue dimensions. None of the three publish 3D models, so
+nothing is downloaded: each product is drawn parametrically in its own
+silhouette — the Andes' track arms and bench cushion on slim black legs, the
+Gather's loose cushions on a plinth, the Hudson's flat oak panel headboard,
+the Slope's shell on splayed legs — and stood on the scanned footprint, facing
+the way the scanned box does, with its back where the scanned back was. It is
+drawn at its catalogue size when the scan's box agrees with that to within a
+third, which puts a queen Hudson where a queen bed was measured and a 72"
+Linden where a 63" table stood; where the scan's box is much smaller than the
+product, the product's proportions are hung on the box instead, the way every
+generic fitting already is. Because the map is per category, a room may list
+candidates for one and the first the box takes wins: the primary bedroom's
+`storage` is `[dresser, nightstand]`, and the size rule is what makes the
+1.6 m box under the television the dresser and the two small ones nightstands.
+A room may also `place` a product the scan never saw — the living room's
+coffee table, the second chair by its left window, the west bedroom's bed —
+at a point and a yaw, settled like the rest and given its own collision and
+plan box, or a `rug` of a given size; and it may `drop` scanned boxes by
+position, the way the bath annotation does, which is how the west bedroom
+gave up a wardrobe and a dresser standing where its bed now is. The primary
+bedroom, the east, south and west bedrooms are all furnished as bedrooms —
+bed, two nightstands with lamps, a dresser — whatever the scan happened to
+catch in each. These are representative
+drawings of named products, not the products, and the links go to the
+retailers' own pages or searches so the real thing can be checked against.
+
+**Every piece is settled into its room.** RoomPlan's box for a piece against a
+wall usually reaches into the wall — it sees the front and guesses the back —
+and a product drawn on that box inherits the overlap, or makes it worse where
+the product is wider. So `src/scene/settle.js` walks every built piece, product
+or generic, to the nearest placement whose footprint is on the floor and clear
+of every wall panel: forward first, then sideways, in 2 cm steps to 60 cm. A
+product that will not settle at catalogue size is tried at the scan's size;
+one that fits nowhere keeps the scan's word. A probe over the shipped scan
+found twelve pieces with an edge in a wall before this and none after.
+
+**What makes it read as furnished rather than boxed.** Textures are laid out in
+metres — `box()` writes its UVs from the flat box, so a wood tile is 60 cm of
+board and a weave 12 cm of cloth on every piece alike — and the pale pieces are
+bouclé, with loops the light catches. Cushions are stuffed: a `cushion()` is a
+box whose faces bow out toward their middles. Then the small things: a pillow
+leant into each sofa corner and a throw folded over an arm; a duvet turned
+back over a rippled top, two pillows, two euro pillows against the headboard
+and a throw across the foot; a lamp on every nightstand, books on the end
+tables, a bowl on the dining table, a vase on the console; and a bordered
+flatweave rug under every sofa, sectional and bed, settled the same way the
+furniture is and shrunk until it fits.
+
+**The kitchen is laid out, not scanned.** The scan reports the cabinets it saw
+as boxes, and those said where the old kitchen was: an L with the range jammed
+into the corner beside the bathroom wall, a tall pantry at the far end of the
+same wall, and a 1.4 m island in a 3.3 m wide room. `finishes.kitchen` says
+where the new one goes, as runs of units along named walls and an island placed
+outright:
+
+```json
+"kitchen": {
+  "runs": [{"wallAt": [-3.02, -0.50], "start": -2.07, "uppers": true,
+            "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.6]]},
+           {"wallAt": [-3.90, -3.14], "start": -1.27, "uppers": true,
+            "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.45]]},
+           {"wallAt": [-0.99, -1.50], "start": -1.87, "uppers": true,
+            "units": [["base", 0.6], ["base", 0.6], ["base", 0.62]]}]
+}
+```
+
+An `"island": {"at", "yaw", "length", "width"}` may be added to that and is
+built with a waterfall top and a pendant over it; this kitchen had one and lost
+it, for the reason below.
+
+`start` is metres along the wall from its own `-w/2` end and may run past the
+record onto a collinear neighbour — the south wall here is two records on one
+line, 2.54 m and 0.80 m, and the run is laid along both. Which side of the wall
+the kitchen is on comes from the room's anchor, as it does for the fireplace.
+The layout itself: the sink stays under the window, with a dishwasher beside it
+and a tray cabinet at the corner; the refrigerator stays where the scan found
+it, at the north end of that run, and the pantry moves from the far end of the
+south wall to stand beside it, so the two make one full-height bank against the
+short return wall; that frees the south wall for the range at the centre of a
+continuous counter, with landing space either side and a hood over it, where
+before it had fifteen centimetres to the corner. There is no island: in a room
+3.3 m wide one left 0.8 m aisles, so its storage goes to the east wall instead,
+as a third run of drawer stacks with uppers over them on the 1.8 m of solid
+wall between the great room and the hall opening — a U, with two metres of
+clear floor in the middle and the dining table through the opening. The
+joinery is two-tone, oak below the counter and matte white above, with quartz
+across and up the splashback, uppers to the ceiling that stop for the window
+and the hood, and drawer stacks rather than doors. Every unit is a collision box, the tall ones stop daylight, and
+the plan draws them in place of the scanned boxes they replace; the survey
+keeps the scan.
+
+**The bathrooms.** The scan gives each one a toilet, a vanity and a basin, and
+nothing else — no tub, no shower, and upstairs a vanity and a toilet twice over,
+because the two rooms either side of one wall were captured as one.
+`finishes.bath` drops the boxes that should not be drawn, restyles the vanities
+the scan did see — floating, in oak, with a quartz top, an undermount basin, a
+black mixer and a frameless mirror between two sconces — and adds what it did
+not: a shower against a named wall, tiled on three sides in large-format
+porcelain with a fixed glass panel on the fourth, and a vanity where a room had
+none. The hall bathroom's tub alcove, 0.96 m wide under its little window,
+becomes a walk-in shower; the two upstairs rooms each get one at their far end.
+The floors are porcelain; everything else in the house is oak.
+
+**The materials are the retailers' own.** `swatches/swatches.json` names
+eleven material swatches — Tepic, Orla, Sumner, Tatum and Vick fabrics, Lecco
+leather, white oak and walnut — and `swatches/fetch.py` fetches each from the
+retailer's image server, where it is the retailer's photograph of the actual
+cloth or board. They are committed beside it, ~1.3 MB in all, so a clone needs
+nothing from the network. `build.py` writes them into the page the way it does
+the photographs (linked, or inlined for the one-file build); the dressing loads
+them with the photographs and, before anything is built, puts each on the
+material `src/scene/swatches.js` says wears it, tiled at the real size one
+repeat covers, its own light and dark serving as its relief. Every sofa is
+then upholstered in the photograph of its cloth, the leather chair in the
+photograph of the hide, and every oak piece in the photograph of the board —
+and so is the floor: the white oak planks are cut board by board from the oak
+swatch, each from its own slice of it, mirrored along its length so the grain
+never repeats within a board, lifted a little toward white and grey because a
+floor of it wants to be paler than a tabletop. Only Room & Board serves its
+swatches to anything but a browser; Crate & Barrel and West Elm refuse every
+automated request, so their pieces wear Room & Board's closest match, and the
+manifest says which stands for what.
+
+**What grounds it.** A contact shadow under every piece — a soft-edged dark
+plane on the floor, deeper under upholstery than under legs — does what the
+lens's screen-space occlusion does only when the lens is on: it puts the
+furniture on the floor rather than over it. The boards themselves are long
+now, 1.4 to 2.2 m with their joints staggered, from a 3.6 m tile at double the
+resolution.
+
+**The shading, tuned toward a photograph.** The lens's occlusion reaches
+further (0.55 m, sixteen taps) and is curved so corners and undersides go
+properly dark; the composite adds a quarter of an S-curve for midtone
+contrast and a slight warmth, since daylight indoors is sunlight off oak and
+off-white rather than the sky's blue, and a little more vignette and bloom.
+The baked daylight now shades by hemisphere — a face that looks up is lit a
+little more, a ceiling a little less, a wall between — which is the gradient
+every photograph of a room has and a flat irradiance field does not. The oak
+floor is satin rather than matte, so the screen-space reflections have
+something to do.
+
+**Which way the boards run.** The house sits thirty degrees off the scene's
+axes, and boards laid on those axes cross every room diagonally.
+`finishes.boards` is a wall yaw, and the boards run along it — here the
+lake-facing walls', so they run left to right as you stand at the windows, and
+the bathroom tile is squared to the same walls. It is a default at the top of
+`photos.json` like the paint, and a room may name its own.
+
+**The rooms upstairs are bedrooms.** RoomPlan scanned the room with the deck
+and the clerestory as a family room, and it is named as one in the photo
+captions; it is furnished as the primary bedroom — it has the lake, the deck,
+and the en-suite through the wall — with the Hudson bed, dresser and
+nightstands, and the television it was scanned with stays on its wall.
+
+**Everything else that changed with it.** Doors are flush slabs with a matte
+black lever; casings are square flat stock with no bead; the skirting is a
+flat 70 mm; every cabinet front in the house is a slab with a black edge pull
+rather than a Shaker frame and a bar; the stair treads and handrail are oak;
+the toilet is a one-piece with a skirt; the appliances are brushed rather than
+polished, because a refrigerator that mirrors the lake reads as blue glass.
+The fireplace annotation takes `"finish": "plaster"` for a smooth chimney
+breast with a wide black steel firebox, a quartz hearth and a floating oak
+shelf, and `"tv": 1.45` for a television that width mounted on the breast
+above the shelf; the brick surround the photographs show is still the default.
+
+What the renovation does not do: move a wall, a door or a window, or claim any
+of its dimensions beyond the standard ones — a 600 mm base, a 900 mm counter,
+a 350 mm upper. The rooms are the rooms the scan measured.
 
 ## Why room.json and not the USDZ
 
@@ -495,10 +725,11 @@ network requests are needed. The scan still determines object position and size.
 These are representative furnishings, not replicas of the photographed products.
 The flat survey and furniture toggle retain the original scan boxes and bounds.
 
-Architectural details include bevelled casing with raised edge beads, two-sided
-Shaker-style door rails, lever handles and hinge barrels, plus ceiling downlights
-with separate trim rings and dark baffles. Door styling and hardware are inferred;
-the scan supplies the openings. Unclaimed floor strips stop at footprint gaps,
+Architectural details include cased openings, door leaves with lever handles
+and hinge barrels, and ceiling downlights with separate trim rings and dark
+baffles; the casing was bevelled with a raised bead and the doors Shaker-railed
+until the renovation flattened both. Door styling and hardware are inferred; the
+scan supplies the openings. Unclaimed floor strips stop at footprint gaps,
 so dressing does not bridge empty space outside the scan.
 
 ### Photo-guided realism
@@ -511,12 +742,13 @@ room, great room, and west bedroom use this finish, and the living room and kitc
 borrow the great room floor through `floorFrom` to keep the connected boards continuous. Other rooms retain their
 photographic patches. The shared world-space UVs keep board direction consistent.
 
-Kitchen `cabinetUpper`, `cabinetLower`, `counter`, and `hardware` colour values
-match the cream, grey-blue, warm stone, and metal finishes visible in its photos.
-They apply to storage in that room through cloned materials. Cabinet fronts have
-raised rails, upholstery has quieter weave and cushion piping, and bedding has
-shallow folds and a turned-back sheet. The photos show mostly empty rooms, so
-furniture continues to be a representative interpretation of the scan bounds.
+The kitchen's scanned cabinets once took the cream, grey-blue, warm stone and
+metal finishes visible in its photos through per-room colour values; the kitchen
+is now laid out afresh (see *The renovation*), and those values went with the
+cabinets they coloured. Upholstery has quieter weave and cushion piping, and
+bedding has shallow folds and a turned-back sheet. The photos show mostly empty
+rooms, so furniture continues to be a representative interpretation of the scan
+bounds — or, where a room names products, of the products.
 
 Window sash rails, gaskets, and sill tracks give glass a recessed seat. Lighting
 uses depth-aware ambient-occlusion filtering to preserve contact edges. Ceiling
@@ -720,3 +952,28 @@ nearer to the corridor past its door than to its own far corner — which is why
 anchors now, over a barrier set of every wall with its wide openings cut out, so
 a finish stops at a doorway and carries through a cased opening. The hall
 bathroom drops from 6.5 m² to the 5.3 m² within its own walls.
+
+## Rendering quality
+
+The selector in the top bar offers **Auto**, **High**, **Balanced**, and
+**Performance**, and remembers your choice. Auto starts at High and steps down
+when frames stay slow; selecting a tier explicitly keeps it fixed. High renders
+at up to 1.5× CSS resolution, Balanced at 1×, and Performance at 0.75×.
+High also uses more occlusion, bounce and reflection samples than Balanced.
+
+High and Balanced combine the existing baked window irradiance with a small
+screen-space diffuse bounce, depth-filtered SSAO, and floor reflections with
+refined ray intersections. On WebGL2, an eight-sample jitter sequence and
+camera-reprojected temporal antialiasing reduce shimmer. Depth rejection and
+neighbourhood clipping limit ghosting; changing floors, furniture visibility,
+section spacing, or resolution clears history. FXAA finishes the image.
+Performance retains SSAO, bloom and tone mapping, with FXAA instead of TAA,
+and skips bounce and reflections. `Q` toggles the post-processing chain.
+
+These are GPU fragment-shader effects in the existing WebGL renderer, not
+hardware ray tracing. Screen-space bounce and reflections only use visible
+geometry; the baked irradiance supplies lighting beyond the camera view.
+HDR targets require a renderable floating-point colour extension, with
+8-bit targets as a fallback. Unsupported depth/derivative hardware uses the
+ordinary renderer. The high-performance GPU preference is a browser hint,
+not a guarantee that a discrete GPU will be selected.

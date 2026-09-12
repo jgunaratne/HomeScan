@@ -1,15 +1,14 @@
+import { $ } from '../core/util.js';
+import { TEMPORAL_FRAGMENT, HISTORY_DEPTH_FRAGMENT, temporalJitter } from './temporal.js';
+import { QUALITY_PRESETS, qualityBudget } from './quality.js';
 import { levels } from '../scene/levels.js';
-import { flags } from '../core/state.js';
+import { flags, view, player } from '../core/state.js';
 import { renderer, scene, camera } from '../scene/stage.js';
 
-// three.js ships its post-processing in examples/js, and this file loads only
-// the core UMD build, so the chain is written out here. Five passes: the scene
-// into a linear buffer, ambient occlusion off the depth, a bloom pyramid, a
-// composite that also does depth-of-field and ACES, and FXAA to put the edges
-// back that rendering off-screen took away.
-//
-// It runs only over the dressed house. The survey wants to be legible, not
-// photographed, and a crisp aliased edge is easier to measure against.
+// Linear HDR scene -> SSAO / screen-space bounce / SSR -> bilateral filters
+// -> bloom and tone mapping -> reprojected TAA -> FXAA presentation.
+// Screen-space effects supplement the baked window irradiance volume; they
+// cannot see hidden geometry and are not hardware ray tracing.
 const QUAD = (() => {
   // One triangle rather than two: no seam down the diagonal, one fewer vertex.
   const g = new THREE.BufferGeometry();
@@ -37,7 +36,11 @@ function draw(mat, target){
 // Depth textures are core in WebGL2 and an extension before it. Without one
 // there is no occlusion and no focus, so the chain steps aside entirely.
 export const CAN_POST = renderer.capabilities.isWebGL2 ||
-                 !!renderer.extensions.get('WEBGL_depth_texture');
+                 (!!renderer.extensions.get('WEBGL_depth_texture') &&
+                  !!renderer.extensions.get('OES_standard_derivatives'));
+const CAN_HDR = renderer.capabilities.isWebGL2
+  ? !!renderer.extensions.get('EXT_color_buffer_float')
+  : !!renderer.extensions.get('EXT_color_buffer_half_float') && !!renderer.extensions.get('OES_texture_half_float_linear');
 
 // Depth is the only geometry the post chain gets, so both the occlusion and the
 // circle of confusion are read back out of it.
@@ -61,16 +64,16 @@ vec3 viewPos(vec2 uv){
 const aoMat = shader({
   tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
   uNear:{value:0.05}, uFar:{value:260}, uTexel:{value:new THREE.Vector2()},
-  uRadius:{value:0.38}, uBias:{value:0.018}, uProj:{value:new THREE.Matrix4()},
+  uSamples:{value:24}, uPhase:{value:0}, uRadius:{value:0.55}, uBias:{value:0.018}, uProj:{value:new THREE.Matrix4()},
 }, DEPTH_FNS + `
 varying vec2 vUv;
 uniform vec2 uTexel;
-uniform float uRadius, uBias;
+uniform float uRadius, uBias, uPhase, uSamples;
 uniform mat4 uProj;
-const int K = 12;
+const int K = 24;
 // A spiral, not a random cloud: even coverage from few taps.
 vec3 kernel(int i){
-  float f = (float(i) + 0.5) / float(K);
+  float f = (float(i) + 0.5) / uSamples;
   float a = float(i) * 2.39996;
   float r = pow(f, 0.7);
   return vec3(cos(a) * r, sin(a) * r, 0.35 + 0.65 * f);
@@ -80,12 +83,13 @@ void main(){
   if (-p.z > uFar * 0.5){ gl_FragColor = vec4(1.0); return; }
   vec3 n = normalize(cross(dFdx(p), dFdy(p)));
   if (dot(n, -normalize(p)) < 0.0) n = -n;      // the hemisphere faces the viewer
-  float rot = fract(sin(dot(vUv, vec2(12.9898, 78.233))) * 43758.5453) * 6.2831853;
+  float rot = fract(sin(dot(vUv, vec2(12.9898, 78.233))) * 43758.5453) * 6.2831853 + uPhase;
   float ca = cos(rot), sa = sin(rot);
   vec3 t = normalize(abs(n.z) < 0.9 ? cross(n, vec3(0.0,0.0,1.0)) : vec3(1.0,0.0,0.0));
   vec3 b = cross(n, t);
   float occ = 0.0;
   for (int i = 0; i < K; i++){
+    if(float(i)>=uSamples)break;
     vec3 k = kernel(i);
     vec2 rk = vec2(k.x * ca - k.y * sa, k.x * sa + k.y * ca);
     vec3 s = p + (t * rk.x + b * rk.y + n * k.z) * uRadius;
@@ -96,7 +100,7 @@ void main(){
     float range = smoothstep(0.0, 1.0, uRadius / max(0.0001, abs(p.z - sz)));
     occ += (sz >= s.z + uBias ? 1.0 : 0.0) * range;
   }
-  gl_FragColor = vec4(vec3(clamp(1.0 - occ / float(K), 0.0, 1.0)), 1.0);
+  gl_FragColor = vec4(vec3(clamp(1.0 - occ / uSamples, 0.0, 1.0)), 1.0);
 }`);
 aoMat.extensions = {derivatives:true};
 
@@ -188,7 +192,7 @@ const ssrMat = shader({
   uProj:{value:new THREE.Matrix4()}, uProjInv:{value:new THREE.Matrix4()},
   uNear:{value:0.05}, uFar:{value:260},
   uWorldY:{value:new THREE.Vector4()}, uFloorY:{value:new THREE.Vector2()},
-  uUp:{value:new THREE.Vector3(0,1,0)}, uStride:{value:0.18},
+  uUp:{value:new THREE.Vector3(0,1,0)}, uSteps:{value:36}, uStride:{value:0.18},
 }, DEPTH_FNS + `
 varying vec2 vUv;
 uniform sampler2D tColor;
@@ -196,7 +200,7 @@ uniform mat4 uProj;
 uniform vec3 uUp;
 uniform vec4 uWorldY;
 uniform vec2 uFloorY;
-uniform float uStride;
+uniform float uStride, uSteps;
 void main(){
   vec3 p = viewPos(vUv);
   if (-p.z > 40.0){ gl_FragColor = vec4(0.0); return; }
@@ -212,39 +216,106 @@ void main(){
   vec3 r = reflect(normalize(p), n);
   vec3 q = p + n*0.025;
   float stride = uStride * (1.0 + fract(sin(dot(vUv, vec2(12.9898, 78.233))) * 43758.5453) * 0.4);
-  for (int i = 0; i < 22; i++){
+  // Bracket the first depth crossing, then refine it instead of accepting
+  // whichever coarse step happens to land inside a fixed thickness slab.
+  for (int i = 0; i < 36; i++){
+    if(float(i)>=uSteps)break;
+    vec3 before=q;
     q += r * stride;
+    if(q.z>=-uNear)break;
     vec4 c = uProj * vec4(q, 1.0);
     vec2 uv = c.xy / c.w * 0.5 + 0.5;
     if (c.w <= 0.0 || uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) break;
     float sz = viewPos(uv).z;
-    if (sz > q.z + 0.03 && sz < q.z + 0.22){
+    if (sz > q.z + 0.015){
+      vec3 lo=before,hi=q;
+      for(int j=0;j<5;j++){
+        vec3 mid=(lo+hi)*0.5;
+        vec4 clip=uProj*vec4(mid,1.0);
+        vec2 at=clip.xy/clip.w*0.5+0.5;
+        if(viewPos(at).z>mid.z)hi=mid;else lo=mid;
+      }
+      vec4 hit=uProj*vec4(hi,1.0);
+      uv=hit.xy/hit.w*0.5+0.5;
+      float gap=viewPos(uv).z-hi.z;
+      if(gap<0.0 || gap>0.12)break; // reject silhouette crossings
       vec2 e = abs(uv - 0.5) * 2.0;
-      float edge = (1.0 - smoothstep(0.62, 1.0, max(e.x, e.y)));
-      float run = 1.0 - float(i) / 22.0;
+      float edge = 1.0 - smoothstep(0.62, 1.0, max(e.x, e.y));
+      float run = 1.0 - smoothstep(5.0,12.0,length(hi-p));
       float fresnel=0.04+0.96*pow(1.0-max(dot(n,-normalize(p)),0.0),5.0);
       float confidence=edge*run*fresnel;
       gl_FragColor = vec4(texture2D(tColor, uv).rgb*confidence, confidence);
       return;
     }
-    stride *= 1.14;
+    stride = min(stride*1.08,0.55);
   }
   gl_FragColor = vec4(0.0);
 }`);
 ssrMat.extensions = {derivatives:true};
 
-const compMat = shader({
-  tColor:{value:null}, tAO:{value:null}, tBloom:{value:null}, tFar:{value:null},
-  tSSR:{value:null}, uSSR:{value:0.38},
-  tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
-  uNear:{value:0.05}, uFar:{value:260},
-  uExposure:{value:0.98}, uBloom:{value:0.10}, uAO:{value:0.72},
-  uFocus:{value:5.5}, uRange:{value:16.0}, uDof:{value:0.30},
-  uVignette:{value:0.09}, uGrain:{value:0.002}, uTime:{value:0},
+// Local diffuse colour transfer from visible surfaces. This deliberately
+// supplies only a small bounce over the baked irradiance, with distance and
+// two cosine terms rejecting unrelated surfaces. It is an approximation to
+// SSGI, not a replacement for off-screen global illumination.
+const giMat = shader({
+  tColor:{value:null},tDepth:{value:null},uProjInv:{value:new THREE.Matrix4()},
+  uProj:{value:new THREE.Matrix4()},uNear:{value:0.05},uFar:{value:260},
+  uTexel:{value:new THREE.Vector2()},uPhase:{value:0},uSamples:{value:12},
 }, DEPTH_FNS + `
 varying vec2 vUv;
-uniform sampler2D tColor, tAO, tBloom, tFar, tSSR;
-uniform float uExposure, uBloom, uAO, uFocus, uRange, uDof, uVignette, uGrain, uTime, uSSR;
+uniform sampler2D tColor;
+uniform mat4 uProj;
+uniform vec2 uTexel;
+uniform float uPhase, uSamples;
+vec3 giNormal(vec2 uv){
+  vec3 p=viewPos(uv);
+  vec3 left=p-viewPos(uv-vec2(uTexel.x,0.0));
+  vec3 right=viewPos(uv+vec2(uTexel.x,0.0))-p;
+  vec3 down=p-viewPos(uv-vec2(0.0,uTexel.y));
+  vec3 up=viewPos(uv+vec2(0.0,uTexel.y))-p;
+  vec3 n=normalize(cross(abs(left.z)<abs(right.z)?left:right,abs(down.z)<abs(up.z)?down:up));
+  return dot(n,-p)<0.0?-n:n;
+}
+void main(){
+  vec3 p=viewPos(vUv),n=giNormal(vUv),sum=vec3(0.0);
+  if(-p.z>30.0){gl_FragColor=vec4(0.0);return;}
+  float angle=fract(sin(dot(vUv,vec2(12.9898,78.233)))*43758.5453)*6.2831853+uPhase;
+  vec2 radius=vec2(uProj[0][0],uProj[1][1])*0.65/max(-p.z,0.2);
+  for(int i=0;i<12;i++){
+    if(float(i)>=uSamples)break;
+    float f=(float(i)+0.5)/uSamples,a=angle+float(i)*2.399963;
+    vec2 uv=vUv+vec2(cos(a),sin(a))*sqrt(f)*radius;
+    if(any(lessThan(uv,uTexel))||any(greaterThan(uv,vec2(1.0)-uTexel)))continue;
+    vec3 q=viewPos(uv),delta=q-p;
+    float distance=length(delta);
+    if(distance<0.06||distance>1.5)continue;
+    vec3 direction=delta/distance;
+    float weight=max(dot(n,direction)-0.05,0.0)*max(dot(giNormal(uv),-direction),0.0);
+    weight*=1.0-smoothstep(0.2,1.5,distance);
+    sum+=min(texture2D(tColor,uv).rgb,vec3(2.0))*weight;
+  }
+  gl_FragColor=vec4(sum/uSamples,1.0);
+}`);
+
+const temporalMat = shader({
+  tCurrent:{value:null},tHistory:{value:null},tDepth:{value:null},tHistoryDepth:{value:null},
+  uCurrentInv:{value:new THREE.Matrix4()},uPrevious:{value:new THREE.Matrix4()},
+  uTexel:{value:new THREE.Vector2()},uValid:{value:0},uNear:{value:0.05},uFar:{value:260},
+}, TEMPORAL_FRAGMENT);
+const historyDepthMat = shader({tDepth:{value:null}},HISTORY_DEPTH_FRAGMENT);
+
+const compMat = shader({
+  tColor:{value:null}, tAO:{value:null}, tBloom:{value:null}, tFar:{value:null},
+  tSSR:{value:null}, uSSR:{value:0.38}, tGI:{value:null}, uGI:{value:0.65},
+  tDepth:{value:null}, uProjInv:{value:new THREE.Matrix4()},
+  uNear:{value:0.05}, uFar:{value:260},
+  uExposure:{value:1.0}, uBloom:{value:0.13}, uAO:{value:0.88},
+  uFocus:{value:5.5}, uRange:{value:16.0}, uDof:{value:0.30},
+  uVignette:{value:0.15}, uGrain:{value:0.002}, uTime:{value:0},
+}, DEPTH_FNS + `
+varying vec2 vUv;
+uniform sampler2D tColor, tAO, tBloom, tFar, tSSR, tGI;
+uniform float uExposure, uBloom, uAO, uFocus, uRange, uDof, uVignette, uGrain, uTime, uSSR, uGI;
 
 // ACES, fitted. Rolls the window highlights off instead of clipping them white.
 vec3 aces(vec3 x){
@@ -265,9 +336,17 @@ void main(){
   // adding energy, which made pale floors glow and doubled window highlights.
   col = col*(1.0-ssr.a*uSSR) + ssr.rgb*uSSR;
 
-  col *= mix(1.0, texture2D(tAO, vUv).r, uAO);
+  // Occlusion, curved: the blurred map is mostly pale, and the eye wants the
+  // corners and the undersides to go properly dark.
+  col *= mix(1.0, pow(texture2D(tAO, vUv).r, 1.5), uAO);
+  col += texture2D(tGI,vUv).rgb * (col/(col+vec3(0.35))) * uGI;
   col += texture2D(tBloom, vUv).rgb * uBloom;
   col = aces(col * uExposure);
+  // A photograph's tone curve, not a renderer's: a quarter of a smoothstep
+  // for contrast in the midtones, and a slight warmth — daylight indoors is
+  // sunlight bounced off oak and off-white, not the sky's blue.
+  col = mix(col, col*col*(3.0 - 2.0*col), 0.28);
+  col *= vec3(1.02, 1.0, 0.965);
 
   vec2 d = vUv - 0.5;
   col *= 1.0 - uVignette * dot(d, d) * 1.9;
@@ -310,22 +389,51 @@ void main(){
   gl_FragColor = vec4((lB < lMin || lB > lMax) ? a : b, 1.0);
 }`);
 
-// Five full-screen passes and a 2048 shadow map is a lot to ask of a laptop
-// running this off a CDN. If the frame budget goes for a couple of seconds the
-// lens comes off by itself — once, and never again if the reader has an opinion.
-let postForced = false, slowFor = 0;
+const qualityState = {mode:'auto',tier:'high',slow:0,elapsed:0};
+let targetWidth=0,targetHeight=0,historyValid=false,historyIndex=0,temporalFrame=0;
+let historyState='',lastPostTime=0;
+const previousViewProjection=new THREE.Matrix4(),baseProjection=new THREE.Matrix4();
+const previousCameraPosition=new THREE.Vector3(),previousCameraRotation=new THREE.Quaternion();
+function qualityLabel(){
+  const select=$('graphics-quality');
+  select.value=qualityState.mode;
+  select.options[0].textContent='Auto ('+qualityState.tier+')';
+}
+export function initGraphics(){
+  try{
+    const saved=localStorage.getItem('storeywalk.graphics');
+    if(saved==='auto'||QUALITY_PRESETS[saved])qualityState.mode=saved;
+  }catch{}
+  qualityState.tier=qualityState.mode==='auto'?'high':qualityState.mode;
+  const select=$('graphics-quality');
+  select.disabled=!CAN_POST;
+  if(!CAN_POST)select.title='Post-processing is unavailable on this graphics device';
+  qualityLabel();
+  select.addEventListener('change',()=>{
+    qualityState.mode=select.value;
+    qualityState.tier=select.value==='auto'?'high':select.value;
+    qualityState.slow=0;qualityState.elapsed=0;
+    try{localStorage.setItem('storeywalk.graphics',select.value);}catch{}
+    qualityLabel();makeTargets(targetWidth,targetHeight);
+  });
+}
 export function watchBudget(dt){
-  if (postForced || !postOn || !flags.surfaced) return;
-  slowFor = dt > 0.055 ? slowFor + dt : 0;
-  if (slowFor > 2.2){ postOn = false; slowFor = 0; }
+  if(!postOn||!flags.surfaced||document.hidden)return;
+  if(qualityBudget(qualityState,dt)){
+    qualityLabel();makeTargets(targetWidth,targetHeight);
+  }
 }
 
 const RTS = {};
 let postOn = CAN_POST, postReady = false;
 export function makeTargets(w, h){
   if (!CAN_POST) return;
+  targetWidth=w;targetHeight=h;
+  const scale=Math.min(renderer.getPixelRatio(),QUALITY_PRESETS[qualityState.tier].scale);
+  w=Math.max(2,Math.round(w*scale));h=Math.max(2,Math.round(h*scale));
+  historyValid=false;temporalFrame=0;
   for (const k in RTS){ RTS[k].dispose(); delete RTS[k]; }
-  const hdr = renderer.capabilities.isWebGL2 ? THREE.HalfFloatType : THREE.UnsignedByteType;
+  const hdr = CAN_HDR ? THREE.HalfFloatType : THREE.UnsignedByteType;
   const opt = t => ({minFilter:THREE.LinearFilter, magFilter:THREE.LinearFilter,
                      format:THREE.RGBAFormat, type:t, depthBuffer:true, stencilBuffer:false});
   RTS.scene = new THREE.WebGLRenderTarget(w, h, opt(hdr));
@@ -343,8 +451,15 @@ export function makeTargets(w, h){
   RTS.d0  = quarter(opt(hdr));
   RTS.d1  = quarter(opt(hdr));
   RTS.ssr = half(opt(hdr));
+  RTS.gi = half(opt(hdr));
+  RTS.giT = half(opt(hdr));
+  for(const name of ['history0','history1','historyDepth']){
+    RTS[name]=new THREE.WebGLRenderTarget(w,h,opt(THREE.UnsignedByteType));
+    RTS[name].depthBuffer=false;
+  }
+  RTS.historyDepth.texture.minFilter=RTS.historyDepth.texture.magFilter=THREE.NearestFilter;
   RTS.comp = new THREE.WebGLRenderTarget(w, h, opt(THREE.UnsignedByteType));
-  for (const k of ['ao','aoT','b0','b1','q0','q1','d0','d1','ssr','comp'])
+  for (const k of ['ao','aoT','b0','b1','q0','q1','d0','d1','ssr','gi','giT','comp'])
     RTS[k].depthBuffer = false;
   postReady = true;
 }
@@ -367,6 +482,7 @@ function lensBlur(src,tmp,dst,texel,spread){
 
 export function renderFrame(){
   if (!postOn || !postReady || !flags.surfaced){
+    historyValid=false;
     // Keep highlight rolloff when the optional lens is disabled or too slow.
     renderer.toneMapping=flags.surfaced?THREE.ACESFilmicToneMapping:THREE.NoToneMapping;
     renderer.toneMappingExposure=compMat.uniforms.uExposure.value;
@@ -374,9 +490,25 @@ export function renderFrame(){
     renderer.render(scene, camera);
     return;
   }
+  const preset=QUALITY_PRESETS[qualityState.tier];
+  const useTemporal=preset.temporal && renderer.capabilities.isWebGL2;
+  const now=performance.now();
+  const state=[view.mode,view.explode,player.level,flags.showFurniture,flags.showPrints,flags.surfaced].join(':');
+  if(state!==historyState || now-lastPostTime>250 || renderer.shadowMap.needsUpdate ||
+     camera.position.distanceTo(previousCameraPosition)>0.8 ||
+     camera.quaternion.angleTo(previousCameraRotation)>0.35)historyValid=false;
+  historyState=state;lastPostTime=now;
+  previousCameraPosition.copy(camera.position);previousCameraRotation.copy(camera.quaternion);
   renderer.toneMapping=THREE.NoToneMapping;
   const w = RTS.scene.width, h = RTS.scene.height;
 
+  baseProjection.copy(camera.projectionMatrix);
+  if(useTemporal){
+    const jitter=temporalJitter(temporalFrame++);
+    camera.projectionMatrix.elements[8]+=2*jitter[0]/w;
+    camera.projectionMatrix.elements[9]+=2*jitter[1]/h;
+    camera.projectionMatrixInverse.copy(camera.projectionMatrix).invert();
+  }
   renderer.setRenderTarget(RTS.scene);
   renderer.render(scene, camera);
 
@@ -387,10 +519,12 @@ export function renderFrame(){
     m.uniforms.uNear.value = camera.near;
     m.uniforms.uFar.value = camera.far;
   }
+  aoMat.uniforms.uSamples.value=preset.ao;
   aoMat.uniforms.uProj.value.copy(camera.projectionMatrix);
-  const half = new THREE.Vector2(1/(w>>1), 1/(h>>1));
-  const quarter = new THREE.Vector2(1/(w>>2), 1/(h>>2));
+  const half = new THREE.Vector2(1/RTS.ao.width, 1/RTS.ao.height);
+  const quarter = new THREE.Vector2(1/RTS.q0.width, 1/RTS.q0.height);
   aoMat.uniforms.uTexel.value.copy(half);
+  aoMat.uniforms.uPhase.value=useTemporal?(temporalFrame%8)*0.785398:0;
   draw(aoMat, RTS.ao);
   aoBlurMat.uniforms.tDepth.value = RTS.scene.depthTexture;
   aoBlurMat.uniforms.uNear.value = camera.near;
@@ -404,7 +538,19 @@ export function renderFrame(){
     draw(aoBlurMat, RTS.ao);
   }
 
+  if(preset.bounce){
+    const u=giMat.uniforms;
+    u.tColor.value=RTS.scene.texture;u.tDepth.value=RTS.scene.depthTexture;
+    u.uProjInv.value.copy(projInv);u.uProj.value.copy(camera.projectionMatrix);
+    u.uNear.value=camera.near;u.uFar.value=camera.far;u.uTexel.value.set(1/w,1/h);
+    u.uSamples.value=preset.gi;
+    u.uPhase.value=useTemporal?(temporalFrame%8)*0.785398:0;
+    draw(giMat,RTS.gi);lensBlur(RTS.gi,RTS.giT,RTS.gi,half,1.5);
+  }
+  if(preset.reflections){
   // Reflections before the bloom, while b1 is still free to blur them in.
+  ssrMat.uniforms.uSteps.value=preset.steps;
+  ssrMat.uniforms.uStride.value=qualityState.tier==='high'?0.18:0.25;
   ssrMat.uniforms.tColor.value = RTS.scene.texture;
   ssrMat.uniforms.tDepth.value = RTS.scene.depthTexture;
   ssrMat.uniforms.uProjInv.value.copy(projInv);
@@ -418,6 +564,8 @@ export function renderFrame(){
   ssrMat.uniforms.uUp.value.set(0, 1, 0).transformDirection(camera.matrixWorldInverse);
   draw(ssrMat, RTS.ssr);
   lensBlur(RTS.ssr, RTS.b1, RTS.ssr, half, 1.3);   // gloss, not a mirror
+
+  }
 
   brightMat.uniforms.tSrc.value = RTS.scene.texture;
   draw(brightMat, RTS.b0);
@@ -442,13 +590,32 @@ export function renderFrame(){
   compMat.uniforms.tBloom.value = RTS.q0.texture;
   compMat.uniforms.tFar.value = RTS.d0.texture;
   compMat.uniforms.tSSR.value = RTS.ssr.texture;
+  compMat.uniforms.tGI.value=RTS.gi.texture;
+  compMat.uniforms.uGI.value=preset.bounce?0.65:0;
+  compMat.uniforms.uSSR.value=preset.reflections?0.38:0;
   compMat.uniforms.uTime.value = performance.now() * 0.0002;
   draw(compMat, RTS.comp);
 
-  fxaaMat.uniforms.tSrc.value = RTS.comp.texture;
+  let resolved=RTS.comp;
+  if(useTemporal){
+    const currentVP=new THREE.Matrix4().multiplyMatrices(camera.projectionMatrix,camera.matrixWorldInverse);
+    const u=temporalMat.uniforms;
+    u.tCurrent.value=RTS.comp.texture;u.tHistory.value=RTS['history'+(1-historyIndex)].texture;
+    u.tDepth.value=RTS.scene.depthTexture;u.tHistoryDepth.value=RTS.historyDepth.texture;
+    u.uCurrentInv.value.copy(currentVP).invert();u.uPrevious.value.copy(previousViewProjection);
+    u.uTexel.value.set(1/w,1/h);u.uValid.value=historyValid?1:0;
+    u.uNear.value=camera.near;u.uFar.value=camera.far;
+    resolved=RTS['history'+historyIndex];draw(temporalMat,resolved);
+    historyDepthMat.uniforms.tDepth.value=RTS.scene.depthTexture;
+    draw(historyDepthMat,RTS.historyDepth);
+    previousViewProjection.copy(currentVP);historyIndex=1-historyIndex;historyValid=true;
+  }else historyValid=false;
+  camera.projectionMatrix.copy(baseProjection);
+  camera.projectionMatrixInverse.copy(baseProjection).invert();
+  fxaaMat.uniforms.tSrc.value = resolved.texture;
   fxaaMat.uniforms.uTexel.value.set(1/w, 1/h);
   draw(fxaaMat, null);
 }
 
 // The reader's own opinion about the lens, from the Q key.
-export function togglePost(){ postOn = !postOn; postForced = true; }
+export function togglePost(){ postOn = CAN_POST && !postOn; historyValid=false; }

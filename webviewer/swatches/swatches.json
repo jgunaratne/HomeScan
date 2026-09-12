@@ -1,0 +1,38 @@
+{
+  "_comment": [
+    "Material swatches fetched from the retailers' own image servers by fetch.py,",
+    "and applied to the drawn products by src/scene/swatches.js. Each is the",
+    "retailer's photograph of the real fabric, leather or wood, tiled at the",
+    "size in metres one repeat covers. Room & Board serves these from Scene7",
+    "directly; Crate & Barrel and West Elm refuse every automated request, so",
+    "their pieces wear Room & Board's closest match, named in `stands_for`."
+  ],
+  "swatches": {
+    "white_oak":    {"retailer": "Room & Board", "material": "White oak, natural finish",
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_white_oak?wid=1200", "crop": "centre-square", "metres": 0.4},
+    "whiteoak":     {"retailer": "Room & Board", "material": "White oak, pale",
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_whiteoak?wid=600", "crop": "centre-square", "metres": 0.3},
+    "walnut":       {"retailer": "Room & Board", "material": "Walnut",
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_walnut?wid=600", "crop": "centre-square", "metres": 0.4},
+    "tepicivory":   {"retailer": "Room & Board", "material": "Tepic fabric, Ivory", "metres": 0.12,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_tepicivory?wid=600"},
+    "tepicgrey":    {"retailer": "Room & Board", "material": "Tepic fabric, Grey", "metres": 0.12,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_tepicgrey?wid=600",
+                     "stands_for": "Crate & Barrel Wells, Slate"},
+    "orlaivory":    {"retailer": "Room & Board", "material": "Orla bouclé, Ivory", "metres": 0.12,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_orlaivory?wid=600",
+                     "stands_for": "West Elm Performance Basketweave, Alabaster"},
+    "sumnerlinen":  {"retailer": "Room & Board", "material": "Sumner fabric, Linen", "metres": 0.12,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_sumnerlinen?wid=600",
+                     "stands_for": "West Elm Performance Basketweave, Oatmeal"},
+    "sumnerivory":  {"retailer": "Room & Board", "material": "Sumner fabric, Ivory", "metres": 0.12,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_sumnerivory?wid=600"},
+    "vickcharcoal": {"retailer": "Room & Board", "material": "Vick wool, Charcoal", "metres": 0.14,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_vickcharcoal?wid=600"},
+    "tatumnatural": {"retailer": "Room & Board", "material": "Tatum fabric, Natural", "metres": 0.16,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_tatumnatural?wid=600"},
+    "leccocognac":  {"retailer": "Room & Board", "material": "Lecco leather, Cognac", "metres": 0.25,
+                     "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_leccocognac?wid=600",
+                     "stands_for": "Crate & Barrel and West Elm saddle leathers"}
+  }
+}

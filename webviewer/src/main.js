@@ -1,3 +1,4 @@
+import { initGraphics } from './render/passes.js';
 import { indexPhotos } from './photo/rooms.js';
 import { markSealed } from './player/collision.js';
 import { dressHouse } from './photo/dress.js';
@@ -22,6 +23,7 @@ dressHouse();           // decode the pictures, then dress the house (async)
 initLightbox();
 initEnhance();
 initControls();
+initGraphics();
 initInput();
 
 frameHouse();           // stand the overview camera back far enough to see it

@@ -67,7 +67,9 @@ export function blocksDaylight(o,p,q){
 
 export function bakeDaylight(L){
   const g=0.32,b=L.bounds,nx=Math.ceil((b.x1-b.x0)/g)+1,nz=Math.ceil((b.z1-b.z0)/g)+1,ny=8;
-  L.daylightBlockers=(L.objects||[]).filter(o=>['storage','refrigerator','washerDryer','oven'].includes(o.cat));
+  // The scanned boxes, less any the dressing replaced, plus what it laid out.
+  L.daylightBlockers=(L.objects||[]).filter(o=>!o.replaced&&['storage','refrigerator','washerDryer','oven'].includes(o.cat))
+    .concat(L.daylightExtra||[]);
   const portals=windowPortals(L),bytes=new Uint8Array(nx*nz*ny*4);
   const samples=[];
   for(let v=0;v<4;v++)for(let u=0;u<4;u++)samples.push([(u+0.5)/4-0.5,(v+0.5)/4-0.5]);
@@ -129,7 +131,11 @@ function daylightMaterial(material,field){
       // Remove the byte encoding's half-step offset before taking the cosine.
       vec3 windowMoment=(field.rgb*255.0-128.0)/63.75;
       float windowLight=field.a*2.0+max(0.0,dot(daylightNormal,windowMoment))*0.9;
-      irradiance=PI*windowLight*vec3(0.94,0.97,1.0)*2.2;
+      // Light in a room comes in at the windows and up off the floor: a face
+      // that looks up is lit a little more, a ceiling a little less, and a
+      // wall between the two — the gradient every photograph of a room has.
+      windowLight*=0.86+0.26*clamp(daylightNormal.y*0.5+0.5,0.0,1.0);
+      irradiance=PI*windowLight*vec3(1.0,0.985,0.955)*2.2;
       // Exterior environment supplies restrained specular reflections; diffuse
       // indoor illumination comes from windows rather than an unoccluded sky.
       iblIrradiance*=0.025;

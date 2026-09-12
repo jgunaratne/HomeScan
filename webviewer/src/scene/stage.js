@@ -1,7 +1,7 @@
 import { $ } from '../core/util.js';
 
 export const canvas = $('view');
-export const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+export const renderer = new THREE.WebGLRenderer({canvas, antialias:true, powerPreference:'high-performance'});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputEncoding = THREE.sRGBEncoding;
 // Tone mapping happens at the end of the post chain, in one place, on linear
