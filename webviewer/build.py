@@ -360,6 +360,39 @@ def load_swatches(here, out_dir, inline):
     return out
 
 
+def edit_walls(scene, path):
+    """Walls taken out, and floor put in, by annotation in photos.json.
+
+    A closet the scan drew as a wall and a notch in the floor — the east
+    bedroom's — is removed by naming the wall (`finishes.removeWalls`, by
+    centre) and giving the room the floor the notch left out
+    (`finishes.floorPatches`, polygons in the scene frame). The wall goes from
+    the record before anything reads it; the patch is one more floor polygon
+    on the storey, so walking, slabs, daylight and the plan all take it as
+    floor.
+    """
+    doc = json.loads(path.read_text())
+    removed, patched = 0, 0
+    for room in doc.get('rooms') or []:
+        n = room['level']
+        if not 0 <= n < len(scene['levels']):
+            continue
+        level = scene['levels'][n]
+        fin = room.get('finishes') or {}
+        for at in fin.get('removeWalls') or []:
+            before = len(level['walls'])
+            level['walls'] = [w for w in level['walls']
+                              if math.hypot(w['c'][0] - at[0], w['c'][2] - at[1]) > 0.1]
+            if len(level['walls']) == before:
+                print(f'  ! {room["name"]}: no wall at {at} to remove', file=sys.stderr)
+            removed += before - len(level['walls'])
+        for poly in fin.get('floorPatches') or []:
+            level['floors'].append({'poly': [[round(x, 3), round(z, 3)] for x, z in poly],
+                                    'ceiling': level['ceiling']})
+            patched += 1
+    return removed, patched
+
+
 def cut_openings(scene, path):
     """Doors and openings the scan missed, cut into its walls from photos.json.
 
@@ -430,6 +463,9 @@ def main():
     pjson = Path(args.photos)
     out_dir = Path(args.out).resolve().parent
     if pjson.exists():
+        removed, patched = edit_walls(scene, pjson)
+        if removed or patched:
+            print(f'  {removed} wall(s) removed, {patched} floor patch(es) added from photos.json annotations')
         cut = cut_openings(scene, pjson)
         if cut:
             print(f'  {cut} opening(s) cut from photos.json annotations')

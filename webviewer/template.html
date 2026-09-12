@@ -1,7 +1,7 @@
 <title>Storeywalk</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
 <style>
 /* Single visual world on purpose: a first-person survey instrument reads as one
    dark viewport in any host theme, so every colour is painted explicitly here
@@ -12,33 +12,36 @@
   --text:#E4EAF2; --muted:#8B98A9; --dim:#5C6775;
   --down:#F2C230; --up:#54C7EC;
   --good:#5FCB86; --warn:#E8A33D; --bad:#E4593F;
-  --ui:"IBM Plex Sans",system-ui,-apple-system,sans-serif;
-  --label:"Barlow Condensed","IBM Plex Sans",sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;
+  /* One face at one size, everywhere: Inter at 11px. The label and mono
+     roles are kept as names so the markup need not change, and both are
+     Inter too — numerals stay tabular through font-variant-numeric. */
+  --ui:"Inter",system-ui,-apple-system,sans-serif;
+  --label:"Inter",system-ui,-apple-system,sans-serif;
+  --mono:"Inter",system-ui,-apple-system,sans-serif;
   --accent:var(--down);
 }
 *{box-sizing:border-box}
 /* An author `display` beats the UA rule for [hidden], so panels that set one —
    the gate, the two toolbars, the lightbox — need this to answer to .hidden. */
 [hidden]{display:none!important}
-body{background:var(--ground);color:var(--text);font-family:var(--ui);overflow:hidden}
+body{background:var(--ground);color:var(--text);font-family:var(--ui);font-size:11px;overflow:hidden}
 #app{position:fixed;inset:0;background:var(--ground)}
 canvas#view{position:absolute;inset:0;display:block;width:100%;height:100%}
 
-#hud{position:absolute;inset:0;pointer-events:none;font-size:12px}
+#hud{position:absolute;inset:0;pointer-events:none;font-size:11px}
 #hud button,#hud input,#hud .hit{pointer-events:auto}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 
 .eyebrow{font-family:var(--label);text-transform:uppercase;letter-spacing:.13em;
-  font-size:10px;font-weight:600;color:var(--dim)}
+  font-size:11px;font-weight:600;color:var(--dim)}
 .num{font-family:var(--mono);font-variant-numeric:tabular-nums}
 
 /* top rail — the survey's own metadata */
 .rail{position:absolute;top:0;left:0;right:0;display:flex;align-items:baseline;gap:12px;
   padding:8px 12px 16px;background:linear-gradient(180deg,rgba(12,15,20,.94) 0%,
     rgba(12,15,20,.82) 55%,rgba(12,15,20,0) 100%);}
-.rail h1{margin:0;font-family:var(--label);font-weight:600;font-size:14px;letter-spacing:.09em;
+.rail h1{margin:0;font-family:var(--label);font-weight:600;font-size:11px;letter-spacing:.09em;
   text-transform:uppercase}
 .rail .meta{display:flex;gap:9px;flex-wrap:wrap;color:var(--dim);font-size:11px}
 .rail .meta b{color:var(--muted);font-weight:500}
@@ -55,11 +58,11 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .storey:hover{background:var(--surface-2)}
 .storey[aria-current="true"]{border-color:color-mix(in srgb,var(--tint) 55%,transparent);
   background:color-mix(in srgb,var(--tint) 9%,transparent)}
-.storey .lvl{font-family:var(--mono);font-size:9.5px;color:var(--tint);text-align:right}
+.storey .lvl{font-family:var(--mono);font-size:11px;color:var(--tint);text-align:right}
 .storey .nm{font-family:var(--label);text-transform:uppercase;letter-spacing:.08em;
-  font-size:11.5px;font-weight:600;line-height:1;overflow:hidden;text-overflow:ellipsis;
+  font-size:11px;font-weight:600;line-height:1;overflow:hidden;text-overflow:ellipsis;
   white-space:nowrap}
-.storey .ar{font-family:var(--mono);font-size:10px;color:var(--dim);white-space:nowrap}
+.storey .ar{font-family:var(--mono);font-size:11px;color:var(--dim);white-space:nowrap}
 /* the section line: storeys sit at their true relative heights */
 .storey::before{content:"";position:absolute;left:32px;right:6px;height:1px;
   background:var(--line-soft);top:-2px}
@@ -69,7 +72,7 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .plan{position:absolute;right:14px;bottom:14px;width:168px;
   background:rgba(20,26,34,.82);border:1px solid var(--line);backdrop-filter:blur(7px)}
 .plan canvas{display:block;width:100%;height:140px}
-.gap{padding:5px 8px;border-top:1px solid var(--line-soft);font-size:10.5px;
+.gap{padding:5px 8px;border-top:1px solid var(--line-soft);font-size:11px;
   color:var(--warn);line-height:1.4}
 .gap b{font-family:var(--mono);color:var(--text);font-weight:500}
 
@@ -77,8 +80,8 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .here{position:absolute;right:14px;top:38px;text-align:right;
   text-shadow:0 1px 3px rgba(8,10,14,.95),0 0 10px rgba(8,10,14,.75)}
 .here .room{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
-  font-size:14px;font-weight:600;line-height:1;color:var(--accent)}
-.here .co{font-family:var(--mono);font-size:10px;color:var(--muted);margin-top:3px}
+  font-size:11px;font-weight:600;line-height:1;color:var(--accent)}
+.here .co{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:3px}
 
 .cross{position:absolute;left:50%;top:50%;width:15px;height:15px;margin:-7.5px 0 0 -7.5px;
   opacity:.7}
@@ -88,25 +91,25 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 
 .prompt{position:absolute;left:0;right:0;bottom:66px;margin-inline:auto;width:fit-content;
   padding:5px 10px;background:rgba(20,26,34,.9);border:1px solid var(--accent);
-  font-size:11.5px;letter-spacing:.01em;white-space:nowrap}
+  font-size:11px;letter-spacing:.01em;white-space:nowrap}
 .prompt kbd{font-family:var(--mono);background:var(--accent);color:#0C0F14;
-  padding:0 5px;margin-right:7px;font-size:10.5px;font-weight:600}
+  padding:0 5px;margin-right:7px;font-size:11px;font-weight:600}
 
 /* overview controls */
 .viewbar{position:absolute;left:0;right:0;bottom:14px;margin-inline:auto;width:fit-content;
   display:flex;align-items:center;justify-content:center;gap:5px;padding:5px 6px;
   flex-wrap:wrap;max-width:min(1280px,96vw);
   background:rgba(20,26,34,.86);border:1px solid var(--line);backdrop-filter:blur(7px)}
-.viewbar label{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:10.5px;
+.viewbar label{display:flex;align-items:center;gap:7px;color:var(--dim);font-size:11px;
   padding-left:6px}
 .viewbar input[type=range]{width:88px;accent-color:var(--accent)}
 .viewbar .sep{width:1px;align-self:stretch;background:var(--line-soft);margin:0 3px}
 .btn{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid transparent;
-  font-family:var(--label);text-transform:uppercase;letter-spacing:.09em;font-size:11.5px;
+  font-family:var(--label);text-transform:uppercase;letter-spacing:.09em;font-size:11px;
   font-weight:600;color:var(--muted);white-space:nowrap}
 .btn:hover{border-color:var(--line);color:var(--text)}
 /* the key that does the same thing, so the keyboard is learnable from the bar */
-.btn kbd{font-family:var(--mono);font-size:9.5px;font-weight:500;line-height:1;
+.btn kbd{font-family:var(--mono);font-size:11px;font-weight:500;line-height:1;
   padding:2px 4px;border:1px solid var(--line);color:var(--dim);letter-spacing:0}
 .btn:hover kbd{border-color:var(--line);color:var(--muted)}
 /* a toggle that is on is lit; nothing else about the button changes, so the
@@ -124,9 +127,9 @@ a.btn{color:inherit;text-decoration:none}
 .shot{position:absolute;left:0;right:0;bottom:66px;margin-inline:auto;width:fit-content;
   max-width:min(46ch,80vw);padding:5px 10px;background:rgba(20,26,34,.9);
   border:1px solid var(--line);display:flex;align-items:baseline;gap:8px;
-  font-size:11.5px;color:var(--muted)}
+  font-size:11px;color:var(--muted)}
 .shot b{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
-  font-size:11.5px;font-weight:600;color:var(--accent)}
+  font-size:11px;font-weight:600;color:var(--accent)}
 .shot i{font-style:normal;color:var(--dim);white-space:nowrap}
 
 /* lightbox — the photograph at full size, out of the world */
@@ -138,19 +141,19 @@ a.btn{color:inherit;text-decoration:none}
   border:1px solid var(--line);background:var(--surface)}
 .lb figcaption{display:flex;align-items:baseline;gap:14px;flex-wrap:wrap}
 .lb figcaption .rm{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
-  font-size:17px;font-weight:600;color:var(--accent)}
-.lb figcaption .cp{color:var(--muted);font-size:13px}
-.lb figcaption .of{margin-left:auto;color:var(--dim);font-size:12px}
+  font-size:11px;font-weight:600;color:var(--accent)}
+.lb figcaption .cp{color:var(--muted);font-size:11px}
+.lb figcaption .of{margin-left:auto;color:var(--dim);font-size:11px}
 .lb-nav{position:absolute;top:50%;transform:translateY(-50%);width:52px;height:76px;
-  font-size:30px;line-height:1;color:var(--muted);background:rgba(20,26,34,.7);
+  font-size:11px;line-height:1;color:var(--muted);background:rgba(20,26,34,.7);
   border:1px solid var(--line)}
 .lb-nav:hover{color:var(--text);border-color:var(--accent)}
 .lb-nav.prev{left:16px}
 .lb-nav.next{right:16px}
 .lb-x{position:absolute;top:16px;right:16px;padding:7px 12px;border:1px solid var(--line);
-  font-family:var(--mono);font-size:12px;color:var(--muted)}
+  font-family:var(--mono);font-size:11px;color:var(--muted)}
 .lb-x:hover{color:var(--text);border-color:var(--accent)}
-@media (max-width:760px){.lb-nav{width:40px;height:60px;font-size:24px}}
+@media (max-width:760px){.lb-nav{width:40px;height:60px;font-size:11px}}
 
 /* nano banana — the frame handed back as a photograph, at the size the
    walkthrough itself runs at, so flipping between the two is a flip and not a
@@ -162,12 +165,12 @@ a.btn{color:inherit;text-decoration:none}
   padding:5px 9px;background:rgba(20,26,34,.78);border:1px solid var(--line);
   backdrop-filter:blur(7px)}
 .nb .head .rm{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
-  font-size:11.5px;font-weight:600;color:var(--accent)}
+  font-size:11px;font-weight:600;color:var(--accent)}
 .nb .head .cp{font-size:11px;color:var(--dim)}
-.nb .head .stale{font-size:10.5px;color:var(--warn)}
+.nb .head .stale{font-size:11px;color:var(--warn)}
 .nb-bar{width:min(760px,94vw)}
 .nb-bar textarea{flex:1 1 220px;min-width:140px;height:28px;padding:5px 9px;resize:none;
-  font:inherit;font-size:11.5px;color:var(--text);background:rgba(12,15,20,.55);
+  font:inherit;font-size:11px;color:var(--text);background:rgba(12,15,20,.55);
   border:1px solid var(--line-soft)}
 .nb-bar textarea::placeholder{color:var(--dim)}
 .nb-bar textarea:focus{outline:none;border-color:var(--accent)}
@@ -177,7 +180,7 @@ a.btn{color:inherit;text-decoration:none}
 @media (prefers-reduced-motion:reduce){.nb-bar i{animation-duration:2.4s}}
 .btn:disabled{opacity:.4;cursor:default;border-color:transparent;color:var(--dim)}
 .nb-status{position:absolute;left:0;right:0;bottom:60px;margin:0 auto;width:fit-content;
-  max-width:min(70ch,90vw);text-align:center;font-size:11.5px;line-height:1.4;
+  max-width:min(70ch,90vw);text-align:center;font-size:11px;line-height:1.4;
   color:var(--muted);text-shadow:0 1px 3px rgba(8,10,14,.9)}
 .nb-status.is-busy{color:var(--warn)}
 .nb-status.is-bad{color:var(--bad)}
@@ -186,11 +189,11 @@ a.btn{color:inherit;text-decoration:none}
 /* left behind over the live view, so the photograph is one press away back */
 .nb-chip{position:absolute;left:14px;top:38px;display:flex;align-items:baseline;gap:7px;
   padding:4px 9px;background:rgba(20,26,34,.82);border:1px solid var(--line);
-  backdrop-filter:blur(7px);font-size:10.5px;color:var(--dim)}
+  backdrop-filter:blur(7px);font-size:11px;color:var(--dim)}
 .nb-chip b{font-family:var(--label);text-transform:uppercase;letter-spacing:.1em;
   font-size:11px;font-weight:600;color:var(--accent)}
 .nb-chip kbd{font-family:var(--mono);background:var(--accent);color:#0C0F14;
-  padding:0 5px;font-size:9.5px;font-weight:600}
+  padding:0 5px;font-size:11px;font-weight:600}
 
 /* gate / pause */
 .gate{position:absolute;inset:0;display:grid;place-items:center;
@@ -199,18 +202,18 @@ a.btn{color:inherit;text-decoration:none}
 .card{width:min(452px,88vw);background:rgba(16,21,28,.94);border:1px solid var(--line);
   padding:26px 28px 22px}
 .card h2{margin:0;font-family:var(--label);text-transform:uppercase;letter-spacing:.09em;
-  font-size:27px;font-weight:600;text-wrap:balance}
-.card p{margin:10px 0 0;color:var(--muted);line-height:1.55;font-size:13.5px}
+  font-size:11px;font-weight:600;text-wrap:balance}
+.card p{margin:10px 0 0;color:var(--muted);line-height:1.55;font-size:11px}
 .keys{display:grid;grid-template-columns:auto 1fr;gap:7px 14px;margin:20px 0 22px;
-  padding-top:18px;border-top:1px solid var(--line-soft);font-size:12.5px;color:var(--muted)}
-.keys b{font-family:var(--mono);font-size:11.5px;color:var(--text);font-weight:500}
+  padding-top:18px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted)}
+.keys b{font-family:var(--mono);font-size:11px;color:var(--text);font-weight:500}
 .gate .row{display:flex;gap:10px}
-.hint{margin-top:14px;font-size:11.5px;color:var(--dim)}
+.hint{margin-top:14px;font-size:11px;color:var(--dim)}
 @media (max-width:760px){
   .rail .meta,.caveat{display:none}
   .section,.plan{width:170px}
   .plan canvas{height:150px}
-  .here .room{font-size:17px}
+  .here .room{font-size:11px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>

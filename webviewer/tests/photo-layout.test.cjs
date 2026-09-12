@@ -11,7 +11,9 @@ b=runpy.run_path('build.py')
 s=b['build_scene'](Path('../floor-data-saved'))
 before=copy.deepcopy(s)
 b['cut_openings'](s,Path('photos.json'))
-print(json.dumps({'before':before,'after':s}))
+edited=copy.deepcopy(before)
+b['edit_walls'](edited,Path('photos.json'))
+print(json.dumps({'before':before,'after':s,'edited':edited}))
 `],{cwd:root,encoding:'utf8'}));
 const roomMap=JSON.parse(fs.readFileSync(path.join(root,'photos.json')));
 
@@ -31,7 +33,7 @@ test('photo corrections preserve scan dimensions and existing openings',()=>{
  }
 });
 
-test('east bedroom gets a floor-level entrance separate from its closed closet',()=>{
+test('east office gets a floor-level entrance; the one closet left with sliders is the media room\'s',()=>{
  const walls=result.after.levels[1].walls;
  const entrance=walls.find(w=>w.c[0]===1.189&&w.c[2]===-3.382);
  assert.equal(entrance.holes.length,1);
@@ -41,14 +43,21 @@ test('east bedroom gets a floor-level entrance separate from its closed closet',
  assert.ok(Math.abs(entrance.c[1]+hole.y0-result.after.levels[1].elevation)<0.002);
  assert.ok(hole.x0>=-entrance.w/2&&hole.x1<=entrance.w/2);
  const closets=result.after.levels.flatMap(l=>l.walls.flatMap(w=>w.holes.filter(h=>h.style==='closet-slider')));
- assert.equal(closets.length,2);
+ assert.equal(closets.length,1);
  assert.ok(closets.every(h=>h.x1-h.x0>1.7));
 });
 
-test('east roof covers the closet length while stopping before the high side window',()=>{
- const roof=roomMap.rooms.find(r=>r.name==='East bedroom').finishes.roof;
+// The closet wall is removed by annotation and its strip given to the room
+// as floor, so the roof is measured against the scan's own wall and the
+// patch that replaced it.
+test('east office: the closet wall is gone, its floor is the room\'s, and the roof still stops before the high side window',()=>{
+ const roof=roomMap.rooms.find(r=>r.name==='East office').finishes.roof;
  const walls=result.after.levels[1].walls;
  const closet=walls.find(w=>w.c[0]===2.801);
+ assert.ok(closet,'the scan has the closet wall');
+ const edited=result.edited.levels[1];
+ assert.ok(!edited.walls.some(w=>w.c[0]===2.801),'and the annotation takes it out');
+ assert.equal(edited.floors.length,result.before.levels[1].floors.length+1,'with the closet strip added as floor');
  const toV=(x,z)=>Math.sin(roof.yaw)*x+Math.cos(roof.yaw)*z;
  const closetEnd=toV(closet.c[0],closet.c[2])+closet.w/2;
  assert.ok(Math.abs(roof.v1-closetEnd)<0.02);

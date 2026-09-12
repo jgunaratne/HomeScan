@@ -36,6 +36,10 @@ export const PRODUCTS = {
     retailer:'Room & Board', name:'Linden Dining Table (72")', dims:[1.83, 0.74, 0.91],
     url:'https://www.roomandboard.com/search?query=linden%20table',
     finish:'White oak', make:'diningTable', mats:{top:'oak', leg:'oak'}},
+  'roomandboard/linden-table-96': {
+    retailer:'Room & Board', name:'Linden Dining Table (96")', dims:[2.44, 0.74, 1.02],
+    url:'https://www.roomandboard.com/search?query=linden%20table',
+    finish:'White oak', make:'diningTable', mats:{top:'oak', leg:'oak'}},
   'roomandboard/slim-end-table': {
     retailer:'Room & Board', name:'Slim End Table', dims:[0.51, 0.56, 0.51],
     url:'https://www.roomandboard.com/search?query=slim%20end%20table',
@@ -96,6 +100,14 @@ export const PRODUCTS = {
     retailer:'Room & Board', name:'Woodwind Bookcase (36w 72h)', dims:[0.91, 1.83, 0.43],
     url:'https://www.roomandboard.com/search?query=woodwind%20bookcase',
     finish:'White oak', make:'bookcase', mats:{frame:'oak'}},
+  'roomandboard/parsons-desk-60': {
+    retailer:'Room & Board', name:'Parsons Desk (60")', dims:[1.52, 0.74, 0.76],
+    url:'https://www.roomandboard.com/search?query=parsons%20desk',
+    finish:'White oak top on a natural steel base', make:'desk', mats:{top:'oak', leg:'black'}},
+  'westelm/slope-office-chair': {
+    retailer:'West Elm', name:'Slope Office Chair', dims:[0.6, 0.86, 0.6],
+    url:'https://www.westelm.com/search/results.html?words=slope+office+chair',
+    finish:'Saddle leather on a black base', make:'officeChair', mats:{fabric:'leather', leg:'black'}},
   'crateandbarrel/parsons-console': {
     retailer:'Crate & Barrel', name:'Parsons Console Table', dims:[1.22, 0.74, 0.41],
     url:'https://www.crateandbarrel.com/search?query=parsons%20console%20table',
@@ -469,6 +481,34 @@ export const MAKERS = {
     g.add(box(MAT.black, 0.42, 0.012, 0.3, -w*0.22, y0 + h + 0.006, 0));
     books(g, -w*0.22, y0 + h + 0.012, 0, 0.15);
     bowl(g, w*0.25, y0 + h, 0, 0.11);
+  },
+  // Parsons desk: the same frame at desk height, with a laptop open on it, a
+  // lamp at one end and a pot of pens.
+  desk(g, w, h, d, f, m){
+    const y0 = -h/2, top = 0.03;
+    g.add(box(M(m.top), w, top, d, 0, y0 + h - top/2, 0));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(box(M(m.leg), 0.025, h - top, 0.025, sx*(w/2 - 0.0125), y0 + (h - top)/2, sz*(d/2 - 0.0125)));
+    for (const s of [-1, 1]) g.add(box(M(m.leg), w, 0.025, 0.025, 0, y0 + h - top - 0.0125, s*(d/2 - 0.0125)));
+    g.add(box(MAT.inox, 0.31, 0.012, 0.22, 0, y0 + h + 0.006, f*0.02));
+    const lid = box(MAT.inox, 0.31, 0.21, 0.006, 0, y0 + h + 0.115, -f*0.10); lid.rotation.x = f*0.25; g.add(lid);
+    const screen = box(MAT.screen, 0.29, 0.19, 0.002, 0, y0 + h + 0.115, -f*0.096); screen.rotation.x = f*0.25; g.add(screen);
+    lamp(g, -w*0.38, y0 + h, -f*d*0.2);
+    g.add(tube(MAT.charcoal, 0.04, 0.1, w*0.33, y0 + h + 0.05, -f*d*0.15));
+  },
+  // West Elm Slope office chair: the Slope shell on a five-star base with
+  // casters, a gas lift between.
+  officeChair(g, w, h, d, f, m){
+    const y0 = -h/2, seat = 0.46, fabric = M(m.fabric), leg = M(m.leg);
+    g.add(cushion(fabric, w, 0.07, d, 0, y0 + seat - 0.035, 0));
+    const b = cushion(fabric, w, h - seat, 0.06, 0, y0 + seat + (h - seat)/2 - 0.01, -f*(d/2 - 0.04));
+    b.rotation.x = -f*0.14; g.add(b);
+    g.add(tube(leg, 0.02, seat - 0.12, 0, y0 + 0.06 + (seat - 0.12)/2, 0));
+    for (let i=0;i<5;i++){
+      const a = i*Math.PI*2/5, arm = tube(leg, 0.012, 0.3, Math.sin(a)*0.15, y0 + 0.05, Math.cos(a)*0.15);
+      arm.rotation.z = Math.PI/2; arm.rotation.y = -a + Math.PI/2; g.add(arm);
+      g.add(tube(leg, 0.025, 0.02, Math.sin(a)*0.29, y0 + 0.025, Math.cos(a)*0.29, 'x'));
+    }
   },
   // Parsons: an oak slab on a black steel frame, open below.
   console(g, w, h, d, f, m){

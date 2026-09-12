@@ -642,6 +642,21 @@ every photograph of a room has and a flat irradiance field does not. The oak
 floor is satin rather than matte, so the screen-space reflections have
 something to do.
 
+**The rooms, as they are now used.** Downstairs: the dining room has a 96"
+Linden and eight Slope chairs on a rug and nothing else; the living room its
+Metro 98", two Cavetts, the coffee table and the television over the plaster
+fireplace; the main-floor bedroom is a media room — the Andes sectional facing
+a 72" television over the Anton console, a bookcase beside it — with the
+scanned bed and nightstands dropped. Upstairs: the primary and west bedrooms
+are bedrooms; the two rooms under the roof slopes are offices, a Parsons desk
+and a Slope office chair each with a Woodwind bookcase, and the east one has
+its closet taken out — the wall removed and the closet's strip added back as
+floor by `finishes.removeWalls` and `finishes.floorPatches`. The two upstairs
+bathrooms are two rooms either side of one wall, each with its shower at the
+far end and its toilet and vanity along one wall; the north one has a door cut
+from the primary bedroom, which makes it the en-suite. The door from the
+garage into the laundry is on the garage's far wall, where IMG_0703 shows it.
+
 **Which way the boards run.** The house sits thirty degrees off the scene's
 axes, and boards laid on those axes cross every room diagonally.
 `finishes.boards` is a wall yaw, and the boards run along it — here the

@@ -49,8 +49,11 @@ test('a room may list candidates per category, and the first the box takes wins'
 test('every product photos.json asks for is in the catalogue',()=>{
   const data=JSON.parse(fs.readFileSync(path.join(__dirname,'../photos.json'),'utf8'));
   let asked=0;
-  for(const room of data.rooms)for(const keys of Object.values(room.furnishings||{}))
-    for(const key of [].concat(keys)){assert.ok(PRODUCTS[key],`${room.name} asks for ${key}`);asked++;}
+  for(const room of data.rooms){
+    for(const keys of Object.values(room.furnishings||{}))
+      for(const key of [].concat(keys)){assert.ok(PRODUCTS[key],`${room.name} asks for ${key}`);asked++;}
+    for(const p of room.place||[])if(p.product){assert.ok(PRODUCTS[p.product],`${room.name} places ${p.product}`);asked++;}
+  }
   assert.ok(asked>10);
 });
 

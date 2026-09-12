@@ -336,6 +336,22 @@ export function dressFittings(L){
   // one — placed outright by `place`, settled the same way, and given a
   // collision box and a plan box since no scanned box stands in for them.
   for (const room of L.rooms) for (const spec of room.place || []){
+    if (spec.tv){
+      // A television on a named wall: a black panel on the wall face, its
+      // centre `height` above the floor, `along` metres from the wall's centre.
+      const w = L.walls.find(w => Math.hypot(w.c[0] - spec.wallAt[0], w.c[2] - spec.wallAt[1]) < 0.1);
+      if (!w) continue;
+      const dir = [Math.cos(w.yaw), -Math.sin(w.yaw)], n = [Math.sin(w.yaw), Math.cos(w.yaw)];
+      const side = (room.at[0] - w.c[0])*n[0] + (room.at[1] - w.c[2])*n[1] >= 0 ? 1 : -1;
+      const along = spec.along ?? 0, tw = spec.tv, th = tw*9/16, off = WALL_T/2 + 0.025;
+      const g = new THREE.Group();
+      g.add(box(MAT.black, tw, th, 0.03, 0, 0, 0));
+      g.add(box(MAT.screen, tw - 0.02, th - 0.02, 0.006, 0, 0, 0.018));
+      g.position.set(w.c[0] + dir[0]*along + n[0]*side*off, L.elevation + (spec.height ?? 1.3), w.c[2] + dir[1]*along + n[1]*side*off);
+      g.rotation.y = w.yaw + (side < 0 ? Math.PI : 0);
+      g.visible = false; L.furn.add(g); L.designed.push(g);
+      continue;
+    }
     if (spec.rug){
       // A rug placed outright, at its own size, with the same border.
       const [rw, rd] = spec.rug, yaw = spec.yaw ?? 0;

@@ -66,15 +66,24 @@ const brief = walking => [
         : ' No roof, no extra storey, no landscaping that is not already there.')
     + ' Remove nothing either.',
   '',
-  'Change one thing only: how real the surfaces and the light are. Give the surfaces that are'
-    + ' already there their true material — grain and plank joints in wood, the tooth of painted'
-    + ' plaster, irregular brick with real mortar, weave in fabric, real glass — and light it'
+  'Change one thing only: how real the surfaces and the light are, and make that change'
+    + ' complete. The result must be indistinguishable from a photograph taken in the room by'
+    + ' an estate-agent photographer with a full-frame camera and a 24 mm lens at f/5.6 —'
+    + ' never a rendering, a visualisation or a 3D model. Nothing in it may look computer-made:'
+    + ' no perfectly even lighting, no flawless flat surfaces, no plastic sheen, no clean'
+    + ' geometric edges, no uniform colour. Give the surfaces that are already there their'
+    + ' true material as a camera would record it — grain, plank joints and the odd scuff in'
+    + ' wood; the fine tooth of painted plaster and its slightly uneven roller finish; weave'
+    + ' and creasing in fabric; real glass with faint reflections of the room in it; metal'
+    + ' with fingerprints and brushed grain — and light it'
     + (walking
-        ? ' with daylight through the windows that are already in the frame, with soft falloff,'
-          + ' bounce, and contact shadows where objects already meet the floor.'
+        ? ' with real daylight through the windows that are already in the frame: bright near'
+          + ' the glass and falling off into the room, warm bounce from the floor, soft contact'
+          + ' shadows where objects meet the floor and darker corners where the walls meet.'
         : ' with real daylight from the same direction as the shadow already on the ground.')
-    + " Add the ordinary imperfections of a photograph: slight vignetting, fine grain, a real"
-    + " lens's depth of field.",
+    + ' Add the ordinary marks of a real camera: correct exposure with the windows a little'
+    + ' blown, natural white balance, slight vignetting, faint sensor noise in the shadows,'
+    + ' a little softness at the edges of the frame, and a real lens\'s depth of field.',
   '',
   'Someone who knows this house must be able to lay your photograph over the render and find'
     + ' every edge in the same place. No text, labels or watermarks.',
