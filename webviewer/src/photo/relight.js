@@ -165,6 +165,8 @@ export const WOODS = {
 // repeat — two, so each is 775 mm, a 30" rectified tile.
 export const TILES = {
   'tile-porcelain': {r:206, g:203, b:197, across:2, roughness:0.5},
+  // A garage floor: one slab, no joints, the cloud of a trowelled finish.
+  'concrete': {r:152, g:151, b:148, across:1, grout:0, roughness:0.85},
 };
 // A wall or ceiling finish may name a paint outright, as '#rrggbb'. That is
 // what "paint all the walls white" is: not a sample flattened to its own

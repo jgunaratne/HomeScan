@@ -38,18 +38,11 @@ test('photo corrections preserve scan dimensions and existing openings',()=>{
  }
 });
 
-test('east office gets a floor-level entrance; no closet is left with sliders',()=>{
- const walls=result.after.levels[1].walls;
- const entrance=walls.find(w=>w.c[0]===1.189&&w.c[2]===-3.382);
- assert.equal(entrance.holes.length,1);
- const hole=entrance.holes[0];
- assert.equal(hole.k,'door');
- assert.ok(Math.abs(hole.x1-hole.x0-0.8)<1e-9);
- assert.ok(Math.abs(entrance.c[1]+hole.y0-result.after.levels[1].elevation)<0.002);
- assert.ok(hole.x0>=-entrance.w/2&&hole.x1<=entrance.w/2);
+test('east office: the wall with its scanned entrance is removed, so the room opens to the hall; no closet keeps sliders',()=>{
+ const edited=result.edited.levels[1].walls;
+ assert.ok(!edited.some(w=>w.c[0]===1.189&&w.c[2]===-3.382),'the door wall beside the desk is gone');
  const closets=result.after.levels.flatMap(l=>l.walls.flatMap(w=>w.holes.filter(h=>h.style==='closet-slider')));
  assert.equal(closets.length,0);
- assert.ok(closets.every(h=>h.x1-h.x0>1.7));
 });
 
 // The closet wall is removed by annotation and its strip given to the room

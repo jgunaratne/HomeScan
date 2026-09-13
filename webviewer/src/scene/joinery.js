@@ -88,6 +88,15 @@ function closedLeaves(host, w, o, kind){
     for (let i=0;i<4;i++)
       g.add(box(MAT.slab, ow - 0.02, oh/4 - 0.012, 0.04, 0, -oh/2 + oh/4*(i + 0.5), 0));
     g.name='Garage door';
+  } else if (kind === 'slab'){
+    // An interior door, shut: the flush slab with its black lever, in the
+    // plane of the wall.
+    g.add(box(MAT.slab, ow - 0.02, oh - 0.03, 0.04, 0, 0, 0));
+    for (const side of [-1, 1]){
+      g.add(box(MAT.black, 0.05, 0.05, 0.008, ow/2 - 0.075, -oh*0.06, side*0.024));
+      g.add(tube(MAT.black, 0.008, 0.05, ow/2 - 0.075, -oh*0.06, side*0.05, 'z'));
+      g.add(tube(MAT.black, 0.008, 0.12, ow/2 - 0.075 - 0.055, -oh*0.06, side*0.072, 'x'));
+    }
   } else if (kind === 'slider'){
     for (const s of [-1, 1]){
       const pw = ow/2 + 0.02;
@@ -118,7 +127,7 @@ function closedLeaves(host, w, o, kind){
 // floor wins. If none does — a doorway too tight to swing into — there is no
 // leaf, which is better than one buried in a wall. A door to outside — one
 // side of it off the floor — is closed instead, see above.
-export function doorLeaf(host, L, w, o, blockers, sliders = new Set()){
+export function doorLeaf(host, L, w, o, blockers, sliders = new Set(), closed = new Set()){
   const ow = o.x1 - o.x0, oh = o.y1 - o.y0;
   if (ow < 0.6 || oh < 1.4) return;
   if(o.style === 'closet-slider'){
@@ -130,11 +139,12 @@ export function doorLeaf(host, L, w, o, blockers, sliders = new Set()){
     const nx = Math.sin(w.yaw), nz = Math.cos(w.yaw);
     const cx = w.c[0] + Math.cos(w.yaw)*mid, cz = w.c[2] - Math.sin(w.yaw)*mid;
     const inside = onFloor(L, cx + nx*0.4, cz + nz*0.4) && onFloor(L, cx - nx*0.4, cz - nz*0.4);
+    const key = w.c[0].toFixed(2) + ',' + w.c[2].toFixed(2);
     if (!inside){
-      const key = w.c[0].toFixed(2) + ',' + w.c[2].toFixed(2);
       closedLeaves(host, w, o, ow > 2.4 ? 'garage' : sliders.has(key) ? 'slider' : 'door');
       return;
     }
+    if (closed.has(key)){ closedLeaves(host, w, o, 'slab'); return; }
   }
   if (ow > 1.25) return;
   for (const hs of [-1, 1]) for (const sw of [-1, 1]){

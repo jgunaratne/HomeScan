@@ -369,6 +369,8 @@ export function dressFittings(L){
     const dims = p.dims, f = 1, g = product(spec.product, dims, f);
     if (!g) continue;
     g.position.set(spec.at[0], L.elevation + dims[1]/2, spec.at[1]); g.rotation.y = spec.yaw ?? 0;
+    // `mirror` swaps a handed piece — a sectional's chaise to its other end.
+    if (spec.mirror) g.scale.x = -1;
     const at = settle(fits, g.position.x, g.position.z, g.rotation.y, dims[0], dims[2], f, crossing);
     if (!at) continue;
     g.position.x = at.x; g.position.z = at.z;

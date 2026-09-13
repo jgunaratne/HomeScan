@@ -119,7 +119,7 @@ test('the shipped scan declares finishes that group into one ceiling a storey',(
   for(const r of rooms){
     const f=r.finishes.floor;
     if(!f) continue;
-    assert.match(f,/^(timber|tile)-[a-z-]+$/,`${r.name} names a floor nothing will lay`);
+    assert.match(f,/^(timber-[a-z-]+|tile-[a-z-]+|concrete)$/,`${r.name} names a floor nothing will lay`);
     if(!f.startsWith('timber')) continue;
     if(!woods.has(f)) woods.set(f,new Set());
     woods.get(f).add(r.level);
@@ -146,10 +146,10 @@ test('every room is painted the one white, by default rather than each by hand',
 test('the halls are declared, photographless, and named onto their storey\'s wood',()=>{
   const rooms=shipped();
   const halls=rooms.filter(r=>!r.photos||!r.photos.length);
-  assert.equal(halls.length,2);
+  assert.equal(halls.length,5,'two halls, the en-suite, the primary closet and the garage are declared without photographs');
   for(const hall of halls){
     assert.ok(hall.at&&hall.at.length===2,`${hall.name} needs an anchor above all else`);
-    assert.match(hall.finishes.floor,/^timber-/,`${hall.name} must name its boards`);
+    if(/hall/.test(hall.name))assert.match(hall.finishes.floor,/^timber-/,`${hall.name} must name its boards`);
   }
   const bywood=Object.fromEntries(halls.map(h=>[h.name,h.finishes.floor]));
   assert.equal(bywood['Downstairs hall'],'timber-white-oak');
@@ -160,12 +160,13 @@ test('the halls are declared, photographless, and named onto their storey\'s woo
 // laundry, whose photograph shows white tile. That is the brief, not the scan.
 test('every room is hardwood unless it is a bathroom',()=>{
   const rooms=shipped();
-  const tiled=new Set(['Hall bathroom','Upstairs bathrooms']);
+  const tiled=new Set(['Hall bathroom','Upstairs bathroom','Primary en-suite']);
   for(const r of rooms){
     if(tiled.has(r.name)){
       assert.equal(r.finishes.floor,'tile-porcelain',`${r.name} is tiled`);
       continue;
     }
+    if(r.name==='Garage'){assert.equal(r.finishes.floor,'concrete');continue;}
     assert.equal(r.finishes.floor,'timber-white-oak',`${r.name} must be the house's one wood`);
   }
 });

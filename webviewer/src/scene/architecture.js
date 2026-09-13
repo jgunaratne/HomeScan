@@ -49,7 +49,7 @@ function stairFlight(o, elevation, rise, annotation){
   return g;
 }
 
-function brickFireplace(w,h,d,photoBrick){
+function brickFireplace(w,h,d,photoBrick,tv){
   const g = new THREE.Group(), radius=w*0.255, base=h*0.13, spring=h*0.48;
   const brick = photoBrick || new THREE.MeshStandardMaterial({color:0xa66c50,roughness:0.93,envMapIntensity:0.3});
   if(!photoBrick){brick.color.convertSRGBToLinear();
@@ -102,6 +102,13 @@ function brickFireplace(w,h,d,photoBrick){
     colour.setRGB(0.85+(i%7)*0.023,0.85+(i%5)*0.025,0.82+(i%3)*0.04);masonry.setColorAt(i,colour);
   });g.add(masonry);
   g.add(box(mantel,w+0.10,0.15,d+0.085,0,h-0.075,0.025));
+  // The television over the mantel, on the wall above the brick — where the
+  // August photographs have it.
+  if(tv>0){
+    const th=tv*9/16,y=h+0.12+th/2;
+    g.add(box(MAT.black,tv,th,0.03,0,y,-d/2+0.03));
+    g.add(box(MAT.screen,tv-0.02,th-0.02,0.006,0,y,-d/2+0.048));
+  }
   g.add(box(iron,radius*1.58,h*0.29,0.015,0,base+h*0.18,d/2-0.035));
   for(const s of [-1,1])g.add(box(MAT.steel,0.015,h*0.29,0.02,s*radius*0.8,base+h*0.18,d/2-0.023));
   g.name='Photo-guided brick fireplace';return g;
@@ -157,7 +164,7 @@ export function dressArchitecture(L,next){
     const nx=Math.sin(w.yaw),nz=Math.cos(w.yaw);
     const side=(room.at[0]-w.c[0])*nx+(room.at[1]-w.c[2])*nz>=0?1:-1;
     const g=spec.finish==='plaster'?plasterFireplace(spec.width,spec.height,spec.depth,spec.tv)
-      :brickFireplace(spec.width,spec.height,spec.depth,room.mats?.brick);
+      :brickFireplace(spec.width,spec.height,spec.depth,room.mats?.brick,spec.tv);
     g.position.set(w.c[0]+nx*side*(WALL_T/2+spec.depth/2),L.elevation,w.c[2]+nz*side*(WALL_T/2+spec.depth/2));
     g.rotation.y=w.yaw+(side<0?Math.PI:0);L.trim.add(g);
   }

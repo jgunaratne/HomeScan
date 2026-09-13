@@ -112,6 +112,10 @@ export const PRODUCTS = {
     retailer:'Room & Board', name:'Parsons Desk (60")', dims:[1.52, 0.74, 0.76],
     url:'https://www.roomandboard.com/search?query=parsons%20desk',
     finish:'White oak top on a natural steel base', make:'desk', mats:{top:'oak', leg:'black'}},
+  'roomandboard/parsons-desk-72': {
+    retailer:'Room & Board', name:'Parsons Desk (72")', dims:[1.83, 0.74, 0.76],
+    url:'https://www.roomandboard.com/search?query=parsons%20desk',
+    finish:'White oak top on a natural steel base, with two 32" monitors', make:'workstation', mats:{top:'oak', leg:'black'}},
   'westelm/slope-office-chair': {
     retailer:'West Elm', name:'Slope Office Chair', dims:[0.6, 0.86, 0.6],
     url:'https://www.westelm.com/search/results.html?words=slope+office+chair',
@@ -456,13 +460,17 @@ export const MAKERS = {
     const fabric = M(m.fabric);
     g.add(box(MAT.black, w - 0.06, plinth, d - 0.08, 0, y0 + plinth/2, 0));
     g.add(box(fabric, w, seatTop - plinth - 0.17, d, 0, y0 + plinth + (seatTop - plinth - 0.17)/2, 0));
+    // The upholstered back frame, full width and full height, that the loose
+    // cushions lean on — without it the sofa was open at the back.
+    const frame = 0.12;
+    g.add(box(fabric, w, h - plinth - 0.01, frame, 0, y0 + plinth + (h - plinth - 0.01)/2, -f*(d - frame)/2));
     const inner = w - arm*2;
     for (const s of [-1, 1]){
-      const seat = cushion(fabric, inner/2 - 0.015, 0.18, d - back - 0.05, s*inner/4, y0 + seatTop - 0.08, f*(back/2 + 0.01));
+      const seat = cushion(fabric, inner/2 - 0.015, 0.18, d - back - frame - 0.03, s*inner/4, y0 + seatTop - 0.08, f*((back + frame)/2 - 0.01));
       g.add(seat);
-      cushionSeam(g, inner/2 - 0.04, d - back - 0.08, s*inner/4, y0 + seatTop + 0.012, f*(back/2 + 0.01), fabric);
-      const b = cushion(fabric, inner/2 - 0.03, h - seatTop + 0.1, back, s*inner/4, y0 + seatTop - 0.02 + (h - seatTop + 0.1)/2, -f*(d - back)/2 + f*0.02);
-      b.rotation.x = -f*0.16; g.add(b);
+      cushionSeam(g, inner/2 - 0.04, d - back - frame - 0.06, s*inner/4, y0 + seatTop + 0.012, f*((back + frame)/2 - 0.01), fabric);
+      const b = cushion(fabric, inner/2 - 0.03, h - seatTop + 0.06, back, s*inner/4, y0 + seatTop - 0.02 + (h - seatTop + 0.06)/2, -f*(d/2 - frame - back/2));
+      b.rotation.x = -f*0.12; g.add(b);
       g.add(box(fabric, arm, seatTop + 0.1 - plinth, d, s*(w - arm)/2, y0 + plinth + (seatTop + 0.1 - plinth)/2, 0));
     }
     pillow(g, MAT.ivory, 0.5, -(inner/2 - 0.3), y0 + seatTop + 0.26, -f*(d - back)/2 + f*0.24, -f*0.16, -0.18);
@@ -532,6 +540,29 @@ export const MAKERS = {
     const screen = box(MAT.screen, 0.29, 0.19, 0.002, 0, y0 + h + 0.115, -f*0.096); screen.rotation.x = f*0.25; g.add(screen);
     lamp(g, -w*0.38, y0 + h, -f*d*0.2);
     g.add(tube(MAT.charcoal, 0.04, 0.1, w*0.33, y0 + h + 0.05, -f*d*0.15));
+  },
+  // The Parsons desk as a workstation: two 32" monitors side by side on slim
+  // stands, angled a little toward the chair, a keyboard and mouse in front,
+  // the lamp at the far end.
+  workstation(g, w, h, d, f, m){
+    const y0 = -h/2, top = 0.03;
+    g.add(box(M(m.top), w, top, d, 0, y0 + h - top/2, 0));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(box(M(m.leg), 0.025, h - top, 0.025, sx*(w/2 - 0.0125), y0 + (h - top)/2, sz*(d/2 - 0.0125)));
+    for (const s of [-1, 1]) g.add(box(M(m.leg), w, 0.025, 0.025, 0, y0 + h - top - 0.0125, s*(d/2 - 0.0125)));
+    const mw = 0.71, mh = 0.41, deskTop = y0 + h;
+    for (const s of [-1, 1]){
+      const mon = new THREE.Group();
+      mon.position.set(s*(mw/2 + 0.01), deskTop, -f*(d/2 - 0.16)); mon.rotation.y = -s*f*0.12;
+      mon.add(box(MAT.black, 0.22, 0.012, 0.18, 0, 0.006, 0));
+      mon.add(box(MAT.black, 0.04, 0.16, 0.02, 0, 0.09, 0));
+      mon.add(box(MAT.black, mw, mh, 0.03, 0, 0.14 + mh/2, 0.02));
+      mon.add(box(MAT.screen, mw - 0.02, mh - 0.02, 0.004, 0, 0.14 + mh/2, f*0.037));
+      g.add(mon);
+    }
+    g.add(box(MAT.black, 0.36, 0.012, 0.13, -0.05, deskTop + 0.006, f*0.12));
+    g.add(cushion(MAT.black, 0.06, 0.03, 0.1, 0.28, deskTop + 0.015, f*0.12));
+    lamp(g, w*0.42, deskTop, -f*d*0.22);
   },
   // West Elm Slope office chair: the Slope shell on a five-star base with
   // casters, a gas lift between.

@@ -24,7 +24,7 @@
       "level": 0,
       "name": "Living room",
       "floorFrom": "Dining room",
-      "finishes": {"fireplace": {"wallAt": [4.973, -4.721], "width": 1.65, "height": 1.55, "depth": 0.38, "finish": "plaster", "tv": 1.45}},
+      "finishes": {"fireplace": {"wallAt": [4.973, -4.721], "width": 1.65, "height": 1.55, "depth": 0.38, "tv": 1.45}, "samples": {"brick": {"file": "living-room-1.webp", "rect": [0.066, 0.46, 0.035, 0.035]}}},
       "at": [4.2, -2.6],
       "anchor": "section 0 (livingRoom)",
       "furnishings": {"sofa": "crateandbarrel/lounge-ii-sofa-105", "chair": "crateandbarrel/cavett-leather-chair", "storage": ["westelm/mid-century-media-console-80", "crateandbarrel/parsons-console"]},
@@ -88,11 +88,11 @@
     {
       "level": 0,
       "name": "Media room",
-      "finishes": {"openings": [{"wallAt": [-2.391, 3.071], "along": 1.02, "width": 2.12, "height": 2.462, "kind": "opening", "note": "the closet, opened to the ceiling across its width: its alcove is the media wall"}]},
+      "finishes": {"openings": [{"wallAt": [-2.391, 3.071], "along": 1.02, "width": 2.12, "height": 2.462, "kind": "opening", "note": "the closet, opened to the ceiling across its width: its alcove is the media wall"}], "closedDoors": [[-4.08, 0.81]]},
       "at": [-4.8, 2.4],
       "anchor": "section 2 (bedroom)",
       "drop": [[-5.37, 1.92], [-5.63, 0.48], [-6.74, 2.52], [-3.98, 4.37], [-2.56, 4.11], [-3.4, 1.51]],
-      "place": [{"product": "crateandbarrel/lounge-ii-sectional", "at": [-5.65, 1.76], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "roomandboard/woodwind-bookcase-72", "at": [-3.96, 4.27], "yaw": 2.63}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-4.3, 2.55], "yaw": 1.06}],
+      "place": [{"product": "crateandbarrel/lounge-ii-sectional", "at": [-5.65, 1.76], "yaw": 1.06, "mirror": true}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-4.3, 2.55], "yaw": 1.06}],
       "photos": [
         {"file": "main-floor-bedroom-1.webp", "caption": "Closet wall, bathroom through the near door"},
         {"file": "main-floor-bedroom-2.webp", "caption": "From the closet back toward the bathroom"}
@@ -102,7 +102,7 @@
       "level": 0,
       "name": "Laundry",
       "reach": 1.6,
-      "finishes": {"openings": [{"wallAt": [0.01, 2.5], "along": 0.7, "width": 0.85, "height": 2.03, "kind": "door", "source": "august2026/IMG_0703.jpeg — the door into the house is at the far end of the garage, on the left"}]},
+      "finishes": {"openings": [{"wallAt": [-1.0, 3.32], "along": 0, "width": 0.85, "height": 2.03, "kind": "door", "note": "straight ahead from the kitchen, through the hall door, at the laundry's far end (IMG_0700, IMG_0703)"}]},
       "drop": [[0.03, 3.16]],
       "at": [-1.3, 2.3],
       "anchor": "washer/dryer fitting",
@@ -128,11 +128,11 @@
     {
       "level": 1,
       "name": "East office",
-      "finishes": {"openings": [{"wallAt": [1.189, -3.382], "along": 0, "width": 0.8, "height": 2.03, "kind": "door", "source": "east-bedroom-2.webp", "estimated": true}], "removeWalls": [[2.801, -4.546]], "floorPatches": [[[2.608, -5.993], [1.481, -3.919], [2.237, -3.508], [3.365, -5.583]]], "addWalls": [{"from": [2.608, -5.993], "to": [3.365, -5.583]}], "roof": {"yaw": -0.49781, "u0": 0.29, "u1": 2.92, "v0": -6.51, "v1": -4.15, "returnFinish": "ceil", "high": 2.365, "low": 1.45}},
+      "finishes": {"removeWalls": [[2.801, -4.546], [1.189, -3.382], [1.859, -3.714]], "floorPatches": [[[2.608, -5.993], [1.481, -3.919], [2.281, -3.484], [3.409, -5.559]]], "addWalls": [{"from": [2.608, -5.993], "to": [3.365, -5.583]}], "roof": {"yaw": -0.49781, "u0": 0.29, "u1": 2.92, "v0": -6.51, "v1": -4.15, "returnFinish": "ceil", "high": 2.365, "low": 1.45}},
       "at": [3.3, -3.0],
       "anchor": "section 2 (bedroom)",
       "drop": [[3.0, -1.57], [4.98, -3.64], [5.06, -4.15], [4.37, -2.27]],
-      "place": [{"product": "roomandboard/parsons-desk-60", "at": [2.42, -4.75], "yaw": 1.073}, {"product": "westelm/slope-office-chair", "at": [3.15, -4.35], "yaw": -2.0686}, {"product": "roomandboard/woodwind-bookcase-72", "at": [3.1, -1.1], "yaw": 2.644}],
+      "place": [{"product": "roomandboard/parsons-desk-72", "at": [2.42, -4.75], "yaw": 1.073}, {"product": "westelm/slope-office-chair", "at": [3.15, -4.35], "yaw": -2.0686}, {"product": "roomandboard/woodwind-bookcase-72", "at": [3.1, -1.1], "yaw": 2.644}],
       "photos": [
         {"file": "east-bedroom-1.webp", "caption": "Sloped ceiling, both windows"},
         {"file": "east-bedroom-2.webp", "caption": "Closet wall under the slope"},
@@ -170,14 +170,38 @@
     },
     {
       "level": 1,
-      "name": "Upstairs bathrooms",
-      "at": [-3.3, -0.7],
-      "anchor": "section 5 — two rooms either side of one wall: the south one off the west bedroom and the landing, the north one the primary bedroom's en-suite, each with its own toilet and vanity",
-      "finishes": {"floor": "tile-porcelain", "bath": {"showers": [{"wallAt": [-3.71, 0.95], "along": 1.59, "width": 1.1, "depth": 0.8}, {"wallAt": [-4.5, -2.2], "width": 1.43, "depth": 0.9}]}, "openings": [{"wallAt": [-3.29, -2.43], "along": -0.45, "width": 0.8, "height": 2.03, "kind": "door"}]},
+      "name": "Upstairs bathroom",
+      "at": [-3.3, -0.35],
+      "anchor": "section 5 — the south of two bathrooms either side of one wall, off the west bedroom and the landing; the north one is the primary en-suite, declared below",
+      "finishes": {"floor": "tile-porcelain", "bath": {"showers": [{"wallAt": [-3.71, 0.95], "along": 1.59, "width": 1.1, "depth": 0.8}]}},
       "photos": [
         {"file": "upstairs-bathrooms-1.webp", "caption": "Tiled shower and vessel basin"},
         {"file": "upstairs-bathrooms-2.webp", "caption": "Granite vanity and glass shower"}
       ]
+    },
+    {
+      "level": 1,
+      "name": "Primary en-suite",
+      "finishes": {"floor": "tile-porcelain", "bath": {"showers": [{"wallAt": [-4.5, -2.2], "width": 1.43, "depth": 0.9}]}, "openings": [{"wallAt": [-3.29, -2.43], "along": -0.45, "width": 0.8, "height": 2.03, "kind": "door"}]},
+      "at": [-3.3, -1.5],
+      "anchor": "the north of the two bathrooms, off the primary bedroom — declared so its tile stops at its own walls",
+      "photos": []
+    },
+    {
+      "level": 1,
+      "name": "Primary closet",
+      "finishes": {},
+      "at": [-3.5, -3.6],
+      "anchor": "the closet between the en-suite and the primary bedroom, declared so it takes boards rather than the nearest bathroom's tile",
+      "photos": []
+    },
+    {
+      "level": 0,
+      "name": "Garage",
+      "finishes": {"floor": "concrete"},
+      "at": [2.5, 4.5],
+      "anchor": "the scan's sixth space downstairs, behind the 5.35 m door — concrete, not boards",
+      "photos": []
     },
     {
       "level": 0,

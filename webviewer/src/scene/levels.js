@@ -9,9 +9,13 @@ import { fitting } from './fittings.js';
 // Exterior doors photos.json calls sliders, by the centre of their wall: a
 // `"sliders": [[x, z], ...]` under a room's finishes. Every other door to
 // outside is a hinged leaf, or a pair.
-const SLIDERS = new Set();
-for (const r of [...(PHOTOS || []), ...(ROOMS || [])])
+const SLIDERS = new Set(), CLOSED = new Set();
+for (const r of [...(PHOTOS || []), ...(ROOMS || [])]){
   for (const [x, z] of r.finishes?.sliders || []) SLIDERS.add(x.toFixed(2) + ',' + z.toFixed(2));
+  // Interior doors a room wants shut — a bathroom off a media room — by the
+  // centre of the wall they are in.
+  for (const [x, z] of r.finishes?.closedDoors || []) CLOSED.add(x.toFixed(2) + ',' + z.toFixed(2));
+}
 
 export const levels = HOUSE.levels.map(L => build(L));
 
@@ -101,7 +105,7 @@ export function build(L){
       // An opening cut to the ceiling is a recess, not a doorway: no head to
       // case, and jambs would only draw a frame around a room.
       if (o.y1 < w.h/2 - 0.01) casing(trim, w, o, L.elevation, 0.045, o.k === 'window');
-      if (o.k === 'door') doorLeaf(trim, L, w, o, blockers, SLIDERS);
+      if (o.k === 'door') doorLeaf(trim, L, w, o, blockers, SLIDERS, CLOSED);
       if (o.k !== 'window') continue;
       const cx = w.c[0] + Math.cos(w.yaw)*(o.x0+o.x1)/2;
       const cz = w.c[2] - Math.sin(w.yaw)*(o.x0+o.x1)/2;
