@@ -28,7 +28,7 @@
       "at": [4.2, -2.6],
       "anchor": "section 0 (livingRoom)",
       "furnishings": {"sofa": "crateandbarrel/lounge-ii-sofa-105", "chair": "crateandbarrel/cavett-leather-chair", "storage": ["westelm/mid-century-media-console-80"]},
-      "drop": [[4.58, -0.05]],
+      "drop": [[4.58, -0.05], [1.03, -2.42]],
       "place": [{"product": "crateandbarrel/parsons-coffee-table", "at": [3.99, -2.77], "yaw": 2.63}, {"product": "crateandbarrel/cavett-leather-chair", "at": [3.3, -5.05], "yaw": -0.2}, {"rug": [3.2, 2.4], "at": [4.1, -2.9], "yaw": 2.63}],
       "photos": [
         {"file": "living-room-1.webp", "caption": "Fireplace wall, with the stair rail beyond"},
@@ -54,7 +54,7 @@
     {
       "level": 0,
       "name": "Kitchen",
-      "finishes": {"kitchen": {"runs": [{"wallAt": [-3.02, -0.5], "start": -1.995, "uppers": true, "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.47]]}, {"wallAt": [-3.9, -3.14], "start": -1.27, "uppers": true, "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.375]]}, {"wallAt": [-0.99, -1.5], "start": -1.795, "uppers": true, "units": [["base", 0.6], ["base", 0.6], ["base", 0.545]]}]}},
+      "finishes": {"kitchen": {"runs": [{"wallAt": [-3.02, -0.5], "start": -1.995, "uppers": true, "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.47]]}, {"wallAt": [-3.9, -3.14], "start": -1.27, "uppers": true, "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.375]]}, {"wallAt": [-0.99, -1.5], "start": -1.795, "uppers": false, "units": [["bar", 1.745]]}]}},
       "at": [-2.6, -2.4],
       "anchor": "section 4 (kitchen)",
       "floorFrom": "Dining room",
@@ -93,7 +93,7 @@
       "at": [-4.8, 2.4],
       "anchor": "section 2 (bedroom)",
       "drop": [[-5.37, 1.92], [-5.63, 0.48], [-6.74, 2.52], [-3.98, 4.37], [-2.56, 4.11], [-3.4, 1.51]],
-      "place": [{"product": "westelm/andes-sofa-76", "at": [-4.0, 2.7], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-3.15, 3.35], "yaw": 1.06}],
+      "place": [{"product": "westelm/andes-sofa-76", "at": [-5.91, 1.62], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-5.03, 2.11], "yaw": 1.06}],
       "photos": [
         {"file": "main-floor-bedroom-1.webp", "caption": "Closet wall, bathroom through the near door"},
         {"file": "main-floor-bedroom-2.webp", "caption": "From the closet back toward the bathroom"}

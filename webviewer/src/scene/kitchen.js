@@ -1,6 +1,6 @@
 import { WALL_T } from '../core/constants.js';
 import { MAT } from './materials.js';
-import { box, tube, fronts } from './fittings.js';
+import { box, cushion, tube, fronts } from './fittings.js';
 
 // A kitchen laid out rather than scanned. RoomPlan reports the cabinets it saw
 // as boxes, and the boxes say where the old kitchen was; `finishes.kitchen`
@@ -148,6 +148,26 @@ function island(g, len, wid, ceiling, pendant){
   }
 }
 
+// A breakfast bar: an oak slab at bar height on black steel ends, open
+// underneath, with a counter stool tucked in for every 55 cm of it — leather
+// seat on a black frame with a footrest ring.
+const BAR_H = 1.0, BAR_D = 0.5;
+function bar(g, w){
+  g.add(box(MAT.oak, w, 0.04, BAR_D, 0, BAR_H - 0.02, 0));
+  for (const s of [-1, 1]) g.add(box(MAT.black, 0.03, BAR_H - 0.04, BAR_D - 0.06, s*(w/2 - 0.03), (BAR_H - 0.04)/2, 0));
+  g.add(box(MAT.black, w - 0.12, 0.03, 0.03, 0, BAR_H - 0.1, -BAR_D/2 + 0.05));
+  const n = Math.max(1, Math.round(w/0.55)), pitch = w/n;
+  for (let i=0;i<n;i++){
+    const x = -w/2 + pitch*(i + 0.5), z = BAR_D/2 - 0.02, seat = 0.72;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1])
+      g.add(tube(MAT.black, 0.009, seat - 0.04, x + sx*0.15, (seat - 0.04)/2, z + sz*0.15));
+    for (const sx of [-1, 1]) g.add(tube(MAT.black, 0.007, 0.3, x + sx*0.15, 0.22, z, 'z'));
+    for (const sz of [-1, 1]) g.add(tube(MAT.black, 0.007, 0.3, x, 0.22, z + sz*0.15, 'x'));
+    g.add(box(MAT.black, 0.34, 0.02, 0.34, x, seat - 0.05, z));
+    g.add(cushion(MAT.leather, 0.36, 0.05, 0.36, x, seat - 0.015, z));
+  }
+}
+
 const UNIT = {
   base:      (g, w) => { baseUnit(g, w, BASE_D, 'base');   counterTop(g, w, BASE_D); },
   corner:    (g, w) => { baseUnit(g, w, BASE_D, 'corner'); counterTop(g, w, BASE_D); },
@@ -156,9 +176,10 @@ const UNIT = {
   range:     (g, w) => range(g, w, BASE_D),
   fridge:    (g, w, c) => fridge(g, w, TALL_D, c),
   pantry:    (g, w, c) => pantry(g, w, TALL_D, c),
+  bar:       (g, w) => bar(g, w),
 };
 const TALL = new Set(['fridge', 'pantry']);
-const depthOf = kind => TALL.has(kind) ? TALL_D : BASE_D;
+const depthOf = kind => TALL.has(kind) ? TALL_D : kind === 'bar' ? BAR_D : BASE_D;
 
 // Lay one kitchen out for a room, into `host`. Returns what the rest of the
 // viewer needs to know about it: where the body cannot walk, what stops
@@ -192,7 +213,7 @@ export function buildKitchen(L, room, host){
       g.rotation.y = yaw;
       out.group.add(g);
     };
-    let at = (run.start ?? -w.w/2), baseFrom = null, baseTo = null, rangeAt = null;
+    let at = (run.start ?? -w.w/2), baseFrom = null, baseTo = null, rangeAt = null, counters = false;
     for (const [kind, width] of run.units){
       const make = UNIT[kind];
       if (!make){ at += width; continue; }
@@ -200,13 +221,13 @@ export function buildKitchen(L, room, host){
       make(g, width, ceiling);
       const depth = depthOf(kind), mid = at + width/2;
       place(g, mid, width, depth);
-      const h = TALL.has(kind) ? ceiling - 0.02 : COUNTER;
+      const h = TALL.has(kind) ? ceiling - 0.02 : kind === 'bar' ? BAR_H : COUNTER;
       claim(width, h, depth, g.position.x, g.position.z, yaw, TALL.has(kind));
-      if (!TALL.has(kind)){ baseFrom = baseFrom ?? at; baseTo = at + width; }
+      if (!TALL.has(kind)){ baseFrom = baseFrom ?? at; baseTo = at + width; if (kind !== 'bar') counters = true; }
       if (kind === 'range') rangeAt = mid;
       at += width;
     }
-    if (baseFrom === null) continue;
+    if (baseFrom === null || !counters) continue;             // a bar alone wants no splashback or uppers
     // A quartz splashback between counter and uppers along every base unit,
     // dropping to the sill where a window sits in it.
     const splash = (x0, x1, y0, y1) => {
