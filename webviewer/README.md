@@ -662,6 +662,22 @@ far end and its toilet and vanity along one wall; the north one has a door cut
 from the primary bedroom, which makes it the en-suite. The door from the
 garage into the laundry is on the garage's far wall, where IMG_0703 shows it.
 
+**How far toward a game engine this goes.** There is no ray tracing in a
+browser's WebGL, so the chain does what a real-time engine does in its place,
+in screen space and in bakes: a baked directional daylight volume with bounce
+diffused through the plan for the off-screen light; screen-space ambient
+occlusion for the corners and undersides; screen-space bounce (the `gi` pass)
+for colour bleeding between what is on screen — oak onto white paint; screen-
+space reflections on the floors and counters; temporal anti-aliasing to settle
+the noise all three make; and physically based materials throughout, now with
+a clear coat on the oiled oak, the quartz and the leather — a sharp reflection
+over a soft one — and a sheen on the cloths, which is what a bouclé does at a
+grazing angle. Variance shadow maps were tried for a wider penumbra on the
+sun and lost the sun indoors, so the shadows stay PCF. What is still not
+here: light off the parts of the room behind the camera, and true soft
+shadows from the windows as area lights. Those need a path tracer, and the
+Nano Banana button is the honest stand-in — it photographs the frame.
+
 **Which way the boards run.** The house sits thirty degrees off the scene's
 axes, and boards laid on those axes cross every room diagonally.
 `finishes.boards` is a wall yaw, and the boards run along it — here the

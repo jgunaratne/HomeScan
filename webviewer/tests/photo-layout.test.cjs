@@ -25,10 +25,15 @@ test('photo corrections preserve scan dimensions and existing openings',()=>{
   before.walls.forEach((wall,i)=>{
    const changed=after.walls[i];
    for(const key of ['c','w','h','yaw'])assert.deepEqual(changed[key],wall[key]);
-   wall.holes.forEach((hole,j)=>{
-    const {style,...geometry}=changed.holes[j];
-    assert.deepEqual(geometry,hole);
-   });
+   // A scanned hole survives untouched, unless an annotated opening on the
+   // same wall swallows it whole — a closet opened across its width has no
+   // use for its old door — in which case it is gone and the opening covers it.
+   for(const hole of wall.holes){
+    const kept=changed.holes.find(h=>['k','x0','x1','y0','y1'].every(k=>h[k]===hole[k]));
+    if(kept)continue;
+    const swallowed=changed.holes.find(h=>h.k==='opening'&&h.x0<=hole.x0+0.01&&h.x1>=hole.x1-0.01);
+    assert.ok(swallowed,`a hole on wall ${i} of level ${level} vanished without an opening over it`);
+   }
   });
  }
 });

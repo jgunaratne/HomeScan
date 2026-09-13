@@ -429,6 +429,11 @@ def cut_openings(scene, path):
                 print(f'  ! {room["name"]}: no wall at {o["wallAt"]} to cut an opening in', file=sys.stderr)
                 continue
             along, width, height = o.get('along', 0.0), o['width'], o.get('height', 2.03)
+            # An opening cut over a hole the scan already had replaces it — a
+            # closet opened across its width has no use for its old door's
+            # casing hanging in the middle of the new opening.
+            x0, x1 = along - width / 2, along + width / 2
+            wall['holes'] = [h for h in wall['holes'] if not (h['x0'] >= x0 - 0.01 and h['x1'] <= x1 + 0.01)]
             wall['holes'].append({'k': o.get('kind', 'door'),
                                   'x0': round(along - width / 2, 3), 'x1': round(along + width / 2, 3),
                                   'y0': round(-wall['h'] / 2, 3), 'y1': round(-wall['h'] / 2 + height, 3)})

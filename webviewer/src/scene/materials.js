@@ -58,7 +58,9 @@ MAT.dark = new THREE.MeshStandardMaterial({color:0x252a29, roughness:0.48, metal
 // families, reduced to a colour: oatmeal and ivory bouclé-type weaves, one
 // slate sofa, one saddle leather chair.
 const weave = (hex, roughness = 0.92) => {
-  const m = MAT.fabric.clone(); m.color.setHex(hex); m.roughness = roughness;
+  const m = new THREE.MeshPhysicalMaterial({color:hex, roughness, metalness:0,
+    map:MAT.fabric.map, bumpMap:MAT.fabric.bumpMap, bumpScale:MAT.fabric.bumpScale,
+    sheen:new THREE.Color(0x8a8378)});
   m.userData.soft = true;                       // box() rounds it like a cushion
   return m;
 };
@@ -68,7 +70,11 @@ MAT.black   = new THREE.MeshStandardMaterial({color:0x1C1C1C, roughness:0.46, me
 // Brushed stainless for the appliances: `steel` is polished enough to mirror
 // the sky, and a refrigerator that reflects the lake reads as blue glass.
 MAT.inox    = new THREE.MeshStandardMaterial({color:0xC9C7C1, roughness:0.52, metalness:0.55, envMapIntensity:0.5});
-MAT.quartz  = new THREE.MeshStandardMaterial({color:0xF1EFEA, roughness:0.22, metalness:0.0});
+// Physically based where it shows: a clear coat on the quartz and the
+// leather, the way a polished stone and a finished hide reflect a window as
+// a sharp highlight over a soft one; a sheen on the cloths, which is what a
+// bouclé does at a grazing angle and a flat diffuse never will.
+MAT.quartz  = new THREE.MeshPhysicalMaterial({color:0xF1EFEA, roughness:0.32, metalness:0.0, clearcoat:0.6, clearcoatRoughness:0.25});
 MAT.matte   = new THREE.MeshStandardMaterial({color:0xF3F2EE, roughness:0.62, metalness:0.0});
 MAT.slab    = new THREE.MeshStandardMaterial({color:0xEDEBE6, roughness:0.48, metalness:0.0});
 MAT.glassy  = new THREE.MeshStandardMaterial({color:0xDCE8EA, transparent:true, opacity:0.18,
@@ -84,7 +90,7 @@ MAT.charcoal= weave(0x3E4043);
 for (const m of [MAT.oatmeal, MAT.ivory]){
   m.map = m.bumpMap = surfaceTile('boucle', 0.1); m.bumpScale = 0.0016; m.roughness = 0.96;
 }
-MAT.leather = new THREE.MeshStandardMaterial({color:0xA86F44, roughness:0.42, metalness:0.0});
+MAT.leather = new THREE.MeshPhysicalMaterial({color:0xA86F44, roughness:0.5, metalness:0.0, clearcoat:0.25, clearcoatRoughness:0.5});
 MAT.leather.bumpMap = surfaceTile('plaster', 0.3); MAT.leather.bumpScale = 0.0004;
 MAT.leather.userData.soft = true;
 // A flat-woven wool rug, and the cotton of bedding.

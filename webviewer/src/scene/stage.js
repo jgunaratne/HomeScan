@@ -7,6 +7,8 @@ renderer.outputEncoding = THREE.sRGBEncoding;
 // Tone mapping happens at the end of the post chain, in one place, on linear
 // values — so the renderer must not also do it on the way into the buffer.
 renderer.toneMapping = THREE.NoToneMapping;
+// PCF, soft. Variance maps were tried for a wider penumbra and lost the sun
+// altogether indoors — the walls' depth variance shadows everything past them.
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.shadowMap.autoUpdate = false;
 renderer.setClearColor(0x0C0F14);

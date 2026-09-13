@@ -27,7 +27,7 @@
       "finishes": {"fireplace": {"wallAt": [4.973, -4.721], "width": 1.65, "height": 1.55, "depth": 0.38, "finish": "plaster", "tv": 1.45}},
       "at": [4.2, -2.6],
       "anchor": "section 0 (livingRoom)",
-      "furnishings": {"sofa": "roomandboard/metro-sofa-98", "chair": "crateandbarrel/cavett-leather-chair", "storage": ["westelm/mid-century-media-console-80", "crateandbarrel/parsons-console"]},
+      "furnishings": {"sofa": "crateandbarrel/lounge-ii-sofa-105", "chair": "crateandbarrel/cavett-leather-chair", "storage": ["westelm/mid-century-media-console-80", "crateandbarrel/parsons-console"]},
       "place": [{"product": "crateandbarrel/parsons-coffee-table", "at": [3.99, -2.77], "yaw": 2.63}, {"product": "crateandbarrel/cavett-leather-chair", "at": [3.3, -5.05], "yaw": -0.2}, {"rug": [3.2, 2.4], "at": [4.1, -2.9], "yaw": 2.63}],
       "photos": [
         {"file": "living-room-1.webp", "caption": "Fireplace wall, with the stair rail beyond"},
@@ -88,11 +88,11 @@
     {
       "level": 0,
       "name": "Media room",
-      "finishes": {"openings": [{"wallAt": [-2.391, 3.071], "along": 1.02, "width": 2.12, "height": 2.3, "kind": "opening", "note": "the closet, opened up: its alcove becomes the media wall"}]},
+      "finishes": {"openings": [{"wallAt": [-2.391, 3.071], "along": 1.02, "width": 2.12, "height": 2.462, "kind": "opening", "note": "the closet, opened to the ceiling across its width: its alcove is the media wall"}]},
       "at": [-4.8, 2.4],
       "anchor": "section 2 (bedroom)",
-      "drop": [[-5.37, 1.92], [-5.63, 0.48], [-6.74, 2.52], [-3.98, 4.37], [-2.56, 4.11]],
-      "place": [{"product": "westelm/andes-sectional", "at": [-4.55, 2.76], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "roomandboard/woodwind-bookcase-72", "at": [-6.22, 2.98], "yaw": 2.63}],
+      "drop": [[-5.37, 1.92], [-5.63, 0.48], [-6.74, 2.52], [-3.98, 4.37], [-2.56, 4.11], [-3.4, 1.51]],
+      "place": [{"product": "crateandbarrel/lounge-ii-sectional", "at": [-5.65, 1.76], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "roomandboard/woodwind-bookcase-72", "at": [-3.96, 4.27], "yaw": 2.63}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-4.3, 2.55], "yaw": 1.06}],
       "photos": [
         {"file": "main-floor-bedroom-1.webp", "caption": "Closet wall, bathroom through the near door"},
         {"file": "main-floor-bedroom-2.webp", "caption": "From the closet back toward the bathroom"}

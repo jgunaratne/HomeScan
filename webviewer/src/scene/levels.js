@@ -98,7 +98,9 @@ export function build(L){
   // it would swing into, and that is not known until the last panel exists.
   for (const w of holeWalls){
     for (const o of w.holes){
-      casing(trim, w, o, L.elevation, 0.045, o.k === 'window');
+      // An opening cut to the ceiling is a recess, not a doorway: no head to
+      // case, and jambs would only draw a frame around a room.
+      if (o.y1 < w.h/2 - 0.01) casing(trim, w, o, L.elevation, 0.045, o.k === 'window');
       if (o.k === 'door') doorLeaf(trim, L, w, o, blockers, SLIDERS);
       if (o.k !== 'window') continue;
       const cx = w.c[0] + Math.cos(w.yaw)*(o.x0+o.x1)/2;

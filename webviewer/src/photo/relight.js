@@ -124,12 +124,14 @@ const PHYS = {
   floor: {roughness:0.30, relief:11.0, scale:0.55, env:0.58},
   ceil:  {roughness:0.98, relief:0.0,  scale:0.0,  env:0.30},
 };
-function surfMat(canvas, tint, extra, kind){
+function surfMat(canvas, tint, extra, kind, coated = false){
   const k = PHYS[kind] || PHYS.wall;
-  const m = new THREE.MeshStandardMaterial(Object.assign({
+  // A coated floor is physical: the oil on the boards is a thin clear layer
+  // that mirrors the windows sharply where the wood beneath only glows.
+  const m = new (coated ? THREE.MeshPhysicalMaterial : THREE.MeshStandardMaterial)(Object.assign({
     map: tiling(canvas), color: tint,
     roughness: k.roughness, metalness: 0.0, envMapIntensity: k.env,
-  }, extra || {}));
+  }, coated ? {clearcoat:0.35, clearcoatRoughness:0.4} : {}, extra || {}));
   if (k.relief > 0){
     m.normalMap = tiling(reliefFrom(canvas, k.relief), false);
     m.normalScale = new THREE.Vector2(k.scale, k.scale);
@@ -179,7 +181,7 @@ export const paintOf = finish => {
 
 function timberFloor(pick, spec = {}){
   const tiles = plankCanvases(pick, spec);
-  const m = surfMat(tiles.colour, 0xD0D0D0, {side:THREE.DoubleSide}, 'floor');
+  const m = surfMat(tiles.colour, 0xD0D0D0, {side:THREE.DoubleSide}, 'floor', true);
   m.normalMap.dispose();
   m.normalMap = tiling(reliefFrom(tiles.height, 2), false);
   m.normalScale.set(spec.boards ? 0.2 : 0.28, spec.boards ? 0.2 : 0.28);

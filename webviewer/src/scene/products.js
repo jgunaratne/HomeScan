@@ -20,6 +20,10 @@ export const PRODUCTS = {
     retailer:'West Elm', name:'Andes 2-Piece Chaise Sectional', dims:[2.26, 0.81, 1.60],
     url:'https://www.westelm.com/shop/furniture/upholstered-furniture-collection/andes-collection/',
     finish:'Performance Basketweave, Alabaster', make:'sectional', mats:{fabric:'oatmeal', leg:'black'}},
+  'crateandbarrel/lounge-ii-sectional': {
+    retailer:'Crate & Barrel', name:'Lounge II 2-Piece Sectional with Chaise', dims:[2.67, 0.84, 1.6],
+    url:'https://www.crateandbarrel.com/search?query=lounge%20ii%20sectional',
+    finish:'Taft, Cement', make:'sectional', mats:{fabric:'ivory', leg:'black'}},
   'crateandbarrel/gather-sofa-84': {
     retailer:'Crate & Barrel', name:'Gather Sofa (84")', dims:[2.13, 0.84, 0.94],
     url:'https://www.crateandbarrel.com/gather-sofa-77-99/f95805',
@@ -84,6 +88,10 @@ export const PRODUCTS = {
     retailer:'Room & Board', name:'Metro Sofa (98")', dims:[2.49, 0.81, 0.97],
     url:'https://www.roomandboard.com/search?query=metro%20sofa',
     finish:'Tepic, Ivory, on a natural steel base', make:'tightSofa', mats:{fabric:'ivory', leg:'black'}},
+  'crateandbarrel/lounge-ii-sofa-105': {
+    retailer:'Crate & Barrel', name:'Lounge II Sofa (105")', dims:[2.67, 0.84, 1.04],
+    url:'https://www.crateandbarrel.com/search?query=lounge%20ii%20105%20sofa',
+    finish:'Taft, Cement', make:'deepSofa', mats:{fabric:'oatmeal', leg:'black'}},
   'crateandbarrel/cavett-leather-chair': {
     retailer:'Crate & Barrel', name:'Cavett Leather Chair', dims:[0.74, 0.76, 0.79],
     url:'https://www.crateandbarrel.com/search?query=cavett%20leather%20chair',
@@ -439,6 +447,28 @@ export const MAKERS = {
     pillow(g, MAT.slate, 0.45, (inner/2 - 0.27), y0 + seatTop + 0.22, -f*(d - back)/2 + f*0.19, -f*0.15, 0.2);
     pillow(g, MAT.oatmeal, 0.45, -(inner/2 - 0.27), y0 + seatTop + 0.22, -f*(d - back)/2 + f*0.19, -f*0.15, -0.2);
     throwOver(g, MAT.charcoal, arm, (w - arm)/2, y0 + h - 0.12, 0, 1);
+  },
+  // Crate & Barrel Lounge II: deep and low, a plinth base with the arms
+  // barely above the seat, two thick seat cushions and two fat loose back
+  // cushions that lean, stuffed rather than tailored — the sofa you sink into.
+  deepSofa(g, w, h, d, f, m){
+    const y0 = -h/2, plinth = 0.05, arm = 0.2, back = 0.28, seatTop = 0.45;
+    const fabric = M(m.fabric);
+    g.add(box(MAT.black, w - 0.06, plinth, d - 0.08, 0, y0 + plinth/2, 0));
+    g.add(box(fabric, w, seatTop - plinth - 0.17, d, 0, y0 + plinth + (seatTop - plinth - 0.17)/2, 0));
+    const inner = w - arm*2;
+    for (const s of [-1, 1]){
+      const seat = cushion(fabric, inner/2 - 0.015, 0.18, d - back - 0.05, s*inner/4, y0 + seatTop - 0.08, f*(back/2 + 0.01));
+      g.add(seat);
+      cushionSeam(g, inner/2 - 0.04, d - back - 0.08, s*inner/4, y0 + seatTop + 0.012, f*(back/2 + 0.01), fabric);
+      const b = cushion(fabric, inner/2 - 0.03, h - seatTop + 0.1, back, s*inner/4, y0 + seatTop - 0.02 + (h - seatTop + 0.1)/2, -f*(d - back)/2 + f*0.02);
+      b.rotation.x = -f*0.16; g.add(b);
+      g.add(box(fabric, arm, seatTop + 0.1 - plinth, d, s*(w - arm)/2, y0 + plinth + (seatTop + 0.1 - plinth)/2, 0));
+    }
+    pillow(g, MAT.ivory, 0.5, -(inner/2 - 0.3), y0 + seatTop + 0.26, -f*(d - back)/2 + f*0.24, -f*0.16, -0.18);
+    pillow(g, MAT.slate, 0.45, (inner/2 - 0.28), y0 + seatTop + 0.24, -f*(d - back)/2 + f*0.24, -f*0.16, 0.2);
+    pillow(g, MAT.charcoal, 0.4, (inner/2 - 0.62), y0 + seatTop + 0.21, -f*(d - back)/2 + f*0.28, -f*0.18, 0.1);
+    throwOver(g, MAT.ivory, arm, -(w - arm)/2, y0 + seatTop + 0.1, 0, -1);
   },
   // Crate & Barrel Cavett: a leather sling — seat and back one curved
   // sheet — hung between two walnut side frames.
