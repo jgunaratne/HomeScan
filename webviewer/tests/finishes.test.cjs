@@ -157,11 +157,15 @@ test('the halls are declared, photographless, and named onto their storey\'s woo
   assert.equal(bywood['Upstairs hall'],'timber-white-oak');
 });
 
-test('the media room is carpeted and other rooms use the same white oak flooring',()=>{
+test('the media room is carpeted, the garage is concrete, and other rooms use the same white oak flooring',()=>{
   const rooms=shipped();
   for(const r of rooms){
     if(r.name==='Media room'){
       assert.equal(r.finishes.floor,'carpet-gray');
+      continue;
+    }
+    if(r.name==='Garage'){
+      assert.equal(r.finishes.floor,'concrete');
       continue;
     }
     assert.equal(r.finishes.floor,'timber-white-oak',`${r.name} must be the house's one wood`);

@@ -108,6 +108,13 @@ export const PRODUCTS = {
   'retro/bean-bag': {
     retailer:'Retro corner', name:'Bean bag', dims:[0.9, 0.5, 0.9],
     finish:'Charcoal', make:'beanBag', mats:{fabric:'charcoal'}},
+  // The garage: two cars, drawn to the sizes they come in.
+  'garage/suv': {
+    retailer:'Garage', name:'Compact SUV', dims:[1.8, 1.62, 4.35],
+    finish:'Dark grey metallic', make:'car', mats:{paint:'graphite'}},
+  'garage/sedan': {
+    retailer:'Garage', name:'Compact hatchback', dims:[1.72, 1.42, 4.1],
+    finish:'Pearl white', make:'car', mats:{paint:'pearl'}},
   'westelm/mid-century-media-console-80': {
     retailer:'West Elm', name:'Mid-Century Media Console (80")', dims:[2.03, 0.61, 0.46],
     url:'https://www.westelm.com/search/results.html?words=mid-century+media+console',
@@ -170,6 +177,20 @@ export function pickProduct(keys, scan){
 }
 
 const M = name => MAT[name] || MAT.oak;
+
+// Car paint, glass, tyres and lamps.
+const CAR = {};
+for (const [name, hex, rough] of [['graphite', 0x3A3D42, 0.3], ['pearl', 0xE9E8E4, 0.35]]){
+  CAR[name] = new THREE.MeshPhysicalMaterial({color:hex, roughness:rough, metalness:0.4, clearcoat:0.8, clearcoatRoughness:0.15});
+  CAR[name].color.convertSRGBToLinear();
+}
+CAR.glass = new THREE.MeshPhysicalMaterial({color:0x1E262E, roughness:0.08, metalness:0.2, clearcoat:1, clearcoatRoughness:0.05});
+CAR.glass.color.convertSRGBToLinear();
+CAR.tyre = new THREE.MeshStandardMaterial({color:0x151515, roughness:0.9, metalness:0});
+CAR.rim = new THREE.MeshStandardMaterial({color:0x9A9C9E, roughness:0.35, metalness:0.8});
+CAR.trim = new THREE.MeshStandardMaterial({color:0x101214, roughness:0.6, metalness:0.1});
+CAR.tail = new THREE.MeshStandardMaterial({color:0xB01C1C, roughness:0.3, metalness:0.1});
+CAR.tail.color.convertSRGBToLinear();
 
 // Book cloth and paper: flat, hard-edged colours for spines — a book is a
 // box, not a cushion, so these are not the soft weaves of the upholstery.
@@ -428,6 +449,47 @@ export const MAKERS = {
   },
   // Woodwind: an open oak frame with adjustable shelves and no back — a few
   // books and a bowl on it, or it reads as a ladder.
+  // A car, nose toward +z: four wheels, a lower body with black bumpers
+  // and a grille, a glazed cabin set back on it under a painted roof with
+  // pillars at its corners, mirrors, lamps front and rear. An SUV is the
+  // same drawing taller and squarer, which `h` says.
+  car(g, w, h, d, f, m){
+    const y0 = -h/2, paint = CAR[m.paint] || CAR.graphite, suv = h > 1.55;
+    const R = suv ? 0.34 : 0.31, tyreW = 0.22, clearance = suv ? 0.22 : 0.15;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]){
+      const x = sx*(w/2 - tyreW/2 - 0.02), z = sz*d*0.31;
+      g.add(tube(CAR.tyre, R, tyreW, x, y0 + R, z, 'x'));
+      g.add(tube(CAR.rim, R*0.62, tyreW + 0.01, x, y0 + R, z, 'x'));
+    }
+    const bodyH = suv ? 0.66 : 0.5, bodyY = y0 + clearance + bodyH/2;
+    g.add(box(paint, w, bodyH, d*0.96, 0, bodyY, 0));
+    // Wheel arches: the body steps in over the tyres.
+    for (const sz of [-1, 1]) g.add(box(paint, w + 0.02, bodyH*0.55, R*2.2, 0, bodyY + bodyH*0.22, sz*d*0.31));
+    for (const sz of [-1, 1]) g.add(box(CAR.trim, w*0.92, 0.12, 0.12, 0, y0 + clearance + 0.12, sz*(d/2 - 0.04)));
+    g.add(box(CAR.trim, w*0.5, 0.16, 0.03, 0, y0 + clearance + bodyH*0.5, d/2 - 0.03));
+    // Lamps.
+    for (const sx of [-1, 1]){
+      g.add(box(MAT.lamp, w*0.22, 0.09, 0.03, sx*w*0.33, y0 + clearance + bodyH*0.68, d/2 - 0.02));
+      g.add(box(CAR.tail, w*0.2, 0.08, 0.03, sx*w*0.34, y0 + clearance + bodyH*0.7, -(d/2 - 0.02)));
+    }
+    // The cabin: glass all round between slim pillars, under a painted roof;
+    // the bonnet and boot are the body top either side of it.
+    const cabinL = suv ? d*0.62 : d*0.48, cabinH = h - clearance - bodyH, cabinZ = suv ? -d*0.06 : -d*0.04;
+    const cabinW = w - 0.16, cabinTop = y0 + clearance + bodyH + cabinH;
+    const glass = box(CAR.glass, cabinW - 0.1, cabinH - 0.04, cabinL - 0.1, 0, cabinTop - cabinH/2 - 0.02, cabinZ);
+    g.add(glass);
+    g.add(box(paint, cabinW, 0.05, cabinL, 0, cabinTop - 0.025, cabinZ));
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]){
+      const p = box(paint, 0.06, cabinH, 0.08, sx*(cabinW/2 - 0.03), cabinTop - cabinH/2, cabinZ + sz*(cabinL/2 - 0.04));
+      p.rotation.x = -sz*0.25; g.add(p);
+    }
+    // Windscreen and rear glass, raked.
+    for (const sz of [-1, 1]){
+      const pane = box(CAR.glass, cabinW - 0.12, cabinH - 0.02, 0.02, 0, cabinTop - cabinH/2, cabinZ + sz*(cabinL/2 - 0.02));
+      pane.rotation.x = -sz*0.25; g.add(pane);
+    }
+    for (const sx of [-1, 1]) g.add(box(paint, 0.2, 0.1, 0.12, sx*(w/2 + 0.06), cabinTop - cabinH + 0.1, cabinZ + cabinL/2 - 0.1));
+  },
   // A 24" CRT on a long low open oak console — three bays, the game
   // console in the middle one with a controller trailing off the front, the
   // games stacked in the others — the way a corner like this is set up: the

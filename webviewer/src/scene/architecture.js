@@ -34,7 +34,10 @@ function stairFlight(o, elevation, rise, annotation, ceiling){
   // Cut square at the foot and level at the landing.
   const stringerMat = MAT.trim.clone(); stringerMat.side = THREE.DoubleSide;
   const profile = new THREE.Shape();
-  const pts = [[0, 0], [0, nosing(0) + 0.06], [(n-1)/n, rise + 0.06], [1, rise + 0.06], [1, nosing(1) - 0.10]];
+  // The board stops at the landing, its top edge held just under the upper
+  // floor so nothing of it stands up through the floor above.
+  const tTop = (n-1)/n, tCap = (rise - 0.08 - riser)/rise;
+  const pts = [[0, 0], [0, nosing(0) + 0.06], [tCap, rise - 0.02], [tTop, rise - 0.02], [tTop, nosing(tTop) - 0.10]];
   pts.forEach(([t, y], k) => k ? profile.lineTo(zAt(t), y) : profile.moveTo(zAt(t), y));
   profile.closePath();
   for (const s of [-1,1]){
@@ -45,20 +48,20 @@ function stairFlight(o, elevation, rise, annotation, ceiling){
     g.add(m);
   }
   // Treads housed between the stringers, each overhanging its riser by a
-  // nosing; risers tucked under the tread above, and a thin board under
-  // each tread from riser to riser so the flight reads solid from below.
+  // nosing; risers tucked under the tread above.
   const inner = w - 2*STRINGER + 0.02;
   for (let i=0;i<n;i++){
     const y = (i+1)*riser, front = zAt(i/n), back = zAt((i+1)/n);
     g.add(box(MAT.trim, inner, riser - TREAD, 0.02, 0, y - TREAD - (riser - TREAD)/2, front + direction*0.01));
-    g.add(box(MAT.trim, inner, 0.012, Math.abs(back - front), 0, y - TREAD - 0.006, (front + back)/2));
     const z0 = front - direction*NOSE, z1 = back + direction*0.01;
     g.add(box(timber, inner, TREAD, Math.abs(z1 - z0), 0, y - TREAD/2, (z0 + z1)/2));
   }
-  // No soffit: the photographs show the flight open underneath — treads and
-  // risers seen from below between two slim stringers — with nothing under
-  // it but the closet at the top end.
-  const pitch = Math.atan2(rise,run);
+  // A plastered soffit closes the underside of the flight, the way the
+  // photographs show it: one sloping plane between the stringers' bottom
+  // edges, from the foot to the landing.
+  const pitch = Math.atan2(rise,run), slope = Math.hypot(run,rise)*tTop;
+  const soffit = box(MAT.trim, w - 2*STRINGER + 0.02, 0.05, slope, 0, nosing(tTop/2) - 0.10 - 0.025/Math.cos(pitch), zAt(tTop/2));
+  soffit.rotation.x = -direction*pitch; g.add(soffit);
   // The balustrade is the renovation's black steel, and no more of it than
   // it needs: a square post at the foot and the head, one slim square
   // baluster a tread between them, and a flat bar for a handrail 90 cm over
@@ -78,27 +81,32 @@ function stairFlight(o, elevation, rise, annotation, ceiling){
   // The pantry under the upper flight, where the photographs have one:
   // closed in to the floor on both sides from `closet.from` of the run up,
   // and across the top end under the landing, in the risers' white, with a
-  // cased doorway in that end wall — the opening you face from the kitchen
-  // — standing open, so the space under the stair can be walked into.
+  // cased door in that end wall — the door you face from the kitchen.
   const closet=annotation.closet;
   if(closet){
-    const from=closet.from??0.45, under=t=>nosing(t)-0.11;      // to the stringer's bottom edge, not above the slope
+    const from=closet.from??0.45, under=t=>nosing(t)-0.06;      // up behind the stringer, never above the slope
     const sideMat=MAT.trim.clone(); sideMat.side=THREE.DoubleSide;
     const profile=new THREE.Shape();
     profile.moveTo(zAt(from),0); profile.lineTo(zAt(1),0); profile.lineTo(zAt(1),under(1)); profile.lineTo(zAt(from),under(from));
     profile.closePath();
+    // The drywall stands 2 cm behind the stringers' inner faces, so the
+    // stringer runs past it as one unbroken board with a shadow line under.
     for(const s of [-1,1]){
       const m=new THREE.Mesh(new THREE.ExtrudeGeometry(profile,{depth:0.02,bevelEnabled:false}),sideMat);
-      m.rotation.y=-Math.PI/2; m.position.x=s>0 ? w/2-0.01 : -w/2+0.03;
+      m.rotation.y=-Math.PI/2; m.position.x=s>0 ? w/2-STRINGER-0.02 : -w/2+STRINGER+0.04;
       g.add(m);
     }
     // The end wall, to the ceiling, with the doorway let into it and cased
-    // on the hall side: head and jambs, no leaf.
+    // on the hall side: head and jambs, and a slab door in the frame, shut,
+    // with its lever on the hall side.
     const zEnd=zAt(1), out=direction, H=Math.min(ceiling-0.02,under(1)), dw=0.7, dh=Math.min(2.03,H-0.1);
     for(const s of [-1,1]) g.add(box(MAT.trim,(w-dw)/2,H,0.02,s*(w+dw)/4,H/2,zEnd+out*0.01));
     g.add(box(MAT.trim,dw,H-dh,0.02,0,dh+(H-dh)/2,zEnd+out*0.01));
     for(const s of [-1,1]) g.add(box(MAT.trim,0.045,dh+0.045,0.02,s*(dw/2+0.0225),(dh+0.045)/2,zEnd+out*0.035));
     g.add(box(MAT.trim,dw+0.09,0.045,0.02,0,dh+0.0225,zEnd+out*0.035));
+    g.add(box(MAT.slab,dw-0.02,dh-0.02,0.04,0,dh/2,zEnd+out*0.02));
+    g.add(tube(MAT.black,0.008,0.05,side*(dw/2-0.07),1.0,zEnd+out*0.045,'z'));
+    g.add(tube(MAT.black,0.008,0.12,side*(dw/2-0.12),1.0,zEnd+out*0.06,'x'));
     g.userData.closet={z0:zAt(from),z1:zEnd+out*0.05,dw,foot:zAt(0)};
   }
   // The stairwell open beside the flight on the rail side, where the
@@ -255,10 +263,10 @@ export function dressArchitecture(L,next){
         const o=L.objects[index],rise=next.elevation-L.elevation;
         if(rise>1&&rise<4.5&&o.d[0]>0.4&&o.d[2]>1){
           const g=stairFlight(o,L.elevation,rise,annotation,L.ceiling);
-          // The closet under the flight can be walked into through its
-          // doorway: the scanned stair's blocker shrinks to the open part
-          // of the flight, and the closet's own walls — the two sides and
-          // the end wall either side of the doorway — block instead.
+          // The closet under the flight is walled: the scanned stair's
+          // blocker shrinks to the open part of the flight, and the closet's
+          // own walls — the two sides and the end wall with its shut door —
+          // block instead.
           if(g.userData.closet){
             const {z0,z1,dw,foot}=g.userData.closet,cs=Math.cos(o.yaw),sn=Math.sin(o.yaw),w=o.d[0];
             const at=(lx,lz)=>({x:o.c[0]+cs*lx+sn*lz,z:o.c[2]-sn*lx+cs*lz,yaw:o.yaw});
@@ -266,7 +274,7 @@ export function dressArchitecture(L,next){
             if(stair) Object.assign(stair,at(0,(foot+z0)/2),{hz:Math.abs(foot-z0)/2});
             const zm=(z0+z1)/2,hz=Math.abs(z1-z0)/2;
             for(const s of [-1,1]) L.objBlockers.push({...at(s*(w/2-0.02),zm),hx:0.03,hz});
-            for(const s of [-1,1]) L.objBlockers.push({...at(s*(w+dw)/4,z1),hx:(w-dw)/4,hz:0.04});
+            L.objBlockers.push({...at(0,z1),hx:w/2,hz:0.04});    // the end wall, door shut
           }
           L.shell.add(g);L.objMeshes[index].built=g;
           // The opening through the upper floor: the flight's rectangle, and

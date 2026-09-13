@@ -10,17 +10,18 @@ const {PRODUCTS,productDims,pickProduct}=new Function(
   cut('export const PRODUCTS','// A product is drawn')+cut('export function productDims','const M = name')
   +';return {PRODUCTS,productDims,pickProduct};')();
 
-test('every product names one of the three retailers, a link and catalogue dimensions — or is the retro corner, which no catalogue sells',()=>{
+test('every product names one of the three retailers, a link and catalogue dimensions — or is the retro corner or the garage, which no catalogue sells',()=>{
   const retailers=new Set(['Crate & Barrel','Room & Board','West Elm']);
   for(const [key,p] of Object.entries(PRODUCTS)){
     if(/^retro\//.test(key)){ assert.equal(p.retailer,'Retro corner',key); assert.equal(p.url,undefined,key); }
+    else if(/^garage\//.test(key)){ assert.equal(p.retailer,'Garage',key); assert.equal(p.url,undefined,key); }
     else {
       assert.ok(retailers.has(p.retailer),`${key}: ${p.retailer}`);
       assert.match(key,/^(crateandbarrel|roomandboard|westelm)\//,key);
       assert.match(p.url,/^https:\/\/www\.(crateandbarrel|roomandboard|westelm)\.com\//,key);
     }
     assert.equal(p.dims.length,3,key);
-    assert.ok(p.dims.every(v=>v>0.2&&v<3),`${key} is not furniture-sized: ${p.dims}`);
+    assert.ok(p.dims.every(v=>v>0.2&&v<(/^garage\//.test(key)?6:3)),`${key} is not furniture-sized: ${p.dims}`);
   }
 });
 

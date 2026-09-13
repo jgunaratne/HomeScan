@@ -129,8 +129,13 @@ function closedLeaves(host, w, o, kind){
 // floor wins. If none does — a doorway too tight to swing into — there is no
 // leaf, which is better than one buried in a wall. A door to outside — one
 // side of it off the floor — is closed instead, see above.
-export function doorLeaf(host, L, w, o, blockers, sliders = new Set(), closed = new Set()){
+export function doorLeaf(host, L, w, o, blockers, sliders = new Set(), closed = new Set(), open = new Set()){
   const ow = o.x1 - o.x0, oh = o.y1 - o.y0;
+  const key = w.c[0].toFixed(2) + ',' + w.c[2].toFixed(2);
+  // A door a room wants shut is shut whatever its width — a narrow closet
+  // door too; one it wants standing open as a bare doorway gets no leaf.
+  if (closed.has(key) && ow >= 0.3 && oh >= 1.2){ closedLeaves(host, w, o, 'slab'); return; }
+  if (open.has(key)) return;
   if (ow < 0.6 || oh < 1.4) return;
   if(o.style === 'closet-slider'){
     closedLeaves(host,w,o,'closet-slider');
@@ -141,12 +146,10 @@ export function doorLeaf(host, L, w, o, blockers, sliders = new Set(), closed = 
     const nx = Math.sin(w.yaw), nz = Math.cos(w.yaw);
     const cx = w.c[0] + Math.cos(w.yaw)*mid, cz = w.c[2] - Math.sin(w.yaw)*mid;
     const inside = onFloor(L, cx + nx*0.4, cz + nz*0.4) && onFloor(L, cx - nx*0.4, cz - nz*0.4);
-    const key = w.c[0].toFixed(2) + ',' + w.c[2].toFixed(2);
     if (!inside){
       closedLeaves(host, w, o, ow > 2.4 ? 'garage' : sliders.has(key) ? 'slider' : 'door');
       return;
     }
-    if (closed.has(key)){ closedLeaves(host, w, o, 'slab'); return; }
   }
   if (ow > 1.25) return;
   // Which side the leaf swings to is the first that is clear — unless the
