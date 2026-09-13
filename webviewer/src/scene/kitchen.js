@@ -148,14 +148,14 @@ function island(g, len, wid, ceiling, pendant){
   }
 }
 
-// A breakfast bar: an oak slab at bar height on black steel ends, open
+// A breakfast bar: a quartz top at bar height on white panel ends, open
 // underneath, with a counter stool tucked in for every 55 cm of it — leather
 // seat on a black frame with a footrest ring.
 const BAR_H = 1.0, BAR_D = 0.5;
 function bar(g, w){
-  g.add(box(MAT.oak, w, 0.04, BAR_D, 0, BAR_H - 0.02, 0));
-  for (const s of [-1, 1]) g.add(box(MAT.black, 0.03, BAR_H - 0.04, BAR_D - 0.06, s*(w/2 - 0.03), (BAR_H - 0.04)/2, 0));
-  g.add(box(MAT.black, w - 0.12, 0.03, 0.03, 0, BAR_H - 0.1, -BAR_D/2 + 0.05));
+  g.add(box(MAT.quartz, w + 0.02, 0.03, BAR_D + 0.02, 0, BAR_H - 0.015, 0.01));
+  for (const s of [-1, 1]) g.add(box(MAT.matte, 0.05, BAR_H - 0.03, BAR_D - 0.02, s*(w/2 - 0.025), (BAR_H - 0.03)/2, 0));
+  g.add(box(MAT.matte, w - 0.1, BAR_H - 0.03, 0.02, 0, (BAR_H - 0.03)/2, -BAR_D/2 + 0.01));
   const n = Math.max(1, Math.round(w/0.55)), pitch = w/n;
   for (let i=0;i<n;i++){
     const x = -w/2 + pitch*(i + 0.5), z = BAR_D/2 - 0.02, seat = 0.72;

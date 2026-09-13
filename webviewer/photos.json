@@ -89,7 +89,7 @@
     {
       "level": 0,
       "name": "Media room",
-      "finishes": {"openings": [{"wallAt": [-2.391, 3.071], "along": 1.02, "width": 2.12, "height": 2.462, "kind": "opening", "note": "the closet, opened to the ceiling across its width: its alcove is the media wall"}], "closedDoors": [[-4.08, 0.81]]},
+      "finishes": {"openings": [{"wallAt": [-2.391, 3.071], "along": 0.91, "width": 1.9, "height": 2.462, "kind": "opening", "note": "the closet, opened to the ceiling: its alcove is the media wall, as wide as the television and console need"}], "addWalls": [{"from": [-3.3, 4.69], "to": [-2.55, 5.1], "note": "closes the rest of the old closet to the left of the television"}], "closedDoors": [[-4.08, 0.81]]},
       "at": [-4.8, 2.4],
       "anchor": "section 2 (bedroom)",
       "drop": [[-5.37, 1.92], [-5.63, 0.48], [-6.74, 2.52], [-3.98, 4.37], [-2.56, 4.11], [-3.4, 1.51]],
