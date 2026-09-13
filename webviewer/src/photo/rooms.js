@@ -124,8 +124,10 @@ function barriers(L){
   for (const w of L.walls){
     const c = Math.cos(w.yaw), s = -Math.sin(w.yaw), half = w.w/2;
     // Everything but the wide holes, as intervals along the wall's own axis.
+    // Only a hole that reaches the floor is a way through: a pass-through
+    // over a breakfast bar is wide and is not.
     const gaps = (w.holes || [])
-      .filter(h => h.x1 - h.x0 > DOORWAY)
+      .filter(h => h.x1 - h.x0 > DOORWAY && h.y0 < -w.h/2 + 0.3)
       .map(h => [Math.max(-half, h.x0), Math.min(half, h.x1)])
       .sort((a, b) => a[0] - b[0]);
     let at = -half;

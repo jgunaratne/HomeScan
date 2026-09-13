@@ -47,13 +47,13 @@ function strip(walls,rooms,nx=20,nz=1,g=0.5){
 }
 test('a doorway stops a floor finish; a wide opening carries it through',()=>{
   // A wall across the strip at x=5, with a 0.9 m hole in it — a door.
-  const door=[{c:[5,1.2,0.25],w:4,yaw:Math.PI/2,holes:[{x0:-0.45,x1:0.45}]}];
+  const door=[{c:[5,1.2,0.25],w:4,h:2.4,yaw:Math.PI/2,holes:[{x0:-0.45,x1:0.45,y0:-1.2}]}];
   const laid=strip(door,[room('Bathroom',[2.5,0.25]),room('Hall',[7.5,0.25])]);
   assert.match(laid,/^B+H+$/,'the two finishes must meet exactly once');
   assert.equal(laid.indexOf('H'),10,'and they meet at the wall, not between the anchors');
 
   // The same wall with a 2.4 m hole is a cased opening, and the boards run on.
-  const opening=[{c:[5,1.2,0.25],w:4,yaw:Math.PI/2,holes:[{x0:-1.2,x1:1.2}]}];
+  const opening=[{c:[5,1.2,0.25],w:4,h:2.4,yaw:Math.PI/2,holes:[{x0:-1.2,x1:1.2,y0:-1.2}]}];
   const through=strip(opening,[room('Bathroom',[2.5,0.25]),room('Hall',[7.5,0.25])]);
   assert.match(through,/^B+H+$/);
   assert.equal(through.indexOf('H'),11,
@@ -65,4 +65,13 @@ test('floor left unreachable from any anchor still gets a room',()=>{
   // Past the solid wall nothing can be walked to, so the fallback answers.
   assert.match(laid,/^K+\.+$/);
   assert.equal(laid.indexOf('.'),10);
+});
+
+// A wide hole that starts above the floor — a pass-through over a bar — is
+// not a way through: the floor finish stops at the wall under it.
+test('a pass-through above the floor does not carry a floor finish through',()=>{
+  const hatch=[{c:[5,1.2,0.25],w:4,h:2.4,yaw:Math.PI/2,holes:[{x0:-1.2,x1:1.2,y0:-0.15}]}];
+  const laid=strip(hatch,[room('Kitchen',[2.5,0.25]),room('Hall',[7.5,0.25])]);
+  assert.match(laid,/^K+H+$/);
+  assert.equal(laid.indexOf('H'),10,'the boundary stays at the wall under the hatch');
 });
