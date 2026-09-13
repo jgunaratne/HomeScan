@@ -93,7 +93,7 @@
       "at": [-4.8, 2.4],
       "anchor": "section 2 (bedroom)",
       "drop": [[-5.37, 1.92], [-5.63, 0.48], [-6.74, 2.52], [-3.98, 4.37], [-2.56, 4.11], [-3.4, 1.51]],
-      "place": [{"product": "westelm/andes-sofa-76", "at": [-5.91, 1.62], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-5.03, 2.11], "yaw": 1.06}],
+      "place": [{"product": "westelm/andes-sofa-76", "at": [-4.17, 3.28], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.28, 4.04], "yaw": -2.08}, {"tv": 1.65, "wallAt": [-2.03, 4.18], "along": 0, "height": 1.35}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-3.34, 3.75], "yaw": 1.06}],
       "photos": [
         {"file": "main-floor-bedroom-1.webp", "caption": "Closet wall, bathroom through the near door"},
         {"file": "main-floor-bedroom-2.webp", "caption": "From the closet back toward the bathroom"}
