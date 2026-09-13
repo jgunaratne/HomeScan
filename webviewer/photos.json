@@ -24,12 +24,12 @@
       "level": 0,
       "name": "Living room",
       "floorFrom": "Dining room",
-      "finishes": {"fireplace": {"wallAt": [4.973, -4.721], "width": 1.65, "height": 1.15, "depth": 0.38, "tv": 1.45}, "samples": {"brick": {"file": "living-room-1.webp", "rect": [0.066, 0.46, 0.035, 0.035]}}},
+      "finishes": {"fireplace": {"wallAt": [4.973, -4.721], "width": 1.65, "height": 1.15, "depth": 0.38, "tv": 1.45, "finish": "whitewash"}, "samples": {"brick": {"file": "living-room-1.webp", "rect": [0.066, 0.46, 0.035, 0.035]}}},
       "at": [4.2, -2.6],
       "anchor": "section 0 (livingRoom)",
-      "furnishings": {"sofa": "crateandbarrel/lounge-ii-sofa-105", "chair": "crateandbarrel/cavett-leather-chair", "storage": ["westelm/mid-century-media-console-80"]},
+      "furnishings": {"sofa": {"product": "crateandbarrel/lounge-ii-sofa-105", "mats": {"pillows": ["sky", "teal", "ivory"]}}, "chair": "westelm/slope-lounge-chair", "storage": [{"product": "roomandboard/copenhagen-media", "mats": {"frame": "walnut"}}]},
       "drop": [[4.58, -0.05], [1.03, -2.42]],
-      "place": [{"product": "crateandbarrel/parsons-coffee-table", "at": [3.99, -2.77], "yaw": 2.63}, {"product": "crateandbarrel/cavett-leather-chair", "at": [3.3, -5.05], "yaw": -0.2}, {"rug": [3.2, 2.4], "at": [4.1, -2.9], "yaw": 2.63}],
+      "place": [{"product": "crateandbarrel/parsons-coffee-table", "at": [3.99, -2.77], "yaw": 2.63}, {"product": "westelm/slope-lounge-chair", "at": [3.3, -5.05], "yaw": -0.2}, {"rug": [3.2, 2.4], "at": [4.1, -2.9], "yaw": 2.63, "swatch": "onaocean"}],
       "photos": [
         {"file": "living-room-1.webp", "caption": "Fireplace wall, with the stair rail beyond"},
         {"file": "living-room-2.webp", "caption": "Fireplace between the two view windows"},
@@ -44,7 +44,7 @@
       "at": [0.4, -5.6],
       "anchor": "sofa and dining table cluster",
       "drop": [[0.67, -6.66], [1.75, -6.23], [2.15, -5.34], [-2.48, -4.97], [-0.25, -4.93], [-0.88, -5.29], [0.38, -4.58]],
-      "place": [{"product": "roomandboard/linden-table-72", "at": [0.1, -5.3], "yaw": -0.51}, {"rug": [3.0, 2.4], "at": [0.1, -5.3], "yaw": -0.51}, {"product": "westelm/slope-dining-chair", "at": [-0.53, -5.096], "yaw": 2.63}, {"product": "westelm/slope-dining-chair", "at": [-0.056, -5.943], "yaw": -0.51}, {"product": "westelm/slope-dining-chair", "at": [0.256, -4.657], "yaw": 2.63}, {"product": "westelm/slope-dining-chair", "at": [0.73, -5.504], "yaw": -0.51}, {"product": "westelm/slope-dining-chair", "at": [0.925, -4.839], "yaw": -2.08}, {"product": "westelm/slope-dining-chair", "at": [-0.725, -5.761], "yaw": 1.06}],
+      "place": [{"product": "roomandboard/linden-table-72", "at": [0.1, -5.3], "yaw": -0.51}, {"rug": [3.0, 2.4], "at": [0.1, -5.3], "yaw": -0.51, "swatch": "selbytaupe"}, {"product": "westelm/slope-dining-chair", "at": [-0.53, -5.096], "yaw": 2.63}, {"product": "westelm/slope-dining-chair", "at": [-0.056, -5.943], "yaw": -0.51}, {"product": "westelm/slope-dining-chair", "at": [0.256, -4.657], "yaw": 2.63}, {"product": "westelm/slope-dining-chair", "at": [0.73, -5.504], "yaw": -0.51}, {"product": "westelm/slope-dining-chair", "at": [0.925, -4.839], "yaw": -2.08}, {"product": "westelm/slope-dining-chair", "at": [-0.725, -5.761], "yaw": 1.06}],
       "photos": [
         {"file": "great-room-1.webp", "caption": "Picture window, open through to the living room"},
         {"file": "great-room-2.webp", "caption": "Dining end, looking into the kitchen"},
@@ -54,7 +54,7 @@
     {
       "level": 0,
       "name": "Kitchen",
-      "finishes": {"openings": [{"wallAt": [-0.99, -1.5], "along": -0.92, "width": 1.6, "sill": 1.05, "height": 0.98, "kind": "opening", "note": "a pass-through over the breakfast bar into the hall, its head at door height"}], "kitchen": {"runs": [{"wallAt": [-3.02, -0.5], "start": -1.995, "uppers": true, "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.47]]}, {"wallAt": [-3.9, -3.14], "start": -1.27, "uppers": true, "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.375]]}, {"wallAt": [-0.99, -1.5], "start": -1.795, "uppers": false, "units": [["bar", 1.745]]}]}},
+      "finishes": {"openings": [{"wallAt": [-0.99, -1.5], "along": -0.93, "width": 1.62, "sill": 0.97, "height": 1.25, "kind": "opening", "note": "a pass-through over the breakfast bar into the hall: its sill under the bar top, which runs through it, its head level with the hall doorway beside it, and the same slim pier of wall at each end"}], "kitchen": {"runs": [{"wallAt": [-3.02, -0.5], "start": -1.995, "uppers": true, "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.47]]}, {"wallAt": [-3.9, -3.14], "start": -1.27, "uppers": true, "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.375]]}, {"wallAt": [-0.99, -1.5], "start": -1.815, "uppers": false, "units": [["bar", 1.765]]}]}},
       "at": [-2.6, -2.4],
       "anchor": "section 4 (kitchen)",
       "floorFrom": "Dining room",
@@ -67,7 +67,7 @@
     {
       "level": 0,
       "name": "Entry and stair",
-      "finishes": {"stair": {"riseToward": -1, "railSide": 1}},
+      "finishes": {"stair": {"riseToward": -1, "railSide": 1, "well": {"to": 1, "width": 1.13, "past": 0.41, "note": "the entry two storeys tall: the upper floor open beside the whole flight on the rail side, out to the office wall and past the foot to the window wall, with a guard across the hall's edge at the top of the stairs (IMG_0689)"}, "closet": {"from": 0.5, "note": "the pantry closet under the upper flight, its door in the end wall under the landing, straight ahead through the kitchen's hall doorway (IMG_0698)"}}},
       "floorFrom": "Dining room",
       "at": [2.4, 0.7],
       "anchor": "front door to the stairwell",
@@ -93,7 +93,7 @@
       "at": [-4.8, 2.4],
       "anchor": "section 2 (bedroom)",
       "drop": [[-5.37, 1.92], [-5.63, 0.48], [-6.74, 2.52], [-3.98, 4.37], [-2.56, 4.11], [-3.4, 1.51]],
-      "place": [{"product": "westelm/andes-sofa-76", "mats": {"fabric": "slate"}, "dims": [2.3, 0.81, 1.02], "at": [-4.82, 2.91], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.34, 4.07], "yaw": -2.08}, {"tv": 1.6604, "wallAt": [-2.03, 4.18], "along": -0.062, "height": 1.35, "slats": {"width": 2.21, "along": -0.062}}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-3.6185, 3.3311], "yaw": 1.06}],
+      "place": [{"product": "westelm/andes-sofa-76", "mats": {"fabric": "slate"}, "dims": [2.3, 0.81, 1.02], "at": [-4.82, 2.91], "yaw": 1.06}, {"product": "westelm/anton-media-console", "at": [-2.34, 4.07], "yaw": -2.08}, {"tv": 1.6604, "wallAt": [-2.03, 4.18], "along": -0.062, "height": 1.35, "slats": {"width": 2.21, "along": -0.062}}, {"product": "crateandbarrel/parsons-coffee-table", "at": [-3.6185, 3.3311], "yaw": 1.06}, {"product": "retro/crt-24-on-stand", "at": [-6.31, 2.88], "yaw": 2.636, "note": "the retro game corner behind the sofa: the CRT on its long console against the south wall in the west corner, facing the window wall"}, {"product": "retro/bean-bag", "at": [-5.78, 1.92], "yaw": -0.506}],
       "photos": [
         {"file": "main-floor-bedroom-1.webp", "caption": "Closet wall, bathroom through the near door"},
         {"file": "main-floor-bedroom-2.webp", "caption": "From the closet back toward the bathroom"}
@@ -103,7 +103,7 @@
       "level": 0,
       "name": "Laundry",
       "reach": 1.6,
-      "finishes": {"openings": [{"wallAt": [-1.0, 3.32], "along": 0, "width": 0.85, "height": 2.03, "kind": "door", "note": "straight ahead from the kitchen, through the hall door, at the laundry's far end (IMG_0700, IMG_0703)"}]},
+      "finishes": {"openings": [{"wallAt": [-1.0, 3.32], "along": 0, "width": 0.85, "height": 2.03, "kind": "door", "note": "straight ahead from the kitchen, through the hall door, at the laundry's far end (IMG_0700, IMG_0703)"}], "closedDoors": [[-1.0, 3.32]], "note": "the furnace closet's door, at the far end, stays shut"},
       "drop": [[0.03, 3.16]],
       "at": [-1.3, 2.3],
       "anchor": "washer/dryer fitting",
@@ -114,7 +114,7 @@
     {
       "level": 1,
       "name": "Primary bedroom",
-      "finishes": {"sliders": [[0.66, -7.052]], "deck": {"wallAt": [0.66, -7.052], "width": 4.4, "depth": 2.8}},
+      "finishes": {"mirrors": [[1.7, -4.63]], "sliders": [[0.66, -7.052]], "deck": {"wallAt": [0.66, -7.052], "width": 4.4, "depth": 2.8}},
       "at": [-0.4, -5.4],
       "anchor": "section 0 — clerestory band and the deck slider; scanned as a family room, furnished as the primary bedroom",
       "furnishings": {"bed": "roomandboard/hudson-bed-queen", "storage": ["roomandboard/hudson-dresser", "roomandboard/hudson-nightstand"]},
@@ -129,11 +129,11 @@
     {
       "level": 1,
       "name": "East office",
-      "finishes": {"openings": [{"wallAt": [1.189, -3.382], "along": 0, "width": 0.8, "height": 2.03, "kind": "door", "source": "east-bedroom-2.webp", "estimated": true}], "removeWalls": [[2.801, -4.546], [1.859, -3.714]], "floorPatches": [[[2.608, -5.993], [1.481, -3.919], [2.281, -3.484], [3.409, -5.559]]], "addWalls": [{"from": [2.608, -5.993], "to": [3.365, -5.583]}], "roof": {"yaw": -0.49781, "u0": 0.29, "u1": 2.92, "v0": -6.51, "v1": -4.15, "returnFinish": "ceil", "high": 2.365, "low": 1.45}},
+      "finishes": {"openings": [{"wallAt": [1.189, -3.382], "along": 0.63, "width": 0.8, "height": 2.03, "kind": "door", "source": "east-bedroom-2.webp", "estimated": true, "note": "in the west wall at its south end, so it opens onto the hall rather than in line with the primary bedroom's doorway; the middle of that wall, where the scan put it, is solid"}, {"wallAt": [4.142, -5.163], "along": -0.55, "width": 1.4, "sill": 0.85, "height": 0.95, "kind": "window", "note": "the lake window, widened from the scan's 0.65 m and moved 0.44 m to the left of where the scan had it, its head kept under the falling ceiling"}], "removeWalls": [[2.801, -4.546], [1.859, -3.714], [4.52, -4.96]], "floorPatches": [[[2.608, -5.993], [1.481, -3.919], [2.281, -3.484], [3.409, -5.559]]], "addWalls": [{"from": [2.608, -5.993], "to": [5.676, -4.333], "note": "the lake facade as one wall — the scan's wall and the closet-end patch on one line — so the window can sit anywhere along it"}, {"from": [0.625, -2.346], "to": [0.577, -2.159], "note": "closes the corner beside the office door, where the two scanned walls stopped 19 cm short of each other"}], "roof": {"yaw": -0.49781, "u0": 0.29, "u1": 2.92, "v0": -6.51, "v1": -4.15, "returnFinish": "ceil", "high": 2.365, "low": 1.45}},
       "at": [3.3, -3.0],
       "anchor": "section 2 (bedroom)",
       "drop": [[3.0, -1.57], [4.98, -3.64], [5.06, -4.15], [4.37, -2.27]],
-      "place": [{"product": "roomandboard/parsons-desk-72", "at": [2.42, -4.75], "yaw": 1.073}, {"product": "westelm/slope-office-chair", "at": [3.15, -4.35], "yaw": -2.0686}, {"product": "roomandboard/woodwind-bookcase-72", "at": [3.1, -1.1], "yaw": 2.644}],
+      "drop": [[4.98, -3.64], [5.05, -4.16], [4.38, -2.27], [2.99, -1.57]], "place": [{"product": "roomandboard/parsons-desk-72", "at": [2.42, -4.75], "yaw": 1.073}, {"product": "westelm/slope-office-chair", "at": [3.15, -4.35], "yaw": -2.0686}, {"product": "roomandboard/woodwind-bookcase-72", "at": [3.1, -1.1], "yaw": 2.644, "mats": {"frame": "walnut"}}, {"product": "roomandboard/woodwind-bookcase-72", "at": [2.26, -1.55], "yaw": 2.644, "mats": {"frame": "walnut"}}, {"product": "roomandboard/copenhagen-media", "dims": [1.15, 0.9, 0.5], "at": [5.12, -3.96], "yaw": -2.069, "mats": {"frame": "walnut"}, "note": "storage cabinets under the slope, behind the chair, as tall as the slope allows"}, {"product": "roomandboard/copenhagen-media", "dims": [1.15, 0.9, 0.5], "at": [4.56, -2.92], "yaw": -2.069, "mats": {"frame": "walnut"}}, {"rug": [3.0, 2.0], "at": [3.05, -4.37], "yaw": 1.073, "swatch": "selbytaupe"}],
       "photos": [
         {"file": "east-bedroom-1.webp", "caption": "Sloped ceiling, both windows"},
         {"file": "east-bedroom-2.webp", "caption": "Closet wall under the slope"},
@@ -147,7 +147,7 @@
       "at": [0.1, 2.9],
       "anchor": "section 3 (bedroom)",
       "drop": [[0.97, 1.75], [2.2, 1.54]],
-      "place": [{"product": "roomandboard/parsons-desk-60", "at": [0.44, 4.32], "yaw": -2.07}, {"product": "westelm/slope-office-chair", "at": [-0.29, 3.92], "yaw": 1.07}, {"product": "roomandboard/woodwind-bookcase-72", "at": [1.76, 1.1], "yaw": -0.5}],
+      "drop": [[2.2, 1.54], [0.97, 1.75]], "place": [{"product": "roomandboard/parsons-desk-60", "at": [1.72, 1.96], "yaw": -2.069, "note": "under the flat ceiling, at the east window, out from under the slope"}, {"product": "westelm/slope-office-chair", "at": [1.07, 1.6], "yaw": 1.074}],
       "photos": [
         {"file": "south-bedroom-1.webp", "caption": "Under the slope, sconce wall"},
         {"file": "south-bedroom-2.webp", "caption": "Sconce wall, door out to the landing"}
@@ -156,12 +156,12 @@
     {
       "level": 1,
       "name": "West bedroom",
-      "finishes": {},
+      "finishes": {"doors": [{"wallAt": [-2.572, 3.457], "along": 0.358, "style": "closet-slider", "note": "the closet shut behind a bypass slider"}]},
       "at": [-4.5, 2.4],
       "anchor": "section 1 — the large corner room",
       "furnishings": {"chair": "westelm/slope-leather-chair"},
       "drop": [[-4.23, 3.76], [-5.94, 3.25], [-3.54, 4.54]],
-      "place": [{"product": "roomandboard/hudson-bed-queen", "at": [-4.89, 2.80], "yaw": 2.64}, {"product": "roomandboard/hudson-nightstand", "at": [-4.30, 4.06], "yaw": 2.64}, {"product": "roomandboard/hudson-nightstand", "at": [-6.26, 2.99], "yaw": 2.64}, {"product": "roomandboard/hudson-dresser", "at": [-6.0, 1.75], "yaw": 1.073}],
+      "drop": [[-5.94, 3.25], [-4.23, 3.76]], "place": [{"product": "westelm/anton-bed-full", "at": [-5.67, 2.76], "yaw": 1.073, "note": "a kid's room: a full bed along the back wall, its head toward the west corner"}, {"product": "roomandboard/hudson-nightstand", "at": [-5.84, 1.52], "yaw": 2.644}, {"product": "roomandboard/hudson-dresser", "at": [-4.13, 4.16], "yaw": 2.644}],
       "photos": [
         {"file": "west-bedroom-1.webp", "caption": "Glass door at the left, bathroom through the far door"},
         {"file": "west-bedroom-2.webp", "caption": "Window wall, bathroom and hall beyond"},

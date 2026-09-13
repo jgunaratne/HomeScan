@@ -308,7 +308,9 @@ returns the whole house to it.
 **What else the dressing turns on.** Paint alone still reads as a diagram, so `P`
 carries the rest of it: skirting on every stretch of wall that reaches the floor,
 a cased head and two jambs on every door and opening, a cased and silled surround
-on every window, and downlights on a 2.4 m grid over each room's own ceiling.
+on every window, and downlights over each room's own ceiling — a grid centred
+on the room in the house's own frame, as many as fit at about 2.4 m, each as
+far from the walls as from the next.
 Fittings stop being blue-grey blocks and become what they are — white goods
 white, the refrigerator steel, the television black, tables and chairs timber.
 Clear glass replaces the blue pane. The survey's wireframe comes off, because it
@@ -500,6 +502,13 @@ room may carry `furnishings`, a map from a scanned category to a product:
 "furnishings": {"sofa": "westelm/andes-sofa-76", "table": "roomandboard/linden-table-72"}
 ```
 
+A value may also be `{"product": ..., "mats": {...}}` to dress the product in
+other materials than its catalogue ones — the living room's sofa carries the
+room's accent on its pillows that way, and its console is the Copenhagen in
+walnut rather than oak. A rug placed outright may name a `"swatch"`, a
+photograph of a rug from `swatches/`, and wears it edge to edge instead of the
+flat natural weave.
+
 The products are in `src/scene/products.js`, each with its retailer, name,
 link, finish and catalogue dimensions. None of the three publish 3D models, so
 nothing is downloaded: each product is drawn parametrically in its own
@@ -645,8 +654,8 @@ something to do.
 **The rooms, as they are now used.** Downstairs: the dining room has a 96"
 Linden with a turned bowl on it and eight Slope chairs tucked in, on a rug,
 and nothing else; the living room its
-Metro 98", two Cavetts, the coffee table and the television over the plaster
-fireplace; the main-floor bedroom is a media room — its closet opened up into a
+Metro 98", two Slope lounge chairs in a pale blue, the coffee table and the television
+over the plaster fireplace; the main-floor bedroom is a media room — its closet opened up into a
 recess (`openings` of kind `opening` across the closet's whole width, and the
 wardrobe block the scan saw inside it dropped) with a 72" television over the
 Anton console in it, the Andes sectional facing it from across the room and a
@@ -700,7 +709,12 @@ polished, because a refrigerator that mirrors the lake reads as blue glass.
 The fireplace annotation takes `"finish": "plaster"` for a smooth chimney
 breast with a wide black steel firebox, a quartz hearth and a floating oak
 shelf, and `"tv": 1.45` for a television that width mounted on the breast
-above the shelf; the brick surround the photographs show is still the default.
+above the shelf, and `"finish": "whitewash"` for the same brick surround
+limewashed, every brick drawn in the face of a whitewashed one; the brick
+surround the photographs show, in its own brick, is still the default. Its
+opening is the photographs' too — the insert's rectangle under a shallow
+segmental arch of bricks on end, on a raised hearth that stands out into the
+room.
 
 What the renovation does not do: move a wall, a door or a window, or claim any
 of its dimensions beyond the standard ones — a 600 mm base, a 900 mm counter,
@@ -799,9 +813,13 @@ still falls back automatically on slower devices; this is not ray-traced lightin
 The entry room's `finishes.stair` records `riseToward` along the stair object's
 local Z axis and `railSide` along local X. The dressed staircase uses the scanned
 width, run, position, and rotation, with its rise taken from the next storey's
-elevation. White risers and stringers, timber treads and handrail, and dark metal
-balusters follow the living-room photos. Tread count and railing proportions are
-inferred. Matching openings are cut into the dressed lower ceiling and upper
+elevation. White risers and closed stringers, timber treads with a nosing, and a
+black steel balustrade — one slim baluster a tread, a post at each end, a flat
+bar for a handrail — follow the living-room photos. Tread count and railing
+proportions are inferred. `closet: {from}` closes the upper flight in to the
+floor from that fraction of the run, with a slab door in the end wall under the
+landing — the pantry you face from the kitchen's hall doorway. Matching
+openings are cut into the dressed lower ceiling and upper
 floor; the flat survey retains the captured slabs. Stairs stay visible when
 furniture is hidden. Navigation still uses **E** to switch storeys; treads do not
 provide continuous vertical walking or fall simulation.

@@ -85,6 +85,10 @@ MAT.oatmeal = weave(0xD3CABA);
 MAT.ivory   = weave(0xE2DCD0);
 MAT.slate   = weave(0x6E7378);
 MAT.charcoal= weave(0x3E4043);
+// The living room's accent: a pale blue on the chairs, a muted blue-teal on
+// a pillow — one colour at two strengths, neither of them loud.
+MAT.sky     = weave(0xB4BFC7);
+MAT.teal    = weave(0x4E7C8E);
 // Bouclé for the ivory and oatmeal pieces: the loops are what make a pale
 // sofa read as cloth rather than as a painted block.
 for (const m of [MAT.oatmeal, MAT.ivory]){
@@ -108,7 +112,7 @@ MAT.plaster.bumpMap = surfaceTile('plaster'); MAT.plaster.bumpScale = 0.0009;
 // The sky rig already supplies diffuse fill; strong environment response on
 // every matte furnishing erased grain and made timber look like ivory.
 for(const name of ['trim','white','wood','fabric','linen','accent','stone','oak','oakPale',
-                   'matte','slab','oatmeal','ivory','slate','charcoal','leather','walnut','plaster','porcelain','rug','rugEdge','cotton','shade'])
+                   'matte','slab','oatmeal','ivory','slate','charcoal','sky','teal','leather','walnut','plaster','porcelain','rug','rugEdge','cotton','shade'])
   MAT[name].envMapIntensity=0.45;
 
 // r128 takes literal material colours as linear values. These palette entries

@@ -5,12 +5,22 @@
 
 Each is saved beside this file as <name>.jpg. A wood swatch comes back as a
 square of board in a white field; "crop": "centre-square" trims the field. The
-fabrics are square already. Re-running refetches everything; the files are
-committed so a clone needs nothing from the network.
+fabrics are square already. "desat" pulls a swatch that fraction of the way to
+its own grey and "lift" that fraction toward white, for a wood photographed
+under warmer light than the room it is drawn in. Re-running refetches
+everything; the files are committed so a clone needs nothing from the network.
 """
 import json, subprocess, sys
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageEnhance
+
+
+def tone(im, desat=0.0, lift=0.0):
+    if desat:
+        im = ImageEnhance.Color(im).enhance(1 - desat)
+    if lift:
+        im = Image.blend(im, Image.new('RGB', im.size, (255, 255, 255)), lift)
+    return im
 
 HERE = Path(__file__).resolve().parent
 doc = json.loads((HERE / 'swatches.json').read_text())
@@ -27,5 +37,6 @@ for name, s in doc['swatches'].items():
         x0, x1 = xs[0], xs[-1] + 1
         im = im.crop((x0, 0, x1, h))
         side = min(im.size); im = im.crop((0, 0, side, side))
+    im = tone(im, s.get('desat', 0.0), s.get('lift', 0.0))
     im.save(out, quality=90)
     print(f'{name:14s} {im.size[0]}x{im.size[1]}  {s["material"]}')

@@ -155,11 +155,14 @@ const isTimber = finish => typeof finish === 'string' && finish.startsWith('timb
 // and the point of naming white oak is to see the house without it. The colour
 // is the boards' own under neutral light; `boards` is how many make up one
 // 1.55 m tile, so 8 is a 194 mm contemporary wide plank against the 155 mm
-// board the sampled woods use, with quieter board-to-board variation and a
-// matte oil finish. A wood not in the table keeps the sampling.
+// board the sampled woods use, and a matte oil finish. The board is cut from
+// the retailer's swatch, its figure drawn out `grain` times along the plank,
+// and no two boards come out alike: `vary` and `tint` spread them in tone
+// and warmth, `streak` drifts each along its length. A wood not in the table
+// keeps the sampling.
 export const WOODS = {
-  'timber-white-oak': {r:214, g:193, b:162, boards:8, length:3.6, vary:0.07, contrast:0.6, roughness:0.65,
-                       swatch:'white_oak', lift:0.18, desat:0.20},
+  'timber-white-oak': {r:214, g:193, b:162, boards:8, length:3.6, vary:0.13, tint:0.05, streak:0.05,
+                       contrast:0.8, roughness:0.65, swatch:'white_oak', grain:2.6, lift:0.12, desat:0.14},
 };
 // Large-format porcelain for the bathrooms, `across` tiles to the 1.55 m
 // repeat — two, so each is 775 mm, a 30" rectified tile.
@@ -209,7 +212,18 @@ function tileFloor(pick, spec){
   return m;
 }
 // A floor named from the tables above, or null for one that is sampled.
+// Made once per name and shared: a named finish is one material wherever it
+// is laid — shareFinishes hands every room in the group the same one anyway —
+// and the oak tile is a million-pixel drawing that was being redrawn for
+// each of the fifteen rooms that name it, most of the time the page took to
+// dress.
+const namedFloors = new Map();
 function namedFloor(finish){
+  if (!finish) return null;
+  if (!namedFloors.has(finish)) namedFloors.set(finish, makeNamedFloor(finish));
+  return namedFloors.get(finish);
+}
+function makeNamedFloor(finish){
   if (finish === 'carpet-gray'){
     const spec = {r:145, g:143, b:140};
     const swatch = swatchesLoaded.hastingssmoke;

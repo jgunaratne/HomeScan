@@ -49,6 +49,35 @@ export function surfaceTile(kind, metres){
   return texture;
 }
 
+// The face of one whitewashed brick, for a box a brick's size: limewash laid
+// unevenly, thin enough in patches for the warm clay to show through, over
+// the pitted grain of the brick, with the arris worn a shade darker. Used as
+// colour and as relief.
+export function brickFace(){
+  const W = 128, H = 64, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const ctx = c.getContext('2d'), px = ctx.createImageData(W, H);
+  let seed = 4127;
+  const random = () => { seed = (1664525*seed + 1013904223) >>> 0; return seed/4294967296; };
+  const wash = [236, 231, 222], clay = [176, 132, 108];
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){
+    // Coverage: broad drifts of thicker and thinner wash, then pitting.
+    const drift = 0.5 + 0.28*Math.sin(x*0.09 + Math.sin(y*0.21)*2.1) * Math.sin(y*0.17 + Math.sin(x*0.05)*1.7)
+      + 0.14*Math.sin(x*0.31 + y*0.23) + (random() - 0.5)*0.22;
+    const cover = Math.max(0, Math.min(1, drift*1.4 + 0.15));
+    const edge = Math.min(x, W-1-x, y, H-1-y);
+    const arris = edge < 3 ? 0.82 + edge*0.06 : 1;
+    const i = (y*W + x)*4;
+    for (let ch=0;ch<3;ch++) px.data[i+ch] = (wash[ch]*cover + clay[ch]*(1 - cover))*arris + (random() - 0.5)*10;
+    px.data[i+3] = 255;
+  }
+  ctx.putImageData(px, 0, 0);
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
+  t.anisotropy = 4;
+  return t;
+}
+
 // Close-packed yarn tufts: a shadowed root, a curved bundle, and fine lit
 // strands. Wrap strokes at the edges so the pile has no visible tile seam.
 function carpetFiberTile(metres){
@@ -116,23 +145,39 @@ export function plankCanvases(pick, spec = {}){
     const c = document.createElement('canvas'), img = spec.image;
     c.width = img.naturalWidth; c.height = img.naturalHeight;
     c.getContext('2d').drawImage(img, 0, 0);
-    sw = {px:c.getContext('2d').getImageData(0, 0, c.width, c.height).data, w:c.width, h:c.height,
-          metres: spec.swatchMetres ?? 0.4};
+    // Its outermost rows and columns are the image's border — a shade light
+    // on two sides, dark on the others — and would print as a hairline at
+    // every mirror seam, so they are cut off.
+    sw = {px:c.getContext('2d').getImageData(0, 0, c.width, c.height).data, stride:c.width,
+          w:c.width - 12, h:c.height - 12, metres: (spec.swatchMetres ?? 0.4)*(c.width - 12)/c.width, mean:0};
+    // The photograph's mean brightness: relief and roughness are read off how
+    // far each pixel sits from it, so the pores of the grain go down and dull.
+    for (let i=0;i<sw.px.length;i+=4) sw.mean += 0.299*sw.px[i] + 0.587*sw.px[i+1] + 0.114*sw.px[i+2];
+    sw.mean /= sw.px.length/4;
   }
-  const sample = (row, across, along) => {
+  const sample = (row, segment, across, along) => {
     // `across` in 0..1 over one board of width 1.55/boards m; `along` in 0..1
-    // over the tile's length. The photograph covers sw.metres of each.
-    const boardW = 1.55/boards, tileL = long ? spec.length : 1.55;
-    const px = ((hash(row*5 + 1)*0.4 + across*boardW/sw.metres)%1)*(sw.w - 1);
-    let py = (hash(row*11 + 2)*sw.h + along*tileL/sw.metres*sw.h)%(sw.h*2);
+    // over the tile's length. The photograph covers sw.metres of each. Every
+    // board — each segment of a row is one — takes its own slice, half of
+    // them turned over so the same edge of the photograph is not on every
+    // left-hand side.
+    const boardW = 1.55/boards, tileL = long ? spec.length : 1.55, seed = row*5 + segment*29;
+    const edge = hash(seed + 4) > 0.5 ? 1 - across : across;
+    const px = ((hash(seed + 1)*0.4 + edge*boardW/sw.metres)%1)*(sw.w - 1);
+    // Along the board the photograph is drawn out `grain` times longer than
+    // life. The figure of a flat-sawn plank runs on for a metre or more; at
+    // true scale the swatch's 40 cm of it came round, mirrored, twice in
+    // every board, which is the tell of a printed floor.
+    const stretch = spec.grain ?? 1;
+    let py = (hash(seed + 2)*sw.h*2 + along*tileL/(sw.metres*stretch)*sw.h)%(sw.h*2);
     if (py >= sw.h) py = sw.h*2 - 1 - py;                      // mirror
-    const i = ((py|0)*sw.w + (px|0))*4;
+    const i = (((py|0) + 6)*sw.stride + (px|0) + 6)*4;
     // The retailer photographs the board under warm light; a floor of it
     // wants the wood a shade paler and greyer than a tabletop — `lift` toward
     // white and `desat` toward its own grey, both from the wood's spec.
     const lum = 0.299*sw.px[i] + 0.587*sw.px[i+1] + 0.114*sw.px[i+2];
     const lift = spec.lift ?? 0, desat = spec.desat ?? 0;
-    return [sw.px[i], sw.px[i+1], sw.px[i+2]].map(c => (c*(1-desat) + lum*desat)*(1-lift) + 255*lift);
+    return {lum, rgb:[sw.px[i], sw.px[i+1], sw.px[i+2]].map(c => (c*(1-desat) + lum*desat)*(1-lift) + 255*lift)};
   };
   for (let y=0;y<N;y++) for (let x=0;x<N;x++){
     const u = x/N*boards, row = Math.floor(u), across = u-row;
@@ -140,6 +185,13 @@ export function plankCanvases(pick, spec = {}){
     const joint = long ? 0.42 + 0.16*(hash(row*7+3) - 0.5) : 0.48;
     const segment = along < joint ? 0 : 1;
     const variation = (hash(row*13+segment*43)-0.5)*vary;
+    // No two boards of a real floor are the same colour, and no board is one
+    // colour end to end: `tint` turns each a little warmer or cooler than its
+    // neighbours, and `streak` drifts the tone along its length the way
+    // heartwood and mineral streaks do.
+    const tint = (hash(row*13+segment*43+7)-0.5)*(spec.tint ?? 0);
+    const m = y/N*(long ? spec.length : 1.55), phase = hash(row*5+segment*29+3)*6.28;
+    const streak = (spec.streak ?? 0)*(Math.sin(m*2.6 + phase)*0.5 + Math.sin(m*7.1 + phase*2)*0.25);
     const seamW = 0.012*10/boards, endW = 0.002/stretch;
     const seam = across < seamW || across > 1-seamW || along < endW || Math.abs(along-joint)<endW;
     const wave = Math.sin(y/N*Math.PI*2*stretch+row)*1.6;
@@ -148,13 +200,18 @@ export function plankCanvases(pick, spec = {}){
       + (hash(x+y*N)-0.5)*0.009)*contrast;
     const bevel = Math.min(1, Math.min(across,1-across)/(0.026*10/boards));
     const i = (y*N+x)*4;
-    const photo = sw ? sample(row, across, y/N) : null;
+    const photo = sw ? sample(row, segment, across, y/N) : null;
+    // With a photograph the relief and the roughness follow its grain — the
+    // darker figure is the open pore of the oak, lower and duller than the
+    // wood between — rather than the drawn sine grain.
+    const pore = photo ? (photo.lum - sw.mean)/255*contrast : 0;
     for (const [kind, out] of Object.entries(data)){
       for (let ch=0;ch<3;ch++){
-        const base = photo ? photo[ch] : [pick.r,pick.g,pick.b][ch];
-        const tone = photo ? 1 + variation*0.6 : 1 + variation + grain;
+        const base = photo ? photo.rgb[ch] : [pick.r,pick.g,pick.b][ch];
+        const tone = photo ? (1 + variation*0.6 + streak)*(1 + tint*(1 - ch)) : 1 + variation + grain;
         out.data[i+ch] = kind === 'colour' ? base*tone*(seam?0.8:1) :
-          kind === 'height' ? (seam?120:160+bevel*20+grain*160) : (seam?225:155+variation*100+grain*150);
+          kind === 'height' ? (seam?120:160+bevel*20+(photo ? pore*120 + (hash(x+y*N)-0.5)*4 : grain*160)) :
+          (seam?225:155+variation*100+(photo ? -pore*220 : grain*150));
       }
       out.data[i+3]=255;
     }

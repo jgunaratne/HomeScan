@@ -16,6 +16,7 @@ import { blocks } from '../player/collision.js';
 import { PRODUCTS, pickProduct, product } from './products.js';
 import { buildKitchen } from './kitchen.js';
 import { buildBath, vanity, dropped } from './bath.js';
+import { swatchesLoaded, swatchTexture } from './swatches.js';
 
 // A wall has two faces and they can be in different rooms — the kitchen side of
 // the bathroom wall is kitchen. BoxGeometry keeps a material group per face, so
@@ -83,6 +84,9 @@ export function dressSlabs(L){
       i = e + 1;
     }
   }
+  // The house's own frame for the downlight grids: the direction most of the
+  // storey's wall runs in, which every other wall is square to.
+  const theta = houseFrame(L), ct = Math.cos(theta), st = Math.sin(theta);
   for (const [room, quads] of runs){
     for (const [kind, host, y, up] of [
       ['floor', L.roomFloor, L.elevation + 0.006, 1],
@@ -123,32 +127,56 @@ export function dressSlabs(L){
       geo.setAttribute('normal', new THREE.Float32BufferAttribute(nor, 3));
       host.add(new THREE.Mesh(geo, mat));
     }
-    // Downlights on a 2.4 m grid over the room's own ceiling. They are lamps to
-    // look at rather than lamps that light: one light per room would mean a
-    // dozen in a single forward-rendered pass.
+    // Downlights laid out the way an electrician lays them out: a grid
+    // centred on the room, in the house's own frame, as many across as fit
+    // at about 2.4 m, each the same distance from the walls as from the
+    // next. A grid on the scene's axes put them in the corners of a house
+    // that sits thirty degrees off those axes. They are lamps to look at
+    // rather than lamps that light: one light per room would mean a dozen
+    // in a single forward-rendered pass.
     if (room.bare || room.finishes?.roof || room.finishes?.downlights === false) continue;
-    const seen = new Set();
+    const cells = new Set();
     for (const [x0,x1,z0,z1] of quads){
-      const gz = Math.round((z0+z1)/2/2.4)*2.4;
-      if (Math.abs(gz - (z0+z1)/2) > 0.06) continue;
-      for (let x = Math.ceil(x0/2.4)*2.4; x < x1; x += 2.4){
-        if (inStairCut(L.ceilingCut,x,gz)) continue;
-        const key = x.toFixed(1) + ',' + gz.toFixed(1);
-        if (seen.has(key)) continue;
-        seen.add(key);
-        const rim = new THREE.Mesh(new THREE.RingGeometry(0.072, 0.096, 24), MAT.trim);
-        rim.rotation.x = Math.PI/2;
-        rim.position.set(x, L.elevation + L.ceiling - 0.015, gz);
-        L.roomCeil.add(rim);
-        const baffle = new THREE.Mesh(new THREE.RingGeometry(0.056, 0.072, 24), MAT.dark);
-        baffle.rotation.x = Math.PI/2;
-        baffle.position.set(x, L.elevation + L.ceiling - 0.014, gz);
-        L.roomCeil.add(baffle);
-        const d = new THREE.Mesh(new THREE.CircleGeometry(0.056, 24), MAT.lamp);
-        d.rotation.x = Math.PI/2;
-        d.position.set(x, L.elevation + L.ceiling - 0.012, gz);
-        L.roomCeil.add(d);
-      }
+      const j = Math.round((z0-b.z0)/g);
+      for (let i = Math.round((x0-b.x0)/g); i < Math.round((x1-b.x0)/g); i++) cells.add(i+','+j);
+    }
+    const has = (x,z) => cells.has(Math.floor((x-b.x0)/g)+','+Math.floor((z-b.z0)/g));
+    let u0=Infinity, u1=-Infinity, v0=Infinity, v1=-Infinity;
+    for (const key of cells){
+      const [i,j] = key.split(',').map(Number), x = b.x0+(i+0.5)*g, z = b.z0+(j+0.5)*g;
+      const u = x*ct - z*st, v = x*st + z*ct;
+      u0 = Math.min(u0,u); u1 = Math.max(u1,u); v0 = Math.min(v0,v); v1 = Math.max(v1,v);
+    }
+    // Clear of every wall by nearly half a metre, or by what a hall allows.
+    const margin = Math.min(0.45, Math.max(0.15, Math.min(u1-u0, v1-v0)/2 - 0.1));
+    const clear = (x,z) => {
+      if (!has(x,z) || inStairCut(L.ceilingCut,x,z)) return false;
+      for (let k=0;k<8;k++) if (!has(x + Math.cos(k*Math.PI/4)*margin, z + Math.sin(k*Math.PI/4)*margin)) return false;
+      return true;
+    };
+    const nu = Math.max(1, Math.round((u1-u0)/2.4)), nv = Math.max(1, Math.round((v1-v0)/2.4));
+    const spots = [];
+    for (let i=0;i<nu;i++) for (let j=0;j<nv;j++){
+      const u = u0 + (u1-u0)*(i+0.5)/nu, v = v0 + (v1-v0)*(j+0.5)/nv;
+      const x = u*ct + v*st, z = -u*st + v*ct;
+      if (clear(x,z)) spots.push([x,z]);
+    }
+    // A room whose grid points all fall in its notches still gets the one
+    // over its anchor.
+    if (!spots.length && room.at && clear(room.at[0], room.at[1])) spots.push([room.at[0], room.at[1]]);
+    for (const [x,z] of spots){
+      const rim = new THREE.Mesh(new THREE.RingGeometry(0.072, 0.096, 24), MAT.trim);
+      rim.rotation.x = Math.PI/2;
+      rim.position.set(x, L.elevation + L.ceiling - 0.015, z);
+      L.roomCeil.add(rim);
+      const baffle = new THREE.Mesh(new THREE.RingGeometry(0.056, 0.072, 24), MAT.dark);
+      baffle.rotation.x = Math.PI/2;
+      baffle.position.set(x, L.elevation + L.ceiling - 0.014, z);
+      L.roomCeil.add(baffle);
+      const d = new THREE.Mesh(new THREE.CircleGeometry(0.056, 24), MAT.lamp);
+      d.rotation.x = Math.PI/2;
+      d.position.set(x, L.elevation + L.ceiling - 0.012, z);
+      L.roomCeil.add(d);
     }
   }
   for (const t of thresholds) for (const side of [-1,1]){
@@ -169,6 +197,22 @@ export function dressSlabs(L){
     geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
     L.roomFloor.add(new THREE.Mesh(geo,mat));
   }
+}
+
+// The yaw most of a storey's wall length runs at, folded to a quarter turn:
+// the axis the house is built on. Walls within three degrees of one another
+// are one bin, and the bin with the most wall in it wins.
+function houseFrame(L){
+  const bins = new Map(), Q = Math.PI/2;
+  for (const w of L.walls){
+    let a = ((w.yaw % Q) + Q) % Q; if (a > Q - 0.025) a -= Q;
+    const k = Math.round(a/0.05);
+    const bin = bins.get(k) || {len:0, sum:0};
+    bin.len += w.w; bin.sum += a*w.w; bins.set(k, bin);
+  }
+  let best = null;
+  for (const bin of bins.values()) if (!best || bin.len > best.len) best = bin;
+  return best ? best.sum/best.len : 0;
 }
 
 // The furniture the renovation proposes, room by room. A room in photos.json
@@ -215,6 +259,27 @@ const LIGHT_UNDER = /chair|table|console|nightstand|end-table|coffee/;
 // A rug goes under the seating and the beds: the one thing that most makes a
 // furnished room read as lived in, and a plane of woven cloth on the floor.
 const RUGGED = /sofa|sectional|bed-/;
+// The border and the field of a rug: the flat natural weave with its linen
+// binding, or, for a rug that names a `swatch`, the photograph of that rug
+// over both — a patterned wool has no border to draw. The photograph covers
+// its `metres` across the rug and whatever its shape makes that along it;
+// mirrored, so the pattern meets itself at every repeat rather than
+// breaking off, unless the swatch says `tile`, for a pattern that should
+// repeat as itself.
+const rugMats = {};
+function rugWearing(name){
+  const sw = name && swatchesLoaded[name];
+  if (!sw) return [MAT.rugEdge, MAT.rug];
+  if (!rugMats[name]){
+    const m = MAT.rug.clone(), t = swatchTexture(sw);
+    t.wrapS = t.wrapT = sw.tile ? THREE.RepeatWrapping : THREE.MirroredRepeatWrapping;
+    t.repeat.set(1/sw.metres, sw.img.naturalWidth/(sw.img.naturalHeight*sw.metres));
+    m.map = m.bumpMap = t; m.bumpScale = 0.0012;
+    m.color.setHex(0xF2F2F2).convertSRGBToLinear();
+    rugMats[name] = m;
+  }
+  return [rugMats[name], rugMats[name]];
+}
 export function dressFittings(L){
   L.designed = []; L.planBoxes = []; L.daylightExtra = [];
   const extraBlockers = [];
@@ -310,7 +375,7 @@ export function dressFittings(L){
       // Stand it on the floor where the scanned piece stood, its back where
       // the scanned back was: a deeper sofa grows forward, not into the wall.
       const built = fitted(dims => {
-        const g = product(pick.key, dims, f);
+        const g = product(pick.key, dims, f, pick.mats);
         if (!g) return null;
         g.position.set(src.c[0] - Math.sin(src.yaw)*f*(dims[2] - src.d[2])/2,
                        L.elevation + dims[1]/2,
@@ -326,6 +391,18 @@ export function dressFittings(L){
     }
     const base = p.y - src.d[1]/2 - L.elevation;
     if (o.category === 'television' && o.built){
+      // A screen the scan saw that is a mirror — a room's `finishes.mirrors`
+      // names the spot — is drawn as one: the glass in a slim black frame,
+      // hung where the screen was.
+      if (L.rooms.some(r => (r.finishes?.mirrors || []).some(([mx, mz]) => Math.hypot(mx - p.x, mz - p.z) < 0.35))){
+        const g = new THREE.Group(), [w, h, d] = src.d;
+        g.add(box(MAT.black, w, h, 0.04, 0, 0, -f*(d/2 - 0.02)));
+        const glass = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.06, h - 0.06), MAT.mirror);
+        glass.position.set(0, 0, -f*(d/2 - 0.041)); glass.rotation.y = f > 0 ? 0 : Math.PI;
+        g.add(glass);
+        g.position.copy(o.built.position); g.rotation.copy(o.built.rotation);
+        swap(o, g);
+      }
       // Hung on the wall, not stood on the floor: its back goes to the face
       // of the nearest wall behind it, a centimetre proud.
       const nx = Math.sin(src.yaw)*f, nz = Math.cos(src.yaw)*f;
@@ -398,13 +475,19 @@ export function dressFittings(L){
       continue;
     }
     if (spec.rug){
-      // A rug placed outright, at its own size, with the same border.
+      // A rug placed outright, at its own size, with the same border — or,
+      // naming a `swatch`, in that photograph of a rug edge to edge.
       const [rw, rd] = spec.rug, yaw = spec.yaw ?? 0;
       const at = settle(fits, spec.at[0], spec.at[1], yaw, rw, rd, 1, crossing);
       if (!at || at.partial) continue;
-      const m = new THREE.Group();
-      m.add(box(MAT.rugEdge, rw, 0.010, rd, 0, 0.005, 0));
-      m.add(box(MAT.rug, rw - 0.16, 0.012, rd - 0.16, 0, 0.006, 0));
+      const m = new THREE.Group(), [edge, field] = rugWearing(spec.swatch);
+      // A patterned rug is one piece, edge to edge; the natural weave keeps
+      // its bound border stepped a millimetre under the field.
+      if (edge === field) m.add(box(field, rw, 0.012, rd, 0, 0.006, 0));
+      else {
+        m.add(box(edge, rw, 0.010, rd, 0, 0.005, 0));
+        m.add(box(field, rw - 0.16, 0.012, rd - 0.16, 0, 0.006, 0));
+      }
       m.position.set(at.x, L.elevation + 0.004, at.z); m.rotation.y = yaw;
       m.visible = false; L.furn.add(m); L.designed.push(m);
       continue;

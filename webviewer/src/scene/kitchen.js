@@ -149,11 +149,19 @@ function island(g, len, wid, ceiling, pendant){
 }
 
 // A breakfast bar: a quartz top at bar height on white panel ends, open
-// underneath, with a counter stool tucked in for every 55 cm of it — leather
-// seat on a black frame with a footrest ring.
-const BAR_H = 1.0, BAR_D = 0.5;
-function bar(g, w){
+// underneath, with a counter stool tucked in for every 55 cm of it. Where a
+// pass-through is cut in the wall behind it, the top runs on through the
+// opening to a nosing on the far side — one slab, no sill standing above it.
+// `through` is that opening in the bar's own metres: its ends along the wall
+// and the height of its sill, which the slab fills up to the bar top.
+const BAR_H = 1.0, BAR_D = 0.5, NOSE = 0.03;
+function bar(g, w, through){
   g.add(box(MAT.quartz, w + 0.02, 0.03, BAR_D + 0.02, 0, BAR_H - 0.015, 0.01));
+  if (through){
+    const tw = through.x1 - through.x0 - 0.004, y0 = Math.min(through.sill, BAR_H - 0.03);
+    const td = WALL_T + NOSE + 0.01;                          // into the slab behind, out past the far face
+    g.add(box(MAT.quartz, tw, BAR_H - y0, td, (through.x0 + through.x1)/2, (y0 + BAR_H)/2, -BAR_D/2 + 0.01 - td/2));
+  }
   for (const s of [-1, 1]) g.add(box(MAT.matte, 0.05, BAR_H - 0.03, BAR_D - 0.02, s*(w/2 - 0.025), (BAR_H - 0.03)/2, 0));
   g.add(box(MAT.matte, w - 0.1, BAR_H - 0.03, 0.02, 0, (BAR_H - 0.03)/2, -BAR_D/2 + 0.01));
   // West Elm's Slope counter stool, to go with the Slope chairs at the
@@ -164,7 +172,7 @@ function bar(g, w){
     const x = -w/2 + pitch*(i + 0.5), z = BAR_D/2 + 0.06, seat = 0.7;
     for (const sx of [-1, 1]) for (const sz of [-1, 1]){
       const leg = tube(MAT.oak, 0.014, seat - 0.05, x + sx*0.16, (seat - 0.05)/2, z + sz*0.16);
-      leg.rotation.z = -sx*0.07; leg.rotation.x = sz*0.07; g.add(leg);
+      leg.rotation.z = sx*0.07; leg.rotation.x = -sz*0.07; g.add(leg);
     }
     for (const sz of [-1, 1]) g.add(tube(MAT.oak, 0.012, 0.32, x, 0.26, z + sz*0.16, 'x'));
     g.add(cushion(MAT.oatmeal, 0.42, 0.07, 0.4, x, seat - 0.035, z));
@@ -181,7 +189,7 @@ const UNIT = {
   range:     (g, w) => range(g, w, BASE_D),
   fridge:    (g, w, c) => fridge(g, w, TALL_D, c),
   pantry:    (g, w, c) => pantry(g, w, TALL_D, c),
-  bar:       (g, w) => bar(g, w),
+  bar:       (g, w, c, through) => bar(g, w, through),
 };
 const TALL = new Set(['fridge', 'pantry']);
 const depthOf = kind => TALL.has(kind) ? TALL_D : kind === 'bar' ? BAR_D : BASE_D;
@@ -212,6 +220,16 @@ export function buildKitchen(L, room, host){
     // Every window on this wall, in the wall's own metres, so the uppers and
     // the splashback can stop for them.
     const windows = w.holes.filter(h => h.k === 'window').map(h => ({x0:h.x0, x1:h.x1, y0:w.c[1] + h.y0 - L.elevation}));
+    // A pass-through — an opening that starts above the floor — over the
+    // stretch a bar occupies, in the bar's own metres (which run the other
+    // way from the wall's when the kitchen is on its far side), so the bar
+    // can carry its top through it.
+    const passThrough = (x0, x1) => {
+      const h = w.holes.find(h => h.k === 'opening' && h.y0 > -w.h/2 + 0.3 && h.x1 > x0 && h.x0 < x1);
+      if (!h) return null;
+      const mid = (x0 + x1)/2, a = side*(Math.max(h.x0, x0) - mid), b = side*(Math.min(h.x1, x1) - mid);
+      return {x0:Math.min(a, b), x1:Math.max(a, b), sill:w.c[1] + h.y0 - L.elevation};
+    };
     const place = (g, along, width, depth, y = 0) => {
       const off = WALL_T/2 + depth/2;
       g.position.set(w.c[0] + dir[0]*along + n[0]*side*off, L.elevation + y, w.c[2] + dir[1]*along + n[1]*side*off);
@@ -223,7 +241,7 @@ export function buildKitchen(L, room, host){
       const make = UNIT[kind];
       if (!make){ at += width; continue; }
       const g = new THREE.Group();
-      make(g, width, ceiling);
+      make(g, width, ceiling, kind === 'bar' ? passThrough(at, at + width) : null);
       const depth = depthOf(kind), mid = at + width/2;
       place(g, mid, width, depth);
       const h = TALL.has(kind) ? ceiling - 0.02 : kind === 'bar' ? BAR_H : COUNTER;

@@ -92,10 +92,22 @@ export const PRODUCTS = {
     retailer:'Crate & Barrel', name:'Lounge II Sofa (105")', dims:[2.67, 0.84, 1.04],
     url:'https://www.crateandbarrel.com/search?query=lounge%20ii%20105%20sofa',
     finish:'Taft, Cement', make:'deepSofa', mats:{fabric:'oatmeal', leg:'black'}},
+  'westelm/slope-lounge-chair': {
+    retailer:'West Elm', name:'Slope Upholstered Lounge Chair', dims:[0.71, 0.79, 0.76],
+    url:'https://www.westelm.com/search/results.html?words=slope+upholstered+lounge+chair',
+    finish:"Room & Board's Flint, Sky, standing in for a pale blue", make:'slopeLounge', mats:{fabric:'sky', leg:'black'}},
   'crateandbarrel/cavett-leather-chair': {
     retailer:'Crate & Barrel', name:'Cavett Leather Chair', dims:[0.74, 0.76, 0.79],
     url:'https://www.crateandbarrel.com/search?query=cavett%20leather%20chair',
     finish:'Saddle leather on a walnut frame', make:'slingChair', mats:{fabric:'leather', leg:'walnut'}},
+  // The retro corner: not from any catalogue — a CRT the way they were made
+  // and a bean bag the way they still are, drawn at the sizes they come in.
+  'retro/crt-24-on-stand': {
+    retailer:'Retro corner', name:'24" CRT television on an oak console, with the games', dims:[1.6, 1.3, 0.5],
+    finish:'Charcoal plastic, oak console', make:'crtOnStand', mats:{frame:'oak'}},
+  'retro/bean-bag': {
+    retailer:'Retro corner', name:'Bean bag', dims:[0.9, 0.5, 0.9],
+    finish:'Charcoal', make:'beanBag', mats:{fabric:'charcoal'}},
   'westelm/mid-century-media-console-80': {
     retailer:'West Elm', name:'Mid-Century Media Console (80")', dims:[2.03, 0.61, 0.46],
     url:'https://www.westelm.com/search/results.html?words=mid-century+media+console',
@@ -145,15 +157,24 @@ export function productDims(product, scan){
 }
 // A room maps a category to one product or to a list of them, tried in order:
 // the first the box will take is the one that stands there.
+// A furnishing is a product key, or `{product, mats}` to dress that product
+// in other materials than its catalogue ones — the sofa with the room's
+// accent on its pillows.
 export function pickProduct(keys, scan){
-  for (const key of [].concat(keys || [])){
+  for (const entry of [].concat(keys || [])){
+    const key = typeof entry === 'string' ? entry : entry?.product;
     const dims = PRODUCTS[key] && productDims(PRODUCTS[key], scan);
-    if (dims) return {key, dims};
+    if (dims) return {key, dims, mats:typeof entry === 'string' ? undefined : entry.mats};
   }
   return null;
 }
 
 const M = name => MAT[name] || MAT.oak;
+
+// Book cloth and paper: flat, hard-edged colours for spines — a book is a
+// box, not a cushion, so these are not the soft weaves of the upholstery.
+const BOOK = [0x3B4A5A, 0x7A2E2E, 0xD8CFC0, 0x2F4F3F, 0xB08A4A, 0x1F1F23, 0x8A6D5A, 0xE8E2D5, 0x4A6A8A, 0x9A9A8E, 0x5C4B6E]
+  .map(hex => { const m = new THREE.MeshStandardMaterial({color:hex, roughness:0.85, metalness:0}); m.color.convertSRGBToLinear(); return m; });
 
 // Slim legs under a piece, inset from its corners: square in oak, round in
 // steel, which is how the two are made.
@@ -170,7 +191,7 @@ function legs(g, mat, w, h, d, y0, leg, inset, tall){
 // of polish on the piece under it.
 function pillow(g, mat, size, x, y, z, lean, turn){
   const p = cushion(mat, size, size, size*0.28, x, y, z);
-  p.rotation.set(lean, turn, turn*0.6); g.add(p);
+  p.rotation.set(lean, turn, 0); g.add(p);
 }
 function throwOver(g, mat, armW, x, y, z, side){
   // Folded over the arm: a layer on top of it, a long flap down the outside
@@ -290,7 +311,7 @@ export const MAKERS = {
     b.rotation.x = -f*0.14; g.add(b);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]){
       const l = tube(leg, 0.014, seat - 0.05, sx*(w/2 - 0.05), y0 + (seat - 0.05)/2, sz*(d/2 - 0.06));
-      l.rotation.z = -sx*0.08; l.rotation.x = sz*0.08; g.add(l);
+      l.rotation.z = sx*0.08; l.rotation.x = -sz*0.08; g.add(l);
     }
   },
   // The Slope lounge chair: the same shell, wider and lower, in leather on a
@@ -305,7 +326,7 @@ export const MAKERS = {
     }
     for (const sx of [-1, 1]) for (const sz of [-1, 1]){
       const l = tube(leg, 0.014, seat - 0.06, sx*(w/2 - 0.06), y0 + (seat - 0.06)/2, sz*(d/2 - 0.07));
-      l.rotation.z = -sx*0.1; l.rotation.x = sz*0.1; g.add(l);
+      l.rotation.z = sx*0.1; l.rotation.x = -sz*0.1; g.add(l);
     }
   },
   // Room & Board Linden: a thick oak top, square legs flush with the corners.
@@ -407,32 +428,80 @@ export const MAKERS = {
   },
   // Woodwind: an open oak frame with adjustable shelves and no back — a few
   // books and a bowl on it, or it reads as a ladder.
+  // A 24" CRT on a long low open oak console — three bays, the game
+  // console in the middle one with a controller trailing off the front, the
+  // games stacked in the others — the way a corner like this is set up: the
+  // tube's deep case tapers to the back, the glass bulges a little proud of
+  // the bezel.
+  crtOnStand(g, w, h, d, f, m){
+    // The console is whatever height is left under the set; a tall one gets
+    // a middle shelf.
+    const y0 = -h/2, frame = M(m.frame), stand = Math.max(0.3, h - 0.5), t = 0.03;
+    g.add(box(frame, w, t, d, 0, y0 + stand - t/2, 0));
+    g.add(box(frame, w, t, d, 0, y0 + 0.06 + t/2, 0));
+    if (stand > 0.6) g.add(box(frame, w - t*2, t, d - 0.02, 0, y0 + 0.06 + (stand - 0.06)/2, 0));
+    for (const s of [-1, 1]) g.add(box(frame, t, stand, d, s*(w/2 - t/2), y0 + stand/2, 0));
+    for (const s of [-1, 1]) g.add(box(frame, t, stand - 0.06 - t*2, d, s*w/6, y0 + 0.06 + t + (stand - 0.06 - t*2)/2, 0));
+    g.add(box(MAT.matte, 0.26, 0.055, 0.2, 0, y0 + 0.09 + 0.0275, f*0.04));
+    g.add(box(MAT.black, 0.12, 0.006, 0.05, 0, y0 + 0.09 + 0.058, f*0.08));
+    g.add(box(MAT.black, 0.14, 0.022, 0.06, 0.25, y0 + stand + 0.011, f*(d/2 - 0.05)));
+    // The games: boxes stacked on their sides in the end bays, and a row
+    // standing on the top beside the set.
+    const cart = [[MAT.slate, 0.14], [MAT.charcoal, 0.13], [MAT.teal, 0.14], [MAT.ivory, 0.13]];
+    for (const s of [-1, 1]) cart.forEach(([mat, cw], i) => g.add(box(mat, cw, 0.024, 0.19, s*w/3 + 0.03*(i%2), y0 + 0.09 + 0.012 + i*0.026, f*0.02)));
+    cart.forEach(([mat, cw], i) => g.add(box(mat, 0.02, 0.13, cw, -w/2 + 0.08 + i*0.026, y0 + stand + 0.065, f*0.02)));
+    const tw = 0.56, th = 0.46, td = 0.46, ty = y0 + stand + th/2;
+    g.add(box(MAT.dark, tw, th, 0.2, 0, ty, f*(td/2 - 0.1) - f*0.02));
+    g.add(box(MAT.dark, tw*0.74, th*0.78, td - 0.2, 0, ty - 0.01, -f*(0.1 + 0.02)));
+    g.add(box(MAT.screen, tw - 0.08, th - 0.1, 0.02, 0, ty + 0.01, f*(td/2 - 0.02 + 0.005)));
+    g.add(box(MAT.black, tw - 0.1, 0.012, 0.006, 0, ty - th/2 + 0.03, f*(td/2 - 0.02 + 0.006)));
+  },
+  // A bean bag: a sack of beans sat in, so a squashed sphere with a dent
+  // where the sitter goes.
+  beanBag(g, w, h, d, f, m){
+    const y0 = -h/2, fabric = M(m.fabric);
+    const geo = new THREE.SphereGeometry(0.5, 24, 16), pos = geo.attributes.position;
+    for (let i=0;i<pos.count;i++){
+      const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
+      const dent = y > 0.2 ? (y - 0.2)*0.5*Math.max(0, 1 - (x*x + (z - 0.1)*(z - 0.1))/0.12) : 0;
+      pos.setXYZ(i, x*w, Math.max(-0.5, y)*h*1.15 - dent*h, z*d);
+    }
+    geo.computeVertexNormals();
+    const bag = new THREE.Mesh(geo, fabric); bag.position.y = y0 + h*0.5; g.add(bag);
+  },
   bookcase(g, w, h, d, f, m){
     const y0 = -h/2, frame = M(m.frame), t = 0.022;
     for (const s of [-1, 1]) g.add(box(frame, t, h, d, s*(w - t)/2, 0, 0));
     const n = Math.max(2, Math.round(h/0.34));
     for (let i=0;i<=n;i++) g.add(box(frame, w - t*2, t, d, 0, y0 + 0.03 + (h - 0.06)*i/n, 0));
     g.add(box(frame, w - t*2, h - 0.06, 0.01, 0, 0, -f*(d/2 - 0.005)));
-    // Books on every shelf but the bottom, each shelf its own run of spines
-    // in its own order, leaning where a run ends short; a bowl and a plant
-    // where a shelf is left half empty.
-    const spines = [[MAT.slate, 0.16], [MAT.oatmeal, 0.12], [MAT.charcoal, 0.2], [MAT.leather, 0.1],
-                    [MAT.ivory, 0.14], [MAT.walnut, 0.09], [MAT.slate, 0.11], [MAT.charcoal, 0.15]];
+    // Books on every shelf but the bottom: a run of real spines — two to
+    // five centimetres each, in cloth and paper colours, hard-edged rather
+    // than upholstered — in its own order and its own length shelf to
+    // shelf, the last few leaning where a run ends short, a stack lying
+    // flat where there is room.
+    let seed = 11;
+    const rnd = () => { seed = (1664525*seed + 1013904223) >>> 0; return seed/4294967296; };
     for (let i=1;i<=n;i++){
-      const shelf = y0 + 0.03 + (h - 0.06)*(i - 1)/n + t/2;
-      const fill = 0.45 + 0.4*((i*7)%3)/2, start = (i%2) ? -w/2 + t + 0.03 : w/2 - t - 0.03;
-      let x = start;
-      for (let k=0;k<spines.length;k++){
-        const [mat, bw] = spines[(k + i*3)%spines.length], dir = (i%2) ? 1 : -1;
-        if (Math.abs(x - start) + bw > (w - t*2 - 0.06)*fill) break;
-        const bh = 0.2 + (bw*0.6) + 0.03*((k + i)%3);
-        g.add(box(mat, bw, bh, 0.17 + 0.02*(k%2), x + dir*bw/2, shelf + bh/2, 0.02*((k+i)%2)));
-        x += dir*(bw + 0.008);
+      const shelf = y0 + 0.03 + (h - 0.06)*(i - 1)/n + t/2, inner = w - t*2 - 0.04;
+      const fill = 0.55 + 0.4*rnd(), dir = (i%2) ? 1 : -1, start = -dir*inner/2;
+      let x = start, k = 0;
+      while (Math.abs(x - start) < inner*fill){
+        const bw = 0.018 + rnd()*0.03, bh = 0.17 + rnd()*0.09, bd = 0.13 + rnd()*0.06;
+        const mat = BOOK[Math.floor(rnd()*BOOK.length)];
+        const last = Math.abs(x - start) + bw > inner*fill - 0.06;
+        const b = box(mat, bw, bh, bd, x + dir*bw/2, shelf + bh/2, -f*(d/2 - bd/2 - 0.02 - rnd()*0.02));
+        if (last){ b.rotation.z = -dir*0.16; b.position.x += dir*bh*0.07; b.position.y -= bh*0.01; }
+        g.add(b); x += dir*(bw + 0.003); k++;
       }
-      if (fill < 0.6){
-        const cx = -start*0.5;
-        if (i%3 === 1) bowl(g, cx, shelf, 0, 0.08);
-        else g.add(tube(MAT.charcoal, 0.05, 0.12, cx, shelf + 0.06, 0));
+      if (fill < 0.75 && i%2 === 0){
+        // A short stack lying flat in the space left, spines out.
+        let top = shelf, sx = start + dir*(inner*fill + 0.06 + 0.11);
+        for (let q=0;q<3;q++){
+          const bw = 0.2 - q*0.02, bt = 0.022 + rnd()*0.01;
+          g.add(box(BOOK[Math.floor(rnd()*BOOK.length)], bw, bt, 0.15, sx, top + bt/2, -f*(d/2 - 0.1)));
+          top += bt;
+        }
       }
     }
   },
@@ -475,9 +544,22 @@ export const MAKERS = {
       b.rotation.x = -f*0.12; g.add(b);
       g.add(box(fabric, arm, seatTop + 0.1 - plinth, d, s*(w - arm)/2, y0 + plinth + (seatTop + 0.1 - plinth)/2, 0));
     }
-    pillow(g, MAT.ivory, 0.5, -(inner/2 - 0.3), y0 + seatTop + 0.26, -f*(d - back)/2 + f*0.24, -f*0.16, -0.18);
-    pillow(g, MAT.slate, 0.45, (inner/2 - 0.28), y0 + seatTop + 0.24, -f*(d - back)/2 + f*0.24, -f*0.16, 0.2);
-    pillow(g, MAT.charcoal, 0.4, (inner/2 - 0.62), y0 + seatTop + 0.21, -f*(d - back)/2 + f*0.28, -f*0.18, 0.1);
+    // Pillows the way a room is styled: one in each corner against the arm,
+    // standing on the seat cushion and leant on the back cushion — resting
+    // against it, not sunk into it — turned a little toward the middle, and
+    // a smaller one in front of the right-hand one. `pillows` names their
+    // cloths, corners first.
+    const [pa, pb, pc] = (m.pillows || ['ivory', 'slate', 'charcoal']).map(M);
+    const ys = y0 + seatTop + 0.01, yb = y0 + seatTop - 0.02 + (h - seatTop + 0.06)/2, lean = 0.22;
+    const put = (mat, size, x, turn, ahead = 0) => {
+      const t = size*0.28, yc = ys + size/2*Math.cos(lean) + t/2*Math.sin(lean);
+      const front = -(d/2 - frame - back/2) + back/2 - 0.12*(yc - yb);   // the back cushion's face at that height
+      const p = cushion(mat, size, size, t, x, yc, f*(front + t/2*Math.cos(lean) + 0.01 + ahead));
+      p.rotation.set(-f*lean, turn, 0); g.add(p);
+    };
+    put(pa, 0.5, -(inner/2 - 0.27), 0.18);
+    put(pb, 0.5, (inner/2 - 0.27), -0.18);
+    put(pc, 0.4, (inner/2 - 0.42), -0.12, 0.13);
     throwOver(g, MAT.ivory, arm, -(w - arm)/2, y0 + seatTop + 0.1, 0, -1);
   },
   // Crate & Barrel Cavett: a leather sling — seat and back one curved
@@ -504,7 +586,7 @@ export const MAKERS = {
     g.add(box(frame, w, h - legH, d, 0, y0 + legH + (h - legH)/2, 0));
     for (const sx of [-1, 1]) for (const sz of [-1, 1]){
       const leg = tube(frame, 0.016, legH + 0.02, sx*(w/2 - 0.08), y0 + legH/2, sz*(d/2 - 0.08));
-      leg.rotation.z = -sx*0.1; leg.rotation.x = sz*0.1; g.add(leg);
+      leg.rotation.z = sx*0.1; leg.rotation.x = -sz*0.1; g.add(leg);
     }
     const drawerW = w*0.22, doorW = (w - drawerW*2 - gap*4)/2, ch = h - legH - gap*2;
     for (const s of [-1, 1]){

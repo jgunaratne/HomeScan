@@ -10,12 +10,15 @@ const {PRODUCTS,productDims,pickProduct}=new Function(
   cut('export const PRODUCTS','// A product is drawn')+cut('export function productDims','const M = name')
   +';return {PRODUCTS,productDims,pickProduct};')();
 
-test('every product names one of the three retailers, a link and catalogue dimensions',()=>{
+test('every product names one of the three retailers, a link and catalogue dimensions — or is the retro corner, which no catalogue sells',()=>{
   const retailers=new Set(['Crate & Barrel','Room & Board','West Elm']);
   for(const [key,p] of Object.entries(PRODUCTS)){
-    assert.ok(retailers.has(p.retailer),`${key}: ${p.retailer}`);
-    assert.match(key,/^(crateandbarrel|roomandboard|westelm)\//,key);
-    assert.match(p.url,/^https:\/\/www\.(crateandbarrel|roomandboard|westelm)\.com\//,key);
+    if(/^retro\//.test(key)){ assert.equal(p.retailer,'Retro corner',key); assert.equal(p.url,undefined,key); }
+    else {
+      assert.ok(retailers.has(p.retailer),`${key}: ${p.retailer}`);
+      assert.match(key,/^(crateandbarrel|roomandboard|westelm)\//,key);
+      assert.match(p.url,/^https:\/\/www\.(crateandbarrel|roomandboard|westelm)\.com\//,key);
+    }
     assert.equal(p.dims.length,3,key);
     assert.ok(p.dims.every(v=>v>0.2&&v<3),`${key} is not furniture-sized: ${p.dims}`);
   }
@@ -44,6 +47,9 @@ test('a room may list candidates per category, and the first the box takes wins'
   assert.equal(pickProduct(keys,[0.95,1.96,0.73]),null);
   assert.equal(pickProduct('roomandboard/hudson-nightstand',[0.61,0.80,0.41])?.key,'roomandboard/hudson-nightstand','a bare string is a list of one');
   assert.equal(pickProduct(undefined,[1,1,1]),null);
+  const dressed=pickProduct({product:'roomandboard/hudson-nightstand',mats:{frame:'walnut'}},[0.61,0.80,0.41]);
+  assert.equal(dressed?.key,'roomandboard/hudson-nightstand','an object names its product');
+  assert.deepEqual(dressed?.mats,{frame:'walnut'},'and carries its materials');
 });
 
 test('every product photos.json asks for is in the catalogue',()=>{
@@ -51,7 +57,10 @@ test('every product photos.json asks for is in the catalogue',()=>{
   let asked=0;
   for(const room of data.rooms){
     for(const keys of Object.values(room.furnishings||{}))
-      for(const key of [].concat(keys)){assert.ok(PRODUCTS[key],`${room.name} asks for ${key}`);asked++;}
+      for(const entry of [].concat(keys)){
+        const key=typeof entry==='string' ? entry : entry.product;
+        assert.ok(PRODUCTS[key],`${room.name} asks for ${key}`);asked++;
+      }
     for(const p of room.place||[])if(p.product){assert.ok(PRODUCTS[p.product],`${room.name} places ${p.product}`);asked++;}
   }
   assert.ok(asked>10);

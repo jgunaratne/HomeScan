@@ -355,6 +355,9 @@ def load_swatches(here, out_dir, inline):
             continue
         out[name] = {
             'metres': spec.get('metres', 0.3),
+            # A photograph that tiles straight rather than mirrored — a rug
+            # whose pattern should read as repeating.
+            'tile': bool(spec.get('tile', False)),
             'src': ('data:image/jpeg;base64,' + base64.b64encode(f.read_bytes()).decode('ascii')) if inline
                    else PurePosixPath(rel.replace(os.sep, '/'), f.name).as_posix(),
         }

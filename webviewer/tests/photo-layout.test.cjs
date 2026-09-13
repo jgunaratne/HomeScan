@@ -27,26 +27,30 @@ test('photo corrections preserve scan dimensions and existing openings',()=>{
    for(const key of ['c','w','h','yaw'])assert.deepEqual(changed[key],wall[key]);
    // A scanned hole survives untouched, unless an annotated opening on the
    // same wall swallows it whole — a closet opened across its width has no
-   // use for its old door — in which case it is gone and the opening covers it.
+   // use for its old door, a window widened has no use for its old frame —
+   // in which case it is gone and the annotation covers it.
    for(const hole of wall.holes){
     const kept=changed.holes.find(h=>['k','x0','x1','y0','y1'].every(k=>h[k]===hole[k]));
     if(kept)continue;
-    const swallowed=changed.holes.find(h=>h.k==='opening'&&h.x0<=hole.x0+0.01&&h.x1>=hole.x1-0.01);
+    const swallowed=changed.holes.find(h=>(h.k==='opening'||h.k===hole.k)&&h.x0<=hole.x0+0.01&&h.x1>=hole.x1-0.01);
     assert.ok(swallowed,`a hole on wall ${i} of level ${level} vanished without an opening over it`);
    }
   });
  }
 });
 
-test('east office: its entrance wall stays, with a door cut in it, and the closet\'s side wall is gone; no closet keeps sliders',()=>{
+test('east office: its entrance wall stays, with a door cut at its south end onto the hall, and the closet\'s side wall is gone; only the west bedroom\'s closet keeps a slider',()=>{
  const edited=result.edited.levels[1].walls;
  assert.ok(edited.some(w=>w.c[0]===1.189&&w.c[2]===-3.382),'the entrance wall stands');
  assert.ok(!edited.some(w=>w.c[0]===1.859&&w.c[2]===-3.714),'the closet side wall beside the desk is gone');
  const entrance=result.after.levels[1].walls.find(w=>w.c[0]===1.189&&w.c[2]===-3.382);
  assert.equal(entrance.holes.length,1);
  assert.ok(Math.abs(entrance.holes[0].x1-entrance.holes[0].x0-0.8)<1e-9);
- const closets=result.after.levels.flatMap(l=>l.walls.flatMap(w=>w.holes.filter(h=>h.style==='closet-slider')));
- assert.equal(closets.length,0);
+ assert.ok((entrance.holes[0].x0+entrance.holes[0].x1)/2>0.5,'at the south end of the wall, not its middle');
+ const landing=result.after.levels[1].walls.find(w=>w.c[0]===2.087&&w.c[2]===-1.337);
+ assert.equal(landing.holes.length,0,'and none in the wall to the landing');
+ const closets=result.after.levels.flatMap(l=>l.walls.filter(w=>w.holes.some(h=>h.style==='closet-slider')));
+ assert.deepEqual(closets.map(w=>[w.c[0],w.c[2]]),[[-2.572,3.457]]);
 });
 
 // The closet wall is removed by annotation and its strip given to the room
@@ -72,15 +76,16 @@ test('east office: the closet wall is gone, its floor is the room\'s, and the ro
 
 test('West bedroom bed clears the full swing radius of every adjoining door',()=>{
  const room=roomMap.rooms.find(r=>r.name==='West bedroom');
- const bed=room.place.find(p=>p.product==='roomandboard/hudson-bed-queen');
+ const bed=room.place.find(p=>/-bed-/.test(p.product));
+ const [bw,,bd]={'westelm/anton-bed-full':[1.42,0.86,1.98],'roomandboard/hudson-bed-queen':[1.63,0.91,2.13]}[bed.product];
  const c=Math.cos(bed.yaw),s=Math.sin(bed.yaw);
  const walls=result.after.levels[1].walls.filter(w=>w.c[0]===-2.572||w.c[0]===-3.714);
  for(const w of walls)for(const h of w.holes){
   for(const along of [h.x0,h.x1]){
    const x=w.c[0]+Math.cos(w.yaw)*along-bed.at[0];
    const z=w.c[2]-Math.sin(w.yaw)*along-bed.at[1];
-   const dx=Math.max(0,Math.abs(c*x-s*z)-1.63/2);
-   const dz=Math.max(0,Math.abs(s*x+c*z)-2.13/2);
+   const dx=Math.max(0,Math.abs(c*x-s*z)-bw/2);
+   const dz=Math.max(0,Math.abs(s*x+c*z)-bd/2);
    assert.ok(Math.hypot(dx,dz)>h.x1-h.x0+0.05,'door swing must clear the bed, from either hinge');
   }
  }

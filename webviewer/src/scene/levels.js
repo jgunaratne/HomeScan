@@ -17,9 +17,9 @@ for (const r of [...(PHOTOS || []), ...(ROOMS || [])]){
   for (const [x, z] of r.finishes?.closedDoors || []) CLOSED.add(x.toFixed(2) + ',' + z.toFixed(2));
 }
 
-export const levels = HOUSE.levels.map(L => build(L));
+export const levels = HOUSE.levels.map((L, i) => build(L, HOUSE.levels[i+1]));
 
-export function build(L){
+export function build(L, above){
   const tint = L.tint ?? 0xC9D0D8;
   const group = new THREE.Group();
   const shell = new THREE.Group(), ceil = new THREE.Group();
@@ -57,6 +57,11 @@ export function build(L){
       let top = p.y1;
       if (Math.abs(p.y1 - w.h/2) < 0.002)
         top = Math.max(p.y1, L.elevation + L.ceiling - w.c[1]);
+      // A wall the scan measured taller than its storey — the two-storey
+      // entry's — stops at the floor above: the storey above has its own
+      // wall there, and the extra metre of this one stood up through that
+      // floor as a low white panel in the room beyond.
+      if (above) top = Math.min(top, above.elevation + 0.02 - w.c[1]);
       const pw = p.x1-p.x0, ph = top-p.y0;
       const cx = w.c[0] + Math.cos(w.yaw)*(p.x0+p.x1)/2;
       const cz = w.c[2] - Math.sin(w.yaw)*(p.x0+p.x1)/2;

@@ -12,13 +12,13 @@ import { MAT } from './materials.js';
 export const WEARS = {
   oak:'white_oak', oakPale:'whiteoak', walnut:'walnut', wood:'white_oak',
   fabric:'tepicivory', ivory:'orlaivory', oatmeal:'sumnerlinen', slate:'tepicgrey',
-  charcoal:'vickcharcoal', leather:'leccocognac', cotton:'sumnerivory',
+  charcoal:'vickcharcoal', sky:'flintsky', teal:'flintblue', leather:'leccocognac', cotton:'sumnerivory',
   rug:'tatumnatural', rugEdge:'sumnerlinen',
 };
 
 // The images to load, alongside the photographs.
 export function swatchList(){
-  return Object.entries(SWATCHES || {}).map(([name, s]) => ({name, src:s.src, metres:s.metres, img:null}));
+  return Object.entries(SWATCHES || {}).map(([name, s]) => ({name, src:s.src, metres:s.metres, tile:!!s.tile, img:null}));
 }
 
 // A swatch as a texture repeating every `metres` — box() lays its UVs out in
