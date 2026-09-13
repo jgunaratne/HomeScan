@@ -84,9 +84,11 @@ function closedLeaves(host, w, o, kind){
     g.add(box(MAT.trim,ow,0.025,0.085,0,oh/2-0.0125,0));
     g.name='Sliding closet doors';
   } else if (kind === 'garage'){
-    // A sectional overhead door: four panels with a groove between, closed.
-    for (let i=0;i<4;i++)
-      g.add(box(MAT.slab, ow - 0.02, oh/4 - 0.012, 0.04, 0, -oh/2 + oh/4*(i + 0.5), 0));
+    // A sectional overhead door, closed: one slab, so no daylight comes
+    // through between the panels, with the three panel joints drawn on it.
+    g.add(box(MAT.slab, ow - 0.02, oh - 0.02, 0.04, 0, 0, 0));
+    for (let i=1;i<4;i++) for (const side of [-1, 1])
+      g.add(box(MAT.dark, ow - 0.04, 0.012, 0.006, 0, -oh/2 + oh/4*i, side*0.021));
     g.name='Garage door';
   } else if (kind === 'slab'){
     // An interior door, shut: the flush slab with its black lever, in the
