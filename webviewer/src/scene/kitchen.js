@@ -156,15 +156,20 @@ function bar(g, w){
   g.add(box(MAT.quartz, w + 0.02, 0.03, BAR_D + 0.02, 0, BAR_H - 0.015, 0.01));
   for (const s of [-1, 1]) g.add(box(MAT.matte, 0.05, BAR_H - 0.03, BAR_D - 0.02, s*(w/2 - 0.025), (BAR_H - 0.03)/2, 0));
   g.add(box(MAT.matte, w - 0.1, BAR_H - 0.03, 0.02, 0, (BAR_H - 0.03)/2, -BAR_D/2 + 0.01));
+  // West Elm's Slope counter stool, to go with the Slope chairs at the
+  // table: an oatmeal upholstered seat with a low curved back, on splayed oak
+  // legs with an oak footrest.
   const n = Math.max(1, Math.round(w/0.55)), pitch = w/n;
   for (let i=0;i<n;i++){
-    const x = -w/2 + pitch*(i + 0.5), z = BAR_D/2 - 0.02, seat = 0.72;
-    for (const sx of [-1, 1]) for (const sz of [-1, 1])
-      g.add(tube(MAT.black, 0.009, seat - 0.04, x + sx*0.15, (seat - 0.04)/2, z + sz*0.15));
-    for (const sx of [-1, 1]) g.add(tube(MAT.black, 0.007, 0.3, x + sx*0.15, 0.22, z, 'z'));
-    for (const sz of [-1, 1]) g.add(tube(MAT.black, 0.007, 0.3, x, 0.22, z + sz*0.15, 'x'));
-    g.add(box(MAT.black, 0.34, 0.02, 0.34, x, seat - 0.05, z));
-    g.add(cushion(MAT.leather, 0.36, 0.05, 0.36, x, seat - 0.015, z));
+    const x = -w/2 + pitch*(i + 0.5), z = BAR_D/2 + 0.06, seat = 0.7;
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]){
+      const leg = tube(MAT.oak, 0.014, seat - 0.05, x + sx*0.16, (seat - 0.05)/2, z + sz*0.16);
+      leg.rotation.z = -sx*0.07; leg.rotation.x = sz*0.07; g.add(leg);
+    }
+    for (const sz of [-1, 1]) g.add(tube(MAT.oak, 0.012, 0.32, x, 0.26, z + sz*0.16, 'x'));
+    g.add(cushion(MAT.oatmeal, 0.42, 0.07, 0.4, x, seat - 0.035, z));
+    const back = cushion(MAT.oatmeal, 0.42, 0.22, 0.05, x, seat + 0.1, z + 0.17);
+    back.rotation.x = 0.12; g.add(back);
   }
 }
 

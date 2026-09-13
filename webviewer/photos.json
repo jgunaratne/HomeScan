@@ -54,7 +54,7 @@
     {
       "level": 0,
       "name": "Kitchen",
-      "finishes": {"openings": [{"wallAt": [-0.99, -1.5], "along": -0.92, "width": 1.6, "sill": 1.05, "height": 0.85, "kind": "opening", "note": "a pass-through over the breakfast bar into the hall"}], "kitchen": {"runs": [{"wallAt": [-3.02, -0.5], "start": -1.995, "uppers": true, "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.47]]}, {"wallAt": [-3.9, -3.14], "start": -1.27, "uppers": true, "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.375]]}, {"wallAt": [-0.99, -1.5], "start": -1.795, "uppers": false, "units": [["bar", 1.745]]}]}},
+      "finishes": {"openings": [{"wallAt": [-0.99, -1.5], "along": -0.92, "width": 1.6, "sill": 1.05, "height": 0.98, "kind": "opening", "note": "a pass-through over the breakfast bar into the hall, its head at door height"}], "kitchen": {"runs": [{"wallAt": [-3.02, -0.5], "start": -1.995, "uppers": true, "units": [["corner", 0.9], ["base", 0.45], ["range", 0.76], ["base", 0.63], ["base", 0.47]]}, {"wallAt": [-3.9, -3.14], "start": -1.27, "uppers": true, "units": [["base", 0.3], ["sink", 0.9], ["dishwasher", 0.6], ["fridge", 0.89], ["pantry", 0.375]]}, {"wallAt": [-0.99, -1.5], "start": -1.795, "uppers": false, "units": [["bar", 1.745]]}]}},
       "at": [-2.6, -2.4],
       "anchor": "section 4 (kitchen)",
       "floorFrom": "Dining room",
