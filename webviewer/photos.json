@@ -67,7 +67,7 @@
     {
       "level": 0,
       "name": "Entry and stair",
-      "finishes": {"stair": {"riseToward": -1, "railSide": 1, "closet": {"from": 0.5, "door": 0.8, "source": "august2026/IMG_0693.jpeg — the closet under the upper flight, its door on the living room side"}}},
+      "finishes": {"stair": {"riseToward": -1, "railSide": 1}},
       "floorFrom": "Dining room",
       "at": [2.4, 0.7],
       "anchor": "front door to the stairwell",

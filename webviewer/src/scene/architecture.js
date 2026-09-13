@@ -44,41 +44,6 @@ function stairFlight(o, elevation, rise, annotation){
   const x = side*(w/2-0.055);
   railBetween(g,timber,new THREE.Vector3(x,riser+0.90,zAt(0.5/n)),
     new THREE.Vector3(x,rise+0.90,zAt(1-0.5/n)),0.027);
-  // The closet under the stair, where the photographs show one: the upper
-  // part of the flight closed in to the floor on both sides and at the top
-  // end, in the same white as the risers, with a slab door on the rail side
-  // where there is headroom. `closet.from` is how far up the run it starts,
-  // as a fraction; the door is centred at `closet.door`.
-  const closet=annotation.closet;
-  if(closet){
-    const t0=closet.from??0.5,t1=1,ht=t=>t*rise-0.09,zs=t=>zAt(t);
-    const panel=(sideX,withDoor)=>{
-      const shape=new THREE.Shape();
-      const za=Math.min(zs(t0),zs(t1)),zb=Math.max(zs(t0),zs(t1));
-      const ha=ht(direction>0?t0:t1),hb=ht(direction>0?t1:t0);
-      shape.moveTo(za,0);shape.lineTo(zb,0);shape.lineTo(zb,hb);shape.lineTo(za,ha);shape.closePath();
-      if(withDoor){
-        const td=closet.door??0.8,dw=0.7,dz0=zs(td)-dw/2*direction,dz1=zs(td)+dw/2*direction;
-        const hole=new THREE.Path();
-        const lo=Math.min(dz0,dz1),hi=Math.max(dz0,dz1),dh=Math.min(2.0,ht(td)-0.12);
-        hole.moveTo(lo,0.002);hole.lineTo(hi,0.002);hole.lineTo(hi,dh);hole.lineTo(lo,dh);hole.closePath();
-        shape.holes.push(hole);
-        const leaf=box(MAT.slab,dw-0.02,dh-0.02,0.04,sideX,dh/2,zs(td));
-        leaf.rotation.y=Math.PI/2;g.add(leaf);
-        g.add(tube(MAT.black,0.008,0.12,sideX+0.05,dh/2-0.1,zs(td)-direction*(dw/2-0.08),'z'));
-      }
-      const m=new THREE.Mesh(new THREE.ShapeGeometry(shape),MAT.trim);
-      m.material=MAT.trim;m.rotation.y=Math.PI/2;m.position.x=sideX;
-      const back=m.clone();back.rotation.y=-Math.PI/2;back.position.x=sideX;
-      g.add(m);g.add(back);
-    };
-    panel(side*(w/2-0.01),true);
-    panel(-side*(w/2-0.01),false);
-    // The top end wall, under the landing.
-    const zt=zs(t1);
-    g.add(box(MAT.trim,w,ht(t1),0.02,0,ht(t1)/2,zt));
-    g.userData.closet={z0:zs(t0),z1:zs(t1)};
-  }
   g.position.set(o.c[0],elevation,o.c[2]); g.rotation.y=o.yaw;
   g.name='Photo-guided staircase';
   return g;
@@ -185,12 +150,6 @@ export function dressArchitecture(L,next){
         if(rise>1&&rise<4.5&&o.d[0]>0.4&&o.d[2]>1){
           const g=stairFlight(o,L.elevation,rise,annotation);
           L.shell.add(g);L.objMeshes[index].built=g;
-          // The closet is walled: the body stops at it, though the flight
-          // itself stays open to walk onto.
-          if(g.userData.closet){
-            const {z0,z1}=g.userData.closet,mid=(z0+z1)/2,cs=Math.cos(o.yaw),sn=Math.sin(o.yaw);
-            L.objBlockers.push({x:o.c[0]+sn*mid,z:o.c[2]+cs*mid,yaw:o.yaw,hx:o.d[0]/2,hz:Math.abs(z1-z0)/2});
-          }
           const cut={x:o.c[0],z:o.c[2],yaw:o.yaw,hx:o.d[0]/2+0.08,hz:o.d[2]/2+0.04};
           L.ceilingCut=cut;next.floorCut=cut;
         }
