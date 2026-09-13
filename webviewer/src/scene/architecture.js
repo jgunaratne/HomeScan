@@ -2,6 +2,8 @@ import { WALL_T } from '../core/constants.js';
 import { surfaceTile } from './textures.js';
 import { MAT } from './materials.js';
 import { box, tube } from './fittings.js';
+import { avgMats } from '../photo/relight.js';
+import { TILE } from '../photo/rooms.js';
 
 function railBetween(g, material, a, b, radius){
   const delta = new THREE.Vector3().subVectors(b,a);
@@ -15,8 +17,15 @@ function railBetween(g, material, a, b, radius){
 // bounds alone cannot establish either. Geometry stays in the scan's footprint.
 function stairFlight(o, elevation, rise, annotation){
   const g = new THREE.Group(), w = o.d[0], run = o.d[2];
-  // White oak treads and handrail, to match the floor they land on.
-  const timber=MAT.oak;
+  // Only the treads carry the oak flooring; the rest is painted trim.
+  const timber=avgMats().floor.clone();
+  // Floor UVs use tile units; stair boxes use metres. Preserve board scale.
+  for (const key of ['map','normalMap','roughnessMap']){
+    if (!timber[key]) continue;
+    timber[key]=timber[key].clone();
+    timber[key].repeat.multiplyScalar(1/TILE.floor);
+    timber[key].needsUpdate=true;
+  }
   const direction = annotation.riseToward === 1 ? 1 : -1;
   const side = annotation.railSide === -1 ? -1 : 1;
   const n = Math.max(3, Math.round(rise/0.18)), going = run/n, riser = rise/n;
@@ -36,13 +45,13 @@ function stairFlight(o, elevation, rise, annotation){
   // sawtooth silhouette and let daylight through the stair from below.
   const soffit=box(MAT.trim,w-0.06,0.055,Math.hypot(run,rise),0,rise/2-0.09,0);
   soffit.rotation.x=-direction*Math.atan2(rise,run);g.add(soffit);
-  // The photographed handrail terminates in timber posts, not floating rods.
+  // The handrail terminates in painted posts.
   for(const t of [0.5/n,1-0.5/n]){
     const y=(Math.floor(t*n)+1)*riser;
-    g.add(box(timber,0.065,0.96,0.065,side*(w/2-0.055),y+0.45,zAt(t)));
+    g.add(box(MAT.trim,0.065,0.96,0.065,side*(w/2-0.055),y+0.45,zAt(t)));
   }
   const x = side*(w/2-0.055);
-  railBetween(g,timber,new THREE.Vector3(x,riser+0.90,zAt(0.5/n)),
+  railBetween(g,MAT.trim,new THREE.Vector3(x,riser+0.90,zAt(0.5/n)),
     new THREE.Vector3(x,rise+0.90,zAt(1-0.5/n)),0.027);
   g.position.set(o.c[0],elevation,o.c[2]); g.rotation.y=o.yaw;
   g.name='Photo-guided staircase';

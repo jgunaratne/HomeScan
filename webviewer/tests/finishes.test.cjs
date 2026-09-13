@@ -119,7 +119,7 @@ test('the shipped scan declares finishes that group into one ceiling a storey',(
   for(const r of rooms){
     const f=r.finishes.floor;
     if(!f) continue;
-    assert.match(f,/^(timber-[a-z-]+|tile-[a-z-]+|concrete)$/,`${r.name} names a floor nothing will lay`);
+    assert.match(f,/^(timber-[a-z-]+|tile-[a-z-]+|carpet-gray|concrete)$/,`${r.name} names a floor nothing will lay`);
     if(!f.startsWith('timber')) continue;
     if(!woods.has(f)) woods.set(f,new Set());
     woods.get(f).add(r.level);
@@ -131,12 +131,13 @@ test('the shipped scan declares finishes that group into one ceiling a storey',(
   assert.deepEqual([...woods.get('timber-white-oak')].sort(),[0,1],'laid on both storeys');
 });
 
-// The renovation paints every wall one white, and it does so once, at the top
-// of the file. A room that wrote its own wall finish would silently keep it.
-test('every room is painted the one white, by default rather than each by hand',()=>{
+test('the media room has dark gray walls and other rooms inherit the house paint',()=>{
   const doc=JSON.parse(fs.readFileSync(`${__dirname}/../photos.json`,'utf8'));
   assert.match(doc.finishes.wall,/^#[0-9a-f]{6}$/i);
-  for(const r of doc.rooms) assert.ok(!r.finishes?.wall,`${r.name} overrides the house paint`);
+  for(const r of doc.rooms){
+    if(r.name==='Media room') assert.equal(r.finishes.wall,'#6B6C70');
+    else assert.ok(!r.finishes?.wall,`${r.name} overrides the house paint`);
+  }
 });
 
 // A hall is a room you walk through and never photograph. Before it was
@@ -156,17 +157,13 @@ test('the halls are declared, photographless, and named onto their storey\'s woo
   assert.equal(bywood['Upstairs hall'],'timber-white-oak');
 });
 
-// Every floor in the house is hardwood but the two bathrooms — including the
-// laundry, whose photograph shows white tile. That is the brief, not the scan.
-test('every room is hardwood unless it is a bathroom',()=>{
+test('the media room is carpeted and other rooms use the same white oak flooring',()=>{
   const rooms=shipped();
-  const tiled=new Set(['Hall bathroom','Upstairs bathroom','Primary en-suite']);
   for(const r of rooms){
-    if(tiled.has(r.name)){
-      assert.equal(r.finishes.floor,'tile-porcelain',`${r.name} is tiled`);
+    if(r.name==='Media room'){
+      assert.equal(r.finishes.floor,'carpet-gray');
       continue;
     }
-    if(r.name==='Garage'){assert.equal(r.finishes.floor,'concrete');continue;}
     assert.equal(r.finishes.floor,'timber-white-oak',`${r.name} must be the house's one wood`);
   }
 });

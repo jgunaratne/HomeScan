@@ -1,7 +1,7 @@
 import { plankCanvases, tileCanvases, surfaceTile } from '../scene/textures.js';
 import { renderer } from '../scene/stage.js';
 import { BANDS, FLATTEN, photoRooms } from './rooms.js';
-import { swatchesLoaded } from '../scene/swatches.js';
+import { swatchesLoaded, swatchTexture } from '../scene/swatches.js';
 
 // Read the picture down to a size worth scanning. Everything below works on this
 // copy; the winning patch is then re-cut from the full-resolution original.
@@ -154,12 +154,12 @@ const isTimber = finish => typeof finish === 'string' && finish.startsWith('timb
 // table rather than sampled from the photographs — the photographs show cherry,
 // and the point of naming white oak is to see the house without it. The colour
 // is the boards' own under neutral light; `boards` is how many make up one
-// 1.55 m tile, so 8 is a 190 mm contemporary wide plank against the 155 mm
+// 1.55 m tile, so 8 is a 194 mm contemporary wide plank against the 155 mm
 // board the sampled woods use, with quieter board-to-board variation and a
 // matte oil finish. A wood not in the table keeps the sampling.
 export const WOODS = {
-  'timber-white-oak': {r:192, g:172, b:146, boards:8, length:3.6, vary:0.10, contrast:0.7, roughness:0.52,
-                       swatch:'white_oak', lift:0.14, desat:0.35},
+  'timber-white-oak': {r:214, g:193, b:162, boards:8, length:3.6, vary:0.07, contrast:0.6, roughness:0.65,
+                       swatch:'white_oak', lift:0.18, desat:0.20},
 };
 // Large-format porcelain for the bathrooms, `across` tiles to the 1.55 m
 // repeat — two, so each is 775 mm, a 30" rectified tile.
@@ -210,6 +210,24 @@ function tileFloor(pick, spec){
 }
 // A floor named from the tables above, or null for one that is sampled.
 function namedFloor(finish){
+  if (finish === 'carpet-gray'){
+    const spec = {r:145, g:143, b:140};
+    const swatch = swatchesLoaded.hastingssmoke;
+    const pile = swatch ? swatchTexture(swatch, swatch.metres/1.55) : surfaceTile('carpet', 0.45/1.55);
+    // Keep the photographed yarn's colour; a second gray tint hid its detail.
+    // Mirroring keeps the edges continuous without blurring away the fibers.
+    pile.wrapS=pile.wrapT=THREE.MirroredRepeatWrapping;
+    const relief=pile.clone();
+    relief.encoding=THREE.LinearEncoding;
+    relief.needsUpdate=true;
+    const mat = new THREE.MeshPhysicalMaterial({
+      color:swatch ? 0xF2F2F2 : 0x918F8C, map:pile, bumpMap:relief, bumpScale:0.008,
+      roughness:0.96, metalness:0, side:THREE.DoubleSide,
+      sheen:new THREE.Color(0x777573).convertSRGBToLinear(),
+    });
+    mat.color.convertSRGBToLinear();
+    return {spec, mat};
+  }
   const spec = WOODS[finish] || TILES[finish];
   if (!spec) return null;
   // A wood with a swatch is cut from the retailer's photograph of the board
@@ -354,7 +372,7 @@ function houseAverage(){
   };
   return {
     wall: flat('wall'),
-    floor: flat('floor', {side:THREE.DoubleSide}),
+    floor: photoRooms.find(room => room.finishes?.floor === 'timber-white-oak' && room.mats?.floor)?.mats.floor || namedFloor('timber-white-oak').mat,
     ceil: flat('ceil', {side:THREE.DoubleSide}),
   };
 }

@@ -3,6 +3,7 @@
 // metres, so a tile given a size repeats at that size on every piece it is on,
 // however big the piece — the weave on a sofa is the weave on a chair.
 export function surfaceTile(kind, metres){
+  if (kind === 'carpet') return carpetFiberTile(metres);
   const c = document.createElement('canvas');
   c.width = c.height = 256;
   const ctx = c.getContext('2d'), pixels = ctx.createImageData(256, 256);
@@ -45,6 +46,43 @@ export function surfaceTile(kind, metres){
   if (metres) texture.repeat.set(1/metres, 1/metres);
   else texture.repeat.set(kind === 'fabric' ? 5 : 2, kind === 'fabric' ? 5 : 2);
   texture.anisotropy = 4;
+  return texture;
+}
+
+// Close-packed yarn tufts: a shadowed root, a curved bundle, and fine lit
+// strands. Wrap strokes at the edges so the pile has no visible tile seam.
+function carpetFiberTile(metres){
+  const size=1024, canvas=document.createElement('canvas');
+  canvas.width=canvas.height=size;
+  const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#999999';ctx.fillRect(0,0,size,size);
+  ctx.lineCap='round';
+  let seed=731;
+  const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+  for(let i=0;i<24000;i++){
+    const x=random()*size, y=random()*size, angle=random()*Math.PI*2;
+    const length=7+random()*14, dx=Math.cos(angle)*length, dy=Math.sin(angle)*length;
+    const bend=(random()-0.5)*9, bx=-Math.sin(angle)*bend, by=Math.cos(angle)*bend;
+    const tone=Math.round(175+random()*55);
+    const xs=[0], ys=[0];
+    if(x<30)xs.push(size);if(x>size-30)xs.push(-size);
+    if(y<30)ys.push(size);if(y>size-30)ys.push(-size);
+    for(const ox of xs)for(const oy of ys){
+      const strand=(width,shade,offset)=>{
+        ctx.lineWidth=width;ctx.strokeStyle=`rgb(${shade},${shade},${shade})`;
+        ctx.beginPath();ctx.moveTo(x+ox+offset,y+oy+offset);
+        ctx.quadraticCurveTo(x+ox+dx*0.5+bx+offset,y+oy+dy*0.5+by+offset,x+ox+dx,y+oy+dy);
+        ctx.stroke();
+      };
+      strand(4.5,tone*0.55,1.6);
+      strand(2.8,tone,0);
+      strand(0.8,Math.min(255,tone+30),-0.7);
+    }
+  }
+  const texture=new THREE.CanvasTexture(canvas);
+  texture.wrapS=texture.wrapT=THREE.RepeatWrapping;
+  texture.repeat.set(1/metres,1/metres);
+  texture.anisotropy=8;
   return texture;
 }
 

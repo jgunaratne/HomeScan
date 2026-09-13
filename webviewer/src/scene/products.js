@@ -214,18 +214,20 @@ export const MAKERS = {
   // West Elm Andes: a low box on slim legs, track arms, one bench seat cushion
   // and loose back cushions that sit a little proud of the arms.
   trackSofa(g, w, h, d, f, m){
-    const y0 = -h/2, legH = 0.14, arm = 0.10, back = 0.20, seatTop = 0.44;
+    const y0 = -h/2, legH = 0.14, arm = 0.10, back = 0.20, frame = 0.08, seatTop = 0.44;
     const fabric = M(m.fabric);
     legs(g, M(m.leg), w, h, d, y0, 0.03, 0.06, legH);
     g.add(box(fabric, w, seatTop - legH - 0.12, d, 0, y0 + legH + (seatTop - legH - 0.12)/2, 0));
-    g.add(cushion(fabric, w - arm*2, 0.13, d - back - 0.02, 0, y0 + seatTop - 0.065, f*(back/2)));
-    cushionSeam(g, w - arm*2 - 0.02, d - back - 0.04, 0, y0 + seatTop + 0.0, f*(back/2), fabric);
+    // A continuous upholstered frame closes the rear beneath the loose cushions.
+    g.add(box(fabric, w - arm*2, h - legH - 0.06, frame, 0, y0 + legH + (h - legH - 0.06)/2, -f*(d - frame)/2));
+    g.add(cushion(fabric, w - arm*2, 0.13, d - back - frame - 0.02, 0, y0 + seatTop - 0.065, f*((back + frame)/2)));
+    cushionSeam(g, w - arm*2 - 0.02, d - back - frame - 0.04, 0, y0 + seatTop + 0.0, f*((back + frame)/2), fabric);
     for (const s of [-1, 1])
       g.add(box(fabric, arm, h - legH - 0.14, d, s*(w - arm)/2, y0 + legH + (h - legH - 0.14)/2, 0));
     const n = Math.max(2, Math.round((w - arm*2)/0.75)), cw = (w - arm*2)/n;
     for (let i=0;i<n;i++){
       const x = -(w - arm*2)/2 + cw*(i + 0.5);
-      const b = cushion(fabric, cw - 0.02, h - seatTop - 0.02, back, x, y0 + seatTop + (h - seatTop - 0.02)/2, -f*(d - back)/2);
+      const b = cushion(fabric, cw - 0.02, h - seatTop - 0.02, back, x, y0 + seatTop + (h - seatTop - 0.02)/2, -f*(d/2 - frame - back/2));
       b.rotation.x = -f*0.08; g.add(b);
     }
     pillow(g, MAT.oatmeal, 0.45, (w/2 - arm - 0.28), y0 + seatTop + 0.22, -f*(d - back)/2 + f*0.2, -f*0.16, 0.18);
@@ -591,11 +593,11 @@ export const MAKERS = {
 };
 
 // Build one product in a box `dims` wide, high and deep, facing `f`.
-export function product(key, dims, f){
+export function product(key, dims, f, mats = {}){
   const p = PRODUCTS[key];
   if (!p || !MAKERS[p.make]) return null;
   const g = new THREE.Group();
-  MAKERS[p.make](g, dims[0], dims[1], dims[2], f, p.mats || {});
+  MAKERS[p.make](g, dims[0], dims[1], dims[2], f, {...p.mats, ...mats});
   g.name = `${p.retailer} ${p.name}`;
   return g;
 }

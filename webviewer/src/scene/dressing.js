@@ -54,6 +54,21 @@ export function dressSlabs(L){
   // survey slab material, because the storey above is directly overhead and a
   // hole in the ceiling looks straight up into its floorboards.
   const BARE = {mats:avgMats(), bare:true};
+  // Replace the grid cells at annotated doorways with two exact half-planes.
+  // Their shared edge lies on the wall centreline, so finishes meet straight.
+  const thresholds = [];
+  for (const room of L.rooms) for (const spec of room.finishes?.thresholds || []){
+    const wall = L.walls.find(w => Math.hypot(w.c[0]-spec.wallAt[0],w.c[2]-spec.wallAt[1]) < 0.1);
+    const hole = wall?.holes.find(h => h.k === 'door');
+    if (!hole) continue;
+    const c=Math.cos(wall.yaw), s=Math.sin(wall.yaw), mid=(hole.x0+hole.x1)/2;
+    const x=wall.c[0]+c*mid, z=wall.c[2]-s*mid;
+    const side=(room.at[0]-x)*s+(room.at[1]-z)*c >= 0 ? 1 : -1;
+    const ox=x-s*side*0.4, oz=z-c*side*0.4;
+    const oi=Math.floor((ox-b.x0)/g), oj=Math.floor((oz-b.z0)/g);
+    const other=(oi>=0 && oi<nx && oj>=0 && oj<nz ? own[oj*nx+oi] : null) || roomAt(L,ox,oz,true);
+    thresholds.push({x,z,yaw:wall.yaw,hx:(hole.x1-hole.x0)/2+WALL_T,hz:0.25,room,other,side});
+  }
   const runs = new Map();
   for (let j=0;j<nz;j++){
     for (let i=0;i<nx;){
@@ -90,6 +105,7 @@ export function dressSlabs(L){
           const c = [[a,z0],[b,z0],[b,z1],[a,z1]];
           // Keep ceiling winding consistent with its downward normals.
           let pieces=cutSlabQuad(c,cut);
+          if(kind==='floor')for(const threshold of thresholds)pieces=pieces.flatMap(p=>cutSlabQuad(p,threshold));
           if(kind==='ceil')for(const roof of L.roofCuts)pieces=pieces.flatMap(p=>cutSlabQuad(p,roof));
           for(const polygon of pieces)for(let i=1;i<polygon.length-1;i++){
             const [p0,p1,p2]=[polygon[0],polygon[i],polygon[i+1]];
@@ -110,7 +126,7 @@ export function dressSlabs(L){
     // Downlights on a 2.4 m grid over the room's own ceiling. They are lamps to
     // look at rather than lamps that light: one light per room would mean a
     // dozen in a single forward-rendered pass.
-    if (room.bare || room.finishes?.roof) continue;
+    if (room.bare || room.finishes?.roof || room.finishes?.downlights === false) continue;
     const seen = new Set();
     for (const [x0,x1,z0,z1] of quads){
       const gz = Math.round((z0+z1)/2/2.4)*2.4;
@@ -134,6 +150,24 @@ export function dressSlabs(L){
         L.roomCeil.add(d);
       }
     }
+  }
+  for (const t of thresholds) for (const side of [-1,1]){
+    const room=side===t.side ? t.room : t.other;
+    const mat=room?.mats?.floor || BARE.mats.floor;
+    const angle=room?.finishes?.boards ?? 0, ct=Math.cos(angle), st=Math.sin(angle);
+    const c=Math.cos(t.yaw), s=Math.sin(t.yaw), pos=[], uv=[], nor=[];
+    const near=side<0 ? -t.hz : 0, far=side<0 ? 0 : t.hz;
+    const polygon=[[-t.hx,near],[t.hx,near],[t.hx,far],[-t.hx,far]];
+    for (const i of [0,2,1,0,3,2]){
+      const [u,v]=polygon[i], x=t.x+c*u+s*v, z=t.z-s*u+c*v;
+      pos.push(x,L.elevation+0.006,z); nor.push(0,1,0);
+      uv.push((x*st+z*ct)/TILE.floor,(x*ct-z*st)/TILE.floor);
+    }
+    const geo=new THREE.BufferGeometry();
+    geo.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+    geo.setAttribute('normal',new THREE.Float32BufferAttribute(nor,3));
+    geo.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+    L.roomFloor.add(new THREE.Mesh(geo,mat));
   }
 }
 
@@ -343,8 +377,19 @@ export function dressFittings(L){
       if (!w) continue;
       const dir = [Math.cos(w.yaw), -Math.sin(w.yaw)], n = [Math.sin(w.yaw), Math.cos(w.yaw)];
       const side = (room.at[0] - w.c[0])*n[0] + (room.at[1] - w.c[2])*n[1] >= 0 ? 1 : -1;
-      const along = spec.along ?? 0, tw = spec.tv, th = tw*9/16, off = WALL_T/2 + 0.025;
+      const along = spec.along ?? 0, tw = spec.tv, th = tw*9/16, off = WALL_T/2 + (spec.slats ? 0.075 : 0.025);
       const g = new THREE.Group();
+      if (spec.slats){
+        // Floor-to-ceiling oak battens on a dark backing, inside the recess.
+        // Offset the TV forward so its back clears the raised slats.
+        const width = spec.slats.width, height = w.h - 0.04;
+        const x = ((spec.slats.along ?? along) - along)*side;
+        const y = w.c[1] - L.elevation - (spec.height ?? 1.3);
+        g.add(box(MAT.charcoal, width, height, 0.012, x, y, -0.067));
+        const count = Math.round(width/0.06), pitch = width/count, slatWidth = pitch*0.65;
+        for (let i=0; i<count; i++)
+          g.add(box(MAT.oak, slatWidth, height, 0.024, x - width/2 + pitch*(i + 0.5), y, -0.049));
+      }
       g.add(box(MAT.black, tw, th, 0.03, 0, 0, 0));
       g.add(box(MAT.screen, tw - 0.02, th - 0.02, 0.006, 0, 0, 0.018));
       g.position.set(w.c[0] + dir[0]*along + n[0]*side*off, L.elevation + (spec.height ?? 1.3), w.c[2] + dir[1]*along + n[1]*side*off);
@@ -366,7 +411,7 @@ export function dressFittings(L){
     }
     const p = PRODUCTS[spec.product];
     if (!p) continue;
-    const dims = p.dims, f = 1, g = product(spec.product, dims, f);
+    const dims = spec.dims ?? p.dims, f = 1, g = product(spec.product, dims, f, spec.mats);
     if (!g) continue;
     g.position.set(spec.at[0], L.elevation + dims[1]/2, spec.at[1]); g.rotation.y = spec.yaw ?? 0;
     // `mirror` swaps a handed piece — a sectional's chaise to its other end.

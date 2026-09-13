@@ -8,6 +8,10 @@
     "their pieces wear Room & Board's closest match, named in `stands_for`."
   ],
   "swatches": {
+    "hastingssmoke": {"retailer": "Room & Board", "material": "Hastings loop wool rug, Smoke", "metres": 0.30,
+                       "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_hastingssmoke?wid=400&hei=400&scl=1&fmt=jpg&qlt=95",
+                       "product_url": "https://www.roomandboard.com/catalog/rugs/dining-room-rugs/hastings-loop-rugs",
+                       "stands_for": "Media room gray carpet; photographed wool loop texture, approximate repeat scale"},
     "white_oak":    {"retailer": "Room & Board", "material": "White oak, natural finish",
                      "url": "https://rnb.scene7.com/is/image/roomandboard/swxl_white_oak?wid=1200", "crop": "centre-square", "metres": 0.4},
     "whiteoak":     {"retailer": "Room & Board", "material": "White oak, pale",
