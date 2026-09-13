@@ -324,6 +324,7 @@ def load_photos(path, scene, out_dir, inline):
                 'place': room.get('place'),
                 'drop': room.get('drop'),
                 'view': ph.get('view'), 'ground': ph.get('ground'),
+                'land': ph.get('land'), 'lakeAt': ph.get('lakeAt'),
                 'src': ('data:' + mime + ';base64,'
                         + base64.b64encode(f.read_bytes()).decode('ascii')) if inline
                        else PurePosixPath(rel.replace(os.sep, '/'), ph['file']).as_posix(),

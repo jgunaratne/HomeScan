@@ -34,11 +34,40 @@ export function buildOutdoors(){
   const sky = cx.createLinearGradient(0, 0, 0, M*0.45);
   sky.addColorStop(0, col(0));
   sky.addColorStop(1, col(6));
-  cx.fillStyle = sky; cx.fillRect(0, 0, N, M*0.45);
+  cx.fillStyle = sky; cx.fillRect(0, 0, N, M*0.47);
 
   // The crop itself across the horizon, repeated so it is not smeared round.
-  for (let i=0;i<REP;i++)
-    cx.drawImage(img, vx, vy, vw, vh, i*N/REP, M*0.43, N/REP, M*0.18);
+  // The lake is on one side of the house: photos.json may name a second crop,
+  // `land` — trees, a neighbour's roof — on any photo, and say with `lakeAt`
+  // which way, in radians of the scene's compass, the water lies and how wide
+  // a sector it fills. The land crop then goes all the way round and the lake
+  // is laid over its own sector, feathered at the edges, so the living room
+  // and the deck look at water and the kitchen looks at the garden.
+  const landSrc = photoRooms.flatMap(r => r.shots).find(ph => ph.land && ph.img);
+  const lake = src.lakeAt;
+  if (landSrc && lake){
+    const li = landSrc.img, [lx, ly, lw, lh] = [landSrc.land[0]*li.naturalWidth, landSrc.land[1]*li.naturalHeight,
+                                                landSrc.land[2]*li.naturalWidth, landSrc.land[3]*li.naturalHeight];
+    for (let i=0;i<REP;i++) cx.drawImage(li, lx, ly, lw, lh, i*N/REP, M*0.46, N/REP, M*0.18);
+    // The lake sector. CylinderGeometry puts u = theta/2pi at the vertex
+    // (R sin theta, R cos theta), so a direction whose sine is x and cosine
+    // is z is the column u = angle/2pi, back-faced or not.
+    const u0 = ((lake.angle/(2*Math.PI)) % 1 + 1) % 1, half = (lake.width ?? 2.1)/(4*Math.PI), feather = 0.03;
+    const band = document.createElement('canvas'); band.width = N; band.height = Math.round(M*0.18);
+    const bcx = band.getContext('2d');
+    for (let i=0;i<REP;i++) bcx.drawImage(img, vx, vy, vw, vh, i*N/REP, 0, N/REP, band.height);
+    bcx.globalCompositeOperation = 'destination-in';
+    const mask = bcx.createLinearGradient(0, 0, N, 0);
+    const stops = [[u0 - half - feather, 0], [u0 - half, 1], [u0 + half, 1], [u0 + half + feather, 0]];
+    mask.addColorStop(0, 'rgba(0,0,0,0)');
+    for (const [u, a] of stops) if (u > 0 && u < 1) mask.addColorStop(u, `rgba(0,0,0,${a})`);
+    mask.addColorStop(1, 'rgba(0,0,0,0)');
+    bcx.fillStyle = mask; bcx.fillRect(0, 0, N, band.height);
+    cx.drawImage(band, 0, M*0.46);
+  } else {
+    for (let i=0;i<REP;i++)
+      cx.drawImage(img, vx, vy, vw, vh, i*N/REP, M*0.46, N/REP, M*0.18);
+  }
 
   let lawn = '#6E8B4A';
   if (src.ground){
@@ -47,10 +76,10 @@ export function buildOutdoors(){
     const pixel=pcx.getImageData(0,0,1,1).data;
     lawn=`rgb(${pixel[0]},${pixel[1]},${pixel[2]})`;
   }
-  const down = cx.createLinearGradient(0, M*0.60, 0, M);
+  const down = cx.createLinearGradient(0, M*0.64, 0, M);
   down.addColorStop(0, lawn);
   down.addColorStop(1, '#3B4A2C');
-  cx.fillStyle = down; cx.fillRect(0, M*0.60, N, M*0.40);
+  cx.fillStyle = down; cx.fillRect(0, M*0.64, N, M*0.36);
 
   const tex = new THREE.CanvasTexture(c);
   tex.encoding = THREE.sRGBEncoding;

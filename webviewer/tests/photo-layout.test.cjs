@@ -38,9 +38,13 @@ test('photo corrections preserve scan dimensions and existing openings',()=>{
  }
 });
 
-test('east office: the wall with its scanned entrance is removed, so the room opens to the hall; no closet keeps sliders',()=>{
+test('east office: its entrance wall stays, with a door cut in it, and the closet\'s side wall is gone; no closet keeps sliders',()=>{
  const edited=result.edited.levels[1].walls;
- assert.ok(!edited.some(w=>w.c[0]===1.189&&w.c[2]===-3.382),'the door wall beside the desk is gone');
+ assert.ok(edited.some(w=>w.c[0]===1.189&&w.c[2]===-3.382),'the entrance wall stands');
+ assert.ok(!edited.some(w=>w.c[0]===1.859&&w.c[2]===-3.714),'the closet side wall beside the desk is gone');
+ const entrance=result.after.levels[1].walls.find(w=>w.c[0]===1.189&&w.c[2]===-3.382);
+ assert.equal(entrance.holes.length,1);
+ assert.ok(Math.abs(entrance.holes[0].x1-entrance.holes[0].x0-0.8)<1e-9);
  const closets=result.after.levels.flatMap(l=>l.walls.flatMap(w=>w.holes.filter(h=>h.style==='closet-slider')));
  assert.equal(closets.length,0);
 });
