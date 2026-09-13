@@ -149,11 +149,17 @@ export function doorLeaf(host, L, w, o, blockers, sliders = new Set(), closed = 
     if (closed.has(key)){ closedLeaves(host, w, o, 'slab'); return; }
   }
   if (ow > 1.25) return;
+  // Which side the leaf swings to is the first that is clear — unless the
+  // annotation names a point on the side it opens toward, in which case
+  // only that side is tried: a door that opens into its room.
+  const nx = Math.sin(w.yaw), nz = Math.cos(w.yaw);
+  const want = o.into ? Math.sign((o.into[0] - w.c[0])*nx + (o.into[1] - w.c[2])*nz) : 0;
   for (const hs of [-1, 1]) for (const sw of [-1, 1]){
     const xh = mid + hs*ow/2;
     const hx = w.c[0] + Math.cos(w.yaw)*xh, hz = w.c[2] - Math.sin(w.yaw)*xh;
     const rot = w.yaw + sw*Math.PI/2;
     const cx = hx - hs*Math.cos(rot)*ow/2, cz = hz + hs*Math.sin(rot)*ow/2;
+    if (want && Math.sign((cx - w.c[0])*nx + (cz - w.c[2])*nz) !== want) continue;
     if (!onFloor(L, cx, cz)) continue;
     let clear = true;
     // Check the full open leaf, not only its centre: the latch edge can

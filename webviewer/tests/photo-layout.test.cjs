@@ -13,7 +13,9 @@ before=copy.deepcopy(s)
 b['cut_openings'](s,Path('photos.json'))
 edited=copy.deepcopy(before)
 b['edit_walls'](edited,Path('photos.json'))
-print(json.dumps({'before':before,'after':s,'edited':edited}))
+full=copy.deepcopy(edited)
+b['cut_openings'](full,Path('photos.json'))
+print(json.dumps({'before':before,'after':s,'edited':edited,'full':full}))
 `],{cwd:root,encoding:'utf8'}));
 const roomMap=JSON.parse(fs.readFileSync(path.join(root,'photos.json')));
 
@@ -39,14 +41,16 @@ test('photo corrections preserve scan dimensions and existing openings',()=>{
  }
 });
 
-test('east office: its entrance wall stays, with a door cut at its south end onto the hall, and the closet\'s side wall is gone; only the west bedroom\'s closet keeps a slider',()=>{
+test('east office: its west wall stays solid, the door is cut in the annotated wall that fills the gap beside it, and the closet\'s side wall is gone; only the west bedroom\'s closet keeps a slider',()=>{
  const edited=result.edited.levels[1].walls;
- assert.ok(edited.some(w=>w.c[0]===1.189&&w.c[2]===-3.382),'the entrance wall stands');
+ assert.ok(edited.some(w=>w.c[0]===1.189&&w.c[2]===-3.382),'the west wall stands');
  assert.ok(!edited.some(w=>w.c[0]===1.859&&w.c[2]===-3.714),'the closet side wall beside the desk is gone');
- const entrance=result.after.levels[1].walls.find(w=>w.c[0]===1.189&&w.c[2]===-3.382);
- assert.equal(entrance.holes.length,1);
- assert.ok(Math.abs(entrance.holes[0].x1-entrance.holes[0].x0-0.8)<1e-9);
- assert.ok((entrance.holes[0].x0+entrance.holes[0].x1)/2>0.5,'at the south end of the wall, not its middle');
+ const west=result.after.levels[1].walls.find(w=>w.c[0]===1.189&&w.c[2]===-3.382);
+ assert.equal(west.holes.length,0,'with no door in it');
+ const gap=result.full.levels[1].walls.find(w=>w.c[0]===0.737&&w.c[2]===-2.502);
+ assert.ok(gap,'the gap between it and the landing wall is walled');
+ assert.equal(gap.holes.length,1,'with the door in it');
+ assert.ok(Math.abs(gap.holes[0].x1-gap.holes[0].x0-0.7)<1e-9);
  const landing=result.after.levels[1].walls.find(w=>w.c[0]===2.087&&w.c[2]===-1.337);
  assert.equal(landing.holes.length,0,'and none in the wall to the landing');
  const closets=result.after.levels.flatMap(l=>l.walls.filter(w=>w.holes.some(h=>h.style==='closet-slider')));

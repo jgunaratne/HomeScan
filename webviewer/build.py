@@ -439,9 +439,14 @@ def cut_openings(scene, path):
             # casing hanging in the middle of the new opening.
             x0, x1 = along - width / 2, along + width / 2
             wall['holes'] = [h for h in wall['holes'] if not (h['x0'] >= x0 - 0.01 and h['x1'] <= x1 + 0.01)]
-            wall['holes'].append({'k': o.get('kind', 'door'),
-                                  'x0': round(along - width / 2, 3), 'x1': round(along + width / 2, 3),
-                                  'y0': round(-wall['h'] / 2 + sill, 3), 'y1': round(-wall['h'] / 2 + sill + height, 3)})
+            hole = {'k': o.get('kind', 'door'),
+                    'x0': round(along - width / 2, 3), 'x1': round(along + width / 2, 3),
+                    'y0': round(-wall['h'] / 2 + sill, 3), 'y1': round(-wall['h'] / 2 + sill + height, 3)}
+            # `opensToward`: a point on the side of the wall the leaf swings
+            # to — a room's anchor, for a door that opens into the room.
+            if o.get('opensToward'):
+                hole['into'] = [round(v, 3) for v in o['opensToward']]
+            wall['holes'].append(hole)
             cut += 1
     # Door styles annotate existing scan holes, without opening another gap.
     for room in doc.get('rooms') or []:
