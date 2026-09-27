@@ -1,4 +1,4 @@
-import { buildGarden, lawnMaterial } from './garden.js';
+import { buildGarden, lawnMaterial, lawnGround } from './garden.js';
 import { renderer, scene } from '../scene/stage.js';
 import { levels } from '../scene/levels.js';
 import { photoRooms } from './rooms.js';
@@ -31,8 +31,14 @@ export function buildOutdoors(){
   pcx.drawImage(img, vx + vw/2, vy, 1, vh, 0, 0, 1, 64);
   const skyPixels=pcx.getImageData(0,0,1,64).data;
   const col=row=>`rgb(${skyPixels[row*4]},${skyPixels[row*4+1]},${skyPixels[row*4+2]})`;
+  // The crop's sky is the pale band at the horizon. A sky deepens above that,
+  // and the photograph's does: so the top of the sleeve takes the clearest
+  // blue above the crop, and one pale wash — which, exposed for the room, was
+  // white — becomes a sky.
+  const zenith = clearSky(img, vx, vy, vw) || col(0);
   const sky = cx.createLinearGradient(0, 0, 0, M*0.45);
-  sky.addColorStop(0, col(0));
+  sky.addColorStop(0, zenith);
+  sky.addColorStop(0.6, mixColour(zenith, col(0), 0.55));
   sky.addColorStop(1, col(6));
   cx.fillStyle = sky; cx.fillRect(0, 0, N, M*0.47);
 
@@ -92,10 +98,17 @@ export function buildOutdoors(){
   sleeve.position.y = base - 60 + HH/2;
 
   // Lawn only as far as a lawn goes; past that the photographed ground takes over.
-  const grass = new THREE.Mesh(new THREE.CircleGeometry(34, 48),
-    lawnMaterial(img,src.ground,lawn));
-  grass.rotation.x = -Math.PI/2;
-  grass.position.y = base - 0.28;grass.receiveShadow=true;grass.name='Photo-textured lawn';
+  const lawnMat = lawnMaterial(img,src.ground,lawn);
+  const grass = lawnGround(lawnMat, 0, 34, base - 0.28);
+  grass.name='Photo-textured lawn';
+  // Except from the air. Seen from the section view's height the 34 m disc
+  // ended in a hard rim against the sleeve, which that high up shows its ground
+  // below the photograph — the house sat in a green bowl. So there the lawn runs
+  // on nearly to the sleeve, into the haze the loop gives that view, and meets
+  // the photograph at its horizon. Walking, the field is hidden: from a window
+  // it would lie over the lake.
+  const field = lawnGround(lawnMat, 34, 132, base - 0.28);
+  field.name='Distant ground'; field.visible=false;
 
   // The same world again, small and equirectangular, so physical surfaces have
   // something to reflect. Without it a polished floor reflects nothing and reads
@@ -122,11 +135,37 @@ export function buildOutdoors(){
   pmrem.dispose(); envTex.dispose();
 
   const g = new THREE.Group();
-  g.add(sleeve); g.add(grass);
+  g.add(sleeve); g.add(grass); g.add(field);
   buildGarden(g,levels);
   g.renderOrder = -1;
   scene.add(g);
+  // The air between the section view and the far field: the photograph's pale
+  // sky low over the crop, a little green in it, as radiance like the sleeve's.
+  const haze = new THREE.Color(col(6)).lerp(new THREE.Color(lawn), 0.25).convertSRGBToLinear();
   return outdoors = {group:g, sky:new THREE.Color(col(2)),
-                     lawn:new THREE.Color(lawn), env:scene.environment};
+                     lawn:new THREE.Color(lawn), env:scene.environment, field, haze};
 }
 export const outdoorWorld = () => outdoors;
+
+// The clear sky in the top of a photograph, over the columns of its crop: the
+// mean of the pixels that are plainly blue — cloud is as red as it is blue, a
+// pergola beam or a leaf is dark — or nothing, if too few are.
+function clearSky(img, x, y, w){
+  if (y < 8) return null;
+  const c = document.createElement('canvas');
+  c.width = 48; c.height = 24;
+  const cx = c.getContext('2d');
+  cx.drawImage(img, x, 0, w, y*0.4, 0, 0, 48, 24);
+  const px = cx.getImageData(0, 0, 48, 24).data;
+  let r = 0, g = 0, b = 0, n = 0;
+  for (let i = 0; i < px.length; i += 4){
+    if (px[i+2] > 150 && px[i+2] - px[i] > 70 && px[i+2] >= px[i+1]){ r += px[i]; g += px[i+1]; b += px[i+2]; n++; }
+  }
+  return n > 40 ? `rgb(${Math.round(r/n)},${Math.round(g/n)},${Math.round(b/n)})` : null;
+}
+
+// Two CSS rgb() colours, `t` of the way from the first to the second.
+function mixColour(a, b, t){
+  const [p, q] = [a, b].map(s => s.match(/\d+/g).map(Number));
+  return `rgb(${p.map((v, i) => Math.round(v + (q[i] - v)*t)).join(',')})`;
+}

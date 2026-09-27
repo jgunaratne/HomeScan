@@ -78,6 +78,56 @@ test('east office: the closet wall is gone, its floor is the room\'s, and the ro
  }
 });
 
+// The scan left the strip between the south office and the west bedroom open
+// from the landing to the facade: past the office doorway, a hallway that ran
+// out onto the lawn. It is closed as a closet by annotation — a wall with a
+// shut door across the landing end, the facade across the far end.
+test('the strip beside the south office is a closet: a shut door across its landing end, the facade across its far end',()=>{
+ const walls=result.full.levels[1].walls;
+ const near=(x,z)=>walls.find(w=>Math.hypot(w.c[0]-x,w.c[2]-z)<0.01);
+ const ends=w=>[-1,1].map(k=>[w.c[0]+k*Math.cos(w.yaw)*w.w/2,w.c[2]-k*Math.sin(w.yaw)*w.w/2]);
+ const offLine=(p,w)=>Math.abs((p[0]-w.c[0])*Math.sin(w.yaw)+(p[1]-w.c[2])*Math.cos(w.yaw));
+ const along=(p,w)=>(p[0]-w.c[0])*Math.cos(w.yaw)-(p[1]-w.c[2])*Math.sin(w.yaw);
+ const front=near(-0.994,1.463),office=near(-0.628,1.699),bedroom=near(-1.553,1.582);
+ assert.ok(front&&office&&bedroom,'the front wall stands between the office\'s west wall and the bedroom\'s east wall');
+ const [a,b]=ends(front),[onOffice,onBedroom]=offLine(a,office)<offLine(b,office)?[a,b]:[b,a];
+ assert.ok(offLine(onOffice,office)<0.01&&offLine(onBedroom,bedroom)<0.01,'meeting both on their centre lines');
+ // Clear of the office door's casing (45 mm) by more than half a wall.
+ const t=along(onOffice,office);
+ for(const h of office.holes)assert.ok(Math.min(Math.abs(h.x0-t),Math.abs(h.x1-t))>0.045+0.055,'clear of the office doorway');
+ assert.equal(front.holes.length,1,'with one door in it');
+ assert.equal(front.holes[0].k,'door');
+ assert.ok(Math.abs(front.holes[0].x1-front.holes[0].x0-0.61)<1e-9);
+ const key=front.c[0].toFixed(2)+','+front.c[2].toFixed(2);
+ assert.ok(roomMap.rooms.some(r=>(r.finishes?.closedDoors||[]).some(([x,z])=>x.toFixed(2)+','+z.toFixed(2)===key)),'and that door is shut');
+ // The facade spans the gap from the end of the bedroom's east wall to the end
+ // of the office's west wall, and runs a little past each so the joints close.
+ const spans=(w,p)=>offLine(p,w)<0.01&&Math.abs(along(p,w))<w.w/2;
+ const gapEnds=[near(-2.572,3.457),near(-1.933,4.24)].map(side=>ends(side).sort((p,q)=>q[1]-p[1])[0]);
+ const facade=walls.find(w=>w.conf==='annotated'&&gapEnds.every(p=>spans(w,p)));
+ assert.ok(facade,'the facade is closed from the end of the bedroom\'s wall to the end of the office\'s');
+ assert.equal(facade.holes.length,0);
+});
+
+// The scan stood a short wall through the flight and its balustrade, where
+// the entry is open to the stair. The annotation takes it out: nothing in the
+// edited storey stands inside the flight.
+test('entry: no wall stands inside the stair\'s footprint',()=>{
+ const level=result.edited.levels[0];
+ const stair=level.objects.find(o=>o.cat==='stairs');
+ assert.ok(stair,'the scan has the stair');
+ const c=Math.cos(stair.yaw),s=Math.sin(stair.yaw);
+ const inside=walls=>walls.filter(w=>{
+  for(let k=0;k<=20;k++){
+   const a=-w.w/2+w.w*k/20,x=w.c[0]+Math.cos(w.yaw)*a-stair.c[0],z=w.c[2]-Math.sin(w.yaw)*a-stair.c[2];
+   if(Math.abs(c*x-s*z)<stair.d[0]/2-0.02&&Math.abs(s*x+c*z)<stair.d[2]/2-0.02)return true;
+  }
+  return false;
+ });
+ assert.equal(inside(result.before.levels[0].walls).length,1,'the scan has one wall through the flight');
+ assert.deepEqual(inside(level.walls),[],'and the annotation takes it out');
+});
+
 test('West bedroom bed clears the full swing radius of every adjoining door',()=>{
  const room=roomMap.rooms.find(r=>r.name==='West bedroom');
  const bed=room.place.find(p=>/-bed-/.test(p.product));

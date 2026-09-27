@@ -1,5 +1,5 @@
 import { WALL_T } from '../core/constants.js';
-import { MAT } from './materials.js';
+import { MAT, MIRRORS } from './materials.js';
 import { tileCanvases } from './textures.js';
 import { box, tube, fronts } from './fittings.js';
 
@@ -91,7 +91,7 @@ export function vanity(g, w, h, d, f){
   // than beyond it: the back plane is where the wall is, or as near as the
   // settling leaves it, and anything past it is in the wall.
   mirror.position.set(0, y0 + h + 0.6, -f*(d/2 - 0.006)); mirror.rotation.y = f > 0 ? 0 : Math.PI;
-  g.add(mirror);
+  g.add(mirror); MIRRORS.add(mirror);
   for (const s of [-1, 1]){
     const x = s*(Math.min(w - 0.2, 1.2)/2 + 0.12);
     if (Math.abs(x) > w/2 - 0.04) continue;          // no sconce past the vanity's end, where a side wall may be

@@ -1,7 +1,6 @@
 import { box, tube } from '../scene/fittings.js';
 import { MAT } from '../scene/materials.js';
 import { onFloor } from '../core/geometry.js';
-import { surfaceTile } from '../scene/textures.js';
 
 // Near geometry is photo-guided staging. The scan supplies the attachment
 // wall; deck size and garden layout are annotations, not surveyed boundaries.
@@ -59,21 +58,83 @@ export function buildGarden(world,levels){
   }
 }
 
+// A lawn is not one green. From a window, or from the air, it is patches —
+// yellower where it dries, darker where it grows thick — over a grain of
+// blades, and the flat median of the photographed crop was neither: it read as
+// baize. (Its bump was a fabric checker, which from a distance beat into
+// stripes; r128 gives every map the colour map's repeat, so it was never at the
+// scale it asked for either.) The crop still sets the palette. Its own detail,
+// photographed light and fence wire, stays out: the patches and the grain are
+// drawn here on a periodic lattice, so the tile has no seam and can repeat
+// plainly, and lawnGround's vertex colours carry what is broader than a tile.
+//
+// The crop is also a photograph of lawn in sun, exposed for a room. Taken as
+// albedo at half strength and lit again by the sun, it came out nearly as
+// bright as the white walls beside it: lime, from the air. Grass sends back
+// about a tenth of the light that falls on it; at 0.27 the sunlit lawn in the
+// section view is the photograph's own green, rgb(95,136,59), against walls at
+// 200-220, and through a window it is what the listing shows.
+export const LAWN_TILE = 9;   // metres of ground per repeat of the lawn texture
 export function lawnMaterial(img,rect,lawn){
-  const material=new THREE.MeshStandardMaterial({color:new THREE.Color(lawn).convertSRGBToLinear(),roughness:1,envMapIntensity:0.3});
+  let base=new THREE.Color(lawn).toArray().map(v=>v*255);
   if(rect){
-    const c=document.createElement('canvas');c.width=c.height=256;
-    c.getContext('2d').drawImage(img,rect[0]*img.naturalWidth,rect[1]*img.naturalHeight,rect[2]*img.naturalWidth,rect[3]*img.naturalHeight,0,0,256,256);
-    // Strongly remove photographed lighting and fence wires before tiling.
-    // The crop supplies the lawn palette and only a little high-frequency detail.
-    const ctx=c.getContext('2d'),pixels=ctx.getImageData(0,0,256,256),channels=[[],[],[]];
-    for(let i=0;i<pixels.data.length;i+=4)for(let ch=0;ch<3;ch++)channels[ch].push(pixels.data[i+ch]);
-    const median=channels.map(values=>values.sort((a,b)=>a-b)[values.length>>1]);
-    for(let i=0;i<pixels.data.length;i+=4)for(let ch=0;ch<3;ch++)pixels.data[i+ch]=median[ch]*0.96+pixels.data[i+ch]*0.04;
-    ctx.putImageData(pixels,0,0);
-    const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.MirroredRepeatWrapping;t.repeat.set(24,24);t.anisotropy=4;
-    material.map=t;material.color.setHex(0x888888);
+    const c=document.createElement('canvas');c.width=c.height=64;
+    const ctx=c.getContext('2d');
+    ctx.drawImage(img,rect[0]*img.naturalWidth,rect[1]*img.naturalHeight,rect[2]*img.naturalWidth,rect[3]*img.naturalHeight,0,0,64,64);
+    const data=ctx.getImageData(0,0,64,64).data,channels=[[],[],[]];
+    for(let i=0;i<data.length;i+=4)for(let ch=0;ch<3;ch++)channels[ch].push(data[i+ch]);
+    base=channels.map(values=>values.sort((a,b)=>a-b)[values.length>>1]);
   }
-  material.bumpMap=surfaceTile('fabric');material.bumpMap.repeat.set(80,80);material.bumpScale=0.008;
-  return material;
+  const N=512,c=document.createElement('canvas');c.width=c.height=N;
+  const ctx=c.getContext('2d'),pixels=ctx.createImageData(N,N),px=pixels.data;
+  let seed=1907;
+  const random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+  // Patches from about 4.5 m down to 14 cm, each octave a lattice that wraps.
+  const octaves=[[2,0.34],[4,0.26],[8,0.18],[16,0.12],[32,0.06],[64,0.04]].map(([n,amp])=>
+    ({n,amp,v:Float32Array.from({length:n*n},()=>random()*2-1)}));
+  const ease=t=>t*t*(3-2*t);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    let patch=0;
+    for(const {n,amp,v} of octaves){
+      const fx=x*n/N,fy=y*n/N,ix=Math.floor(fx),iy=Math.floor(fy),tx=ease(fx-ix),ty=ease(fy-iy);
+      const x1=(ix+1)%n,y1=(iy+1)%n,a=v[iy*n+ix],b=v[iy*n+x1],d=v[y1*n+ix],e=v[y1*n+x1];
+      patch+=amp*(a+(b-a)*tx+(d-a)*ty+(a-b-d+e)*tx*ty);
+    }
+    const light=1+0.22*patch+0.08*(random()*2-1),dry=Math.max(0,patch-0.18),i=(y*N+x)*4;
+    px[i]=base[0]*light*(1+0.35*dry);px[i+1]=base[1]*light*(1+0.04*dry);px[i+2]=base[2]*light*(1-0.4*dry);px[i+3]=255;
+  }
+  ctx.putImageData(pixels,0,0);
+  const t=new THREE.CanvasTexture(c);t.encoding=THREE.sRGBEncoding;t.wrapS=t.wrapT=THREE.RepeatWrapping;t.anisotropy=4;
+  return new THREE.MeshStandardMaterial({map:t,color:new THREE.Color(0.27,0.27,0.27),vertexColors:true,roughness:1,envMapIntensity:0.3});
+}
+
+// Ground in rings about the house, from radius `inner` to `outer` at height
+// `y`. A vertex's uv is its own x and z over LAWN_TILE, so two of these meet
+// without a seam, and its colour is a sum of slow waves, 17 to 65 m long —
+// patches a tile of texture is too small to hold, which also stop the tile
+// from showing as a grid when the lawn is seen from the air.
+export function lawnGround(material,inner,outer,y){
+  const rings=Math.max(1,Math.ceil((outer-inner)/2)),sides=128,pos=[],uv=[],col=[],nrm=[],index=[];
+  for(let i=0;i<=rings;i++){
+    const r=inner+(outer-inner)*i/rings;
+    for(let j=0;j<sides;j++){
+      const a=j/sides*Math.PI*2,x=r*Math.sin(a),z=r*Math.cos(a);
+      const wave=0.5*Math.sin(x*0.083+z*0.051+1.7)+0.35*Math.sin(z*0.121-x*0.047+0.4)
+                +0.25*Math.sin(x*0.173-z*0.139+2.9)+0.15*Math.sin(x*0.29+z*0.23+5.1);
+      const k=1+0.14*wave;
+      pos.push(x,y,z);uv.push(x/LAWN_TILE,-z/LAWN_TILE);nrm.push(0,1,0);col.push(k*(1+0.03*wave),k,k*(1-0.05*wave));
+    }
+  }
+  for(let i=0;i<rings;i++)for(let j=0;j<sides;j++){
+    const a=i*sides+j,b=i*sides+(j+1)%sides;
+    index.push(a,a+sides,b,b,a+sides,b+sides);
+  }
+  const geometry=new THREE.BufferGeometry();
+  geometry.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+  geometry.setAttribute('normal',new THREE.Float32BufferAttribute(nrm,3));
+  geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uv,2));
+  geometry.setAttribute('color',new THREE.Float32BufferAttribute(col,3));
+  geometry.setIndex(index);
+  const mesh=new THREE.Mesh(geometry,material);mesh.receiveShadow=true;
+  return mesh;
 }

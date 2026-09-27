@@ -113,8 +113,9 @@ function closedLeaves(host, w, o, kind){
     for (let i=0;i<leaves;i++){
       const x = -ow/2 + ow/leaves*(i + 0.5);
       glazedFrame(g, MAT.charcoal, lw, oh - 0.02, 0.045, x, 0, lw - 0.24, oh - 0.5, 0.05);
-      // A tall lite in each leaf, a hand's width in from the edges.
-      const lite = new THREE.Mesh(new THREE.PlaneGeometry(lw - 0.24, oh - 0.5), MAT.glassy);
+      // A tall lite in each leaf, a hand's width in from the edges — window
+      // glass, since it looks outdoors.
+      const lite = new THREE.Mesh(new THREE.PlaneGeometry(lw - 0.24, oh - 0.5), MAT.pane);
       lite.position.set(x, 0.05, 0); g.add(lite);
       const hs = leaves === 2 ? (i === 0 ? 1 : -1) : -1;
       for (const side of [-1, 1])

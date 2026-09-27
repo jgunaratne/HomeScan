@@ -43,6 +43,32 @@ export function shapeFrom(poly){
   return g;
 }
 
+// A floor outline pushed out by `d` along its edge normals, corners mitred.
+// The scan's outlines are square-cornered, so a mitre never runs away; the
+// cap only matters for the odd sliver of a corner RoomPlan cut at an angle.
+export function grow(poly, d){
+  const p = poly.filter((v, i) => {
+    const w = poly[(i + 1) % poly.length];
+    return Math.hypot(w[0] - v[0], w[1] - v[1]) > 1e-4;
+  });
+  if (p.length < 3) return poly;
+  let area = 0;
+  for (let i = 0; i < p.length; i++){
+    const [x0, z0] = p[i], [x1, z1] = p[(i + 1) % p.length];
+    area += x0*z1 - x1*z0;
+  }
+  const s = area > 0 ? 1 : -1;
+  const out = (a, b) => {
+    const dx = b[0] - a[0], dz = b[1] - a[1], l = Math.hypot(dx, dz);
+    return [s*dz/l, -s*dx/l];
+  };
+  return p.map((v, i) => {
+    const a = out(p[(i + p.length - 1) % p.length], v), b = out(v, p[(i + 1) % p.length]);
+    const k = d / Math.max(0.25, 1 + a[0]*b[0] + a[1]*b[1]);
+    return [v[0] + (a[0] + b[0])*k, v[1] + (a[1] + b[1])*k];
+  });
+}
+
 export function onFloor(L, x, z){ return L.floors.some(f => inside(f.poly, x, z)); }
 
 export function inside(poly, x, z){

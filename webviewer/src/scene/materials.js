@@ -9,9 +9,17 @@ export const MAT = {
              side:THREE.DoubleSide, depthWrite:false}),
   // Once there is a world outside, a window's job is to show it, not to be blue
   // — and to catch the sky at a grazing angle, which is what reads as glass.
-  pane:    new THREE.MeshStandardMaterial({color:0xF2F8FC, transparent:true, opacity:0.11,
-             roughness:0.08, metalness:0.0, envMapIntensity:1.2,
-             side:THREE.DoubleSide, depthWrite:false}),
+  // Clear glass has no colour of its own: it sends on nine tenths of what is
+  // behind it and reflects a few percent, more at a glancing angle. A white
+  // pane at 11% opacity, lit by the sun, laid a milky veil over every view
+  // out of the house. So the pane is black, adds only its reflection, and
+  // dims what is behind it by its opacity; and it clears the alpha it covers,
+  // which tells the lens what is seen through glass (the window pull, passes).
+  pane:    new THREE.MeshStandardMaterial({color:0x000000, transparent:true, opacity:0.1,
+             roughness:0.06, metalness:0.0, envMapIntensity:0.5,
+             side:THREE.DoubleSide, depthWrite:false,
+             blending:THREE.CustomBlending, blendSrc:THREE.OneFactor, blendDst:THREE.OneMinusSrcAlphaFactor,
+             blendSrcAlpha:THREE.ZeroFactor, blendDstAlpha:THREE.ZeroFactor}),
   furn:    new THREE.MeshLambertMaterial({color:0x63707F, transparent:true, opacity:0.9}),
   fix:     new THREE.MeshLambertMaterial({color:0x7A8794, transparent:true, opacity:0.9}),
   // Painted joinery, and the fittings as they actually are: white goods white,
@@ -77,9 +85,17 @@ MAT.inox    = new THREE.MeshStandardMaterial({color:0xC9C7C1, roughness:0.52, me
 MAT.quartz  = new THREE.MeshPhysicalMaterial({color:0xF1EFEA, roughness:0.32, metalness:0.0, clearcoat:0.6, clearcoatRoughness:0.25});
 MAT.matte   = new THREE.MeshStandardMaterial({color:0xF3F2EE, roughness:0.62, metalness:0.0});
 MAT.slab    = new THREE.MeshStandardMaterial({color:0xEDEBE6, roughness:0.48, metalness:0.0});
-MAT.glassy  = new THREE.MeshStandardMaterial({color:0xDCE8EA, transparent:true, opacity:0.18,
-               roughness:0.05, metalness:0.0, side:THREE.DoubleSide, depthWrite:false});
+// The shower's glass, clear as the windows' and for the same reason, but it
+// leaves the alpha alone: what is behind it is the room, not the outdoors.
+MAT.glassy  = new THREE.MeshStandardMaterial({color:0x000000, transparent:true, opacity:0.12,
+               roughness:0.05, metalness:0.0, envMapIntensity:0.6, side:THREE.DoubleSide, depthWrite:false,
+               blending:THREE.CustomBlending, blendSrc:THREE.OneFactor, blendDst:THREE.OneMinusSrcAlphaFactor,
+               blendSrcAlpha:THREE.ZeroFactor, blendDstAlpha:THREE.OneFactor});
 MAT.mirror  = new THREE.MeshStandardMaterial({color:0xCFD6DA, roughness:0.02, metalness:0.9});
+// Every mirror pane hung in the house. Drawn with MAT.mirror alone a pane is
+// polished metal reflecting the sky; the lens draws the ones in view as
+// mirrors instead, showing the room (render/mirrors.js).
+export const MIRRORS = new Set();
 MAT.porcelain = new THREE.MeshStandardMaterial({color:0xF6F5F2, roughness:0.18, metalness:0.0});
 MAT.oatmeal = weave(0xD3CABA);
 MAT.ivory   = weave(0xE2DCD0);

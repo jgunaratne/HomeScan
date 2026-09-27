@@ -2,10 +2,10 @@ import { dressRooflines } from './rooflines.js';
 import { inStairCut, cutSlabQuad } from './architecture.js';
 import { $ } from '../core/util.js';
 import { WALL_T } from '../core/constants.js';
-import { onFloor } from '../core/geometry.js';
+import { onFloor, shapeFrom, grow } from '../core/geometry.js';
 import { flags } from '../core/state.js';
 import { scene, setLightRig } from './stage.js';
-import { MAT } from './materials.js';
+import { MAT, MIRRORS } from './materials.js';
 import { levels } from './levels.js';
 import { TILE, roomAt, assignFloor } from '../photo/rooms.js';
 import { avgMats } from '../photo/relight.js';
@@ -102,11 +102,18 @@ export function dressSlabs(L){
       for (const [x0,x1,z0,z1] of quads){
         // Short quads keep the baked daylight interpolation smooth across
         // adjacent scan rows, especially on broad ceilings.
+        // They are cut at every cell of the grid, from its own index, not in
+        // equal steps of the run: equal steps put one row's vertices where the
+        // next row's edge had none — a T-junction every few centimetres along
+        // every row, each a pinhole a pixel wide that flickered under the
+        // jitter, green on the oak where the lawn below the house showed
+        // through and brown on the ceilings. On the grid, rows meet vertex to
+        // vertex.
         const cut = kind === 'ceil' ? L.ceilingCut : L.floorCut;
-        const steps = Math.max(1, Math.ceil((x1-x0)/0.3));
-        for (let q=0;q<steps;q++){
-          const a = x0+(x1-x0)*q/steps, b = x0+(x1-x0)*(q+1)/steps;
-          const c = [[a,z0],[b,z0],[b,z1],[a,z1]];
+        const i0 = Math.round((x0-b.x0)/g), i1 = Math.round((x1-b.x0)/g);
+        for (let q=i0;q<i1;q++){
+          const a = b.x0+q*g, e = b.x0+(q+1)*g;
+          const c = [[a,z0],[e,z0],[e,z1],[a,z1]];
           // Keep ceiling winding consistent with its downward normals.
           let pieces=cutSlabQuad(c,cut);
           if(kind==='floor')for(const threshold of thresholds)pieces=pieces.flatMap(p=>cutSlabQuad(p,threshold));
@@ -399,7 +406,7 @@ export function dressFittings(L){
         g.add(box(MAT.black, w, h, 0.04, 0, 0, -f*(d/2 - 0.02)));
         const glass = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.06, h - 0.06), MAT.mirror);
         glass.position.set(0, 0, -f*(d/2 - 0.041)); glass.rotation.y = f > 0 ? 0 : Math.PI;
-        g.add(glass);
+        g.add(glass); MIRRORS.add(glass);
         g.position.copy(o.built.position); g.rotation.copy(o.built.rotation);
         swap(o, g);
       }
@@ -521,6 +528,31 @@ function castAll(root){
     o.castShadow = !clear;
     o.receiveShadow = true;
   });
+}
+
+// The sun has to be stopped by a roof, and the ceiling cannot be it. Its quads
+// meet at T-junctions that the shadow map rasterises with pinholes, and every
+// pinhole was a fleck of sunlight on a wall below; the storey above had no
+// ceiling at all while you walked the one beneath, so the sun fell in through
+// its open top and down the stairwell. Each storey gets a lid instead: the
+// floor outline, grown over the wall heads, one seamless polygon just above
+// the ceiling that casts the shadow and is never drawn. The 12 cm it is grown
+// by is also a roof's eave — the heads of the sunlit outside walls sit in its
+// shade, as they do under a real one. The loop shows it only while walking;
+// the section view is a dollhouse, lit from above on purpose.
+const LID = new THREE.MeshLambertMaterial({colorWrite:false, depthWrite:false, side:THREE.DoubleSide});
+export function dressLid(L){
+  const roofs = (L.rooms || []).map(r => r.finishes?.roof?.high).filter(h => h > 0);
+  const y = L.elevation + Math.max(L.ceiling, ...L.floors.map(f => f.ceiling || 0), ...roofs) + 0.03;
+  const lid = new THREE.Group();
+  lid.name = 'Shadow lid';
+  for (const f of L.floors){
+    const m = new THREE.Mesh(shapeFrom(grow(f.poly, 0.12)), LID);
+    m.position.y = y;
+    m.raycast = () => {};
+    lid.add(m);
+  }
+  L.group.add(lid); L.lid = lid;
 }
 
 export function setSurfaces(on){

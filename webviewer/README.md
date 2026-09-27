@@ -665,7 +665,12 @@ and a Slope office chair each with a Woodwind bookcase, and the east one has
 its closet taken out — the wall removed, the closet's strip added back as
 floor and its open end to the outside closed with a wall the scan never had,
 by `finishes.removeWalls`, `floorPatches` and `addWalls` — with the desk on
-the far wall where the closet was. The two upstairs
+the far wall where the closet was. Beside the south office's doorway, the
+strip between it and the west bedroom, which the scan left open from the
+landing out to the lawn, is a closet: a wall across the landing end with a
+shut door in it and the facade across the far end, both `addWalls`, and the
+closet declared as a room of its own so its floor is not a strip of the
+bedroom's. The west bedroom's bypass slider opens into it too. The two upstairs
 bathrooms are two rooms either side of one wall, each with its shower at the
 far end and its toilet and vanity along one wall; the north one has a door cut
 from the primary bedroom, which makes it the en-suite. The door from the
@@ -813,16 +818,34 @@ still falls back automatically on slower devices; this is not ray-traced lightin
 The entry room's `finishes.stair` records `riseToward` along the stair object's
 local Z axis and `railSide` along local X. The dressed staircase uses the scanned
 width, run, position, and rotation, with its rise taken from the next storey's
-elevation. White risers and closed stringers, timber treads with a nosing, and a
-black steel balustrade — one slim baluster a tread, a post at each end, a flat
-bar for a handrail — follow the living-room photos. Tread count and railing
-proportions are inferred. `closet: {from}` closes the upper flight in to the
-floor from that fraction of the run, with a slab door in the end wall under the
-landing — the pantry you face from the kitchen's hall doorway. Matching
-openings are cut into the dressed lower ceiling and upper
-floor; the flat survey retains the captured slabs. Stairs stay visible when
-furniture is hidden. Navigation still uses **E** to switch storeys; treads do not
-provide continuous vertical walking or fall simulation.
+elevation. It follows the entry and living-room photos: white risers, timber
+treads with a nosing, a plastered soffit under the flight, and deep closed
+stringers — 5 cm over the nosings and 27 cm under, so the flight reads from the
+room as one sloping band, cut plumb at the foot and run level into the landing.
+Where the scan has a wall along the closed side the flight is built to its face
+with a skirt board, instead of to the scanned edge the wall overlaps. The
+balustrade is a rounded handrail in the treads' pale white oak, 90 cm over the
+nosings, on slim black posts at the foot, midway and on the landing, with round
+black balusters about 14 cm apart standing in a black shoe on the stringer; at
+the foot the rail runs on past its post over a steel scroll. `closet: {from}`
+closes the upper flight in to the floor from that fraction of the run, with a
+slab door in the end wall under the landing — the pantry you face from the
+kitchen's hall doorway. `spandrel` fills the open side under the lower flight,
+from where the stringer meets the floor to the closet, with oak spindles in a
+black frame as the photographs have it; with `"finish": "drywall"` — as the
+entry now has it — it is closed in instead, the closet's drywall carried down
+to the floor line as one wall under the whole flight, with the room's skirting
+along its foot. `well: {width, past, to}` opens the upper floor beside the
+flight; a level guard of the same rail and balusters runs across its landing
+edge over a painted fascia. Matching openings are cut into the dressed lower
+ceiling and upper floor, and every wall at their edge is carried across the
+depth of the floor between them — lower walls up, upper walls down where
+nothing stands under them — so no slot shows round the stairwell. The flat
+survey retains the captured slabs. The scan also stood a short wall through the
+flight and its balustrade; the entry's `removeWalls` takes it out. Tread count
+and railing proportions are inferred. Stairs stay visible when furniture is
+hidden. Navigation still uses **E** to switch storeys; treads do not provide
+continuous vertical walking or fall simulation.
 
 The scan does not classify a fireplace. The living room's `finishes.fireplace`
 therefore explicitly annotates its wall centre and estimated width, height, and
@@ -913,9 +936,10 @@ resize at 1280×800 and 800×600, plus the geometry/material unit suite.
 
 The entry now shares the great room's continuous timber floor and uses a reviewed
 paint sample from the entry photo. Stair flights have a closed painted underside
-and timber end posts. Door frames include recessed jamb liners and stops, with
-handles on the latch edge and hinges at the actual pivot. The scan still contains
-no interior garage doorway; these details do not add an inferred connection.
+and black steel posts under an oak rail. Door frames include recessed jamb
+liners and stops, with handles on the latch edge and hinges at the actual pivot.
+The scan still contains no interior garage doorway; these details do not add an
+inferred connection.
 
 The walkthrough can now hand its own frame to Gemini and show the photograph that
 comes back, behind a `Nano Banana` button in both toolbars and the `N` key. The
@@ -1016,13 +1040,14 @@ at up to 1.5× CSS resolution, Balanced at 1×, and Performance at 0.75×.
 High also uses more occlusion, bounce and reflection samples than Balanced.
 
 High and Balanced combine the existing baked window irradiance with a small
-screen-space diffuse bounce, depth-filtered SSAO, and floor reflections with
-refined ray intersections. On WebGL2, an eight-sample jitter sequence and
+screen-space diffuse bounce, horizon-based ambient occlusion, floor reflections
+with refined ray intersections, and true mirrors (up to 1024 px a side on High,
+512 on Balanced). On WebGL2, an eight-sample jitter sequence and
 camera-reprojected temporal antialiasing reduce shimmer. Depth rejection and
 neighbourhood clipping limit ghosting; changing floors, furniture visibility,
 section spacing, or resolution clears history. FXAA finishes the image.
-Performance retains SSAO, bloom and tone mapping, with FXAA instead of TAA,
-and skips bounce and reflections. `Q` toggles the post-processing chain.
+Performance retains occlusion, bloom and tone mapping, with FXAA instead of TAA,
+and skips bounce, reflections and mirrors. `Q` toggles the post-processing chain.
 
 These are GPU fragment-shader effects in the existing WebGL renderer, not
 hardware ray tracing. Screen-space bounce and reflections only use visible
@@ -1031,3 +1056,108 @@ HDR targets require a renderable floating-point colour extension, with
 8-bit targets as a fallback. Unsupported depth/derivative hardware uses the
 ordinary renderer. The high-performance GPU preference is a browser hint,
 not a guarantee that a discrete GPU will be selected.
+
+**Towards a photograph.** The listing photographs are the reference for what
+realistic means here — not for colour, since they show the house before the
+redesign, but for how a well-photographed room reads: painted whites at 220–240,
+windows that show a blue sky and a green lawn rather than a white rectangle,
+mirrors that show the room. Every change below was checked by rendering the
+same ten views, on foot and from the orbit, before and after.
+
+The lens meters its own exposure. A fixed exposure was right for one room and
+wrong for the rest, so it now meters the way an interior photographer does:
+mostly by the light falling where you stand, read from the baked daylight field
+at the eye (`daylightAt`), and a third by a centre-weighted log average of the
+frame. A bright window stops it down a little, as it should; a charcoal accent
+wall cannot open it up until the paint is grey, which is what a meter reading
+only the frame does. It adapts in stops, at the pace an eye does. The orbit has
+no field and meters the frame, against a key for white walls in the sun.
+`uCard`, which turns incident light into the luminance of an average room, is
+0.42 because that is what the white rooms measure, and with it painted whites
+land at 210–231. With the lens off the exposure is fixed, at 2.4 on foot and 1.3
+in the orbit.
+
+The composite develops with the ACES fit three.js itself applies when the lens
+is off — Hill's RRT and ODT, with their colour matrices — so both paths give the
+same picture. The per-channel curve it replaced pushed saturated highlights
+toward their primaries. Measured on the living-room boards: (212, 184, 136)
+before, orange, and (223, 205, 178) now, against the white oak's palette colour
+of (214, 193, 162).
+
+Occlusion is horizon-based (GTAO, after Jimenez et al.): for a few directions
+across the screen it walks out on both sides, keeps the highest horizon it
+meets and integrates the sky left between them, so a corner, the gap under a
+sofa and a window's reveal darken by how much of the room they cannot see. The
+hemisphere sampling it replaced counted points rather than angles, and went grey
+on every open wall while barely touching the corners. High takes three slices of
+six steps, Balanced two of five, Performance two of four. Normals rebuilt from
+depth now take, on each axis, whichever neighbour lies on the same surface;
+plain derivatives averaged across every silhouette and left a dark fleck in the
+occlusion there. And a bump-mapped triangle seen exactly edge-on normalises a
+zero vector: that one pixel was bloomed and blurred into a black block floating
+in the room — one sat on the bedroom dresser, one beside the stair — so the
+normal is guarded now, and the bloom and the lens blur clamp what they read.
+
+The sun is stopped by a lid. The ceiling could not do it: its quads leave
+pinholes in the shadow map, each a fleck of sunlight on a wall below, and the
+storey above had no ceiling at all while you walked the one beneath. It keeps
+one now — the stairwell looks up into it, and the top of the flight showed the
+sky — but the lid still does the shading. Each storey gets one seamless polygon
+just above its ceiling, the floor outline grown 12 cm over the wall heads, that
+casts the shadow and is never drawn; the 12 cm is an eave as well. It is there
+only on foot, since the section view is lit from above on purpose. The daylight
+field is interpolated by hand now, so a node behind a wall — the room next door
+— can be left out; hardware filtering blended it in, and a wall at an angle to
+the grid came out striped.
+
+Window glass is clear, and the view through it is pulled. The glass was a pale
+sheet that veiled everything behind it; it is now 90% transmissive and adds only
+its reflection, and it clears the alpha of every pixel it covers so the
+composite knows which pixels are the view. Those are developed a stop down
+(`WINDOW_PULL`), the window pull an interior photographer composites in by hand:
+from inside, the lake is blue and the lawn green. On foot only — from the orbit
+there is no room to pull against. The entry door's lites take the same glass;
+the shower's is clear the same way but leaves the alpha alone, since what is
+behind it is the room.
+Above the pale band at the crop's horizon, the sky now deepens to the clearest
+blue in the top of the photograph instead of fading to one pale wash, which,
+exposed for the room, had been white.
+
+Mirrors show the room. A mirror was polished metal, and all polished metal can
+reflect is the environment map — sky, horizon and lawn, blurred — so from across
+the room it read as a television showing the weather. Each pane in view is now
+drawn first as a window onto the room behind it: the eye reflected through the
+glass, its frustum cut to the pane's edges and its near plane laid on the glass,
+so nothing behind the wall is drawn and every pixel rendered lands on the pane.
+It is linear light like the rest of the frame, so the room's exposure and tone
+curve apply to it, and it is as sharp as the pane is large on screen, up to the
+tier's cap. On foot only, within 9 m, and never a mirror inside a mirror.
+Verified in the primary bedroom: the mirror over the dresser shows the bed, the
+window above it and the deck door, where it showed a blurred lake.
+
+The lawn is a lawn. It was one flat colour on a 34 m disc, and about twice as
+bright as it should be against the walls: lit by the sun and the sky together a
+lawn here sends back roughly twice its albedo, and the albedo was the
+photograph's green at 0.53. It is now the median of the photographed grass at
+0.27, with the patchiness a lawn has — periodic value noise over six octaves,
+the drier patches yellowed — and a slower wash of tone across tens of metres in
+the vertex colours, so the tile's repeat never lines up; the tile is laid in
+world metres, 9 m to a side. From the orbit the disc ended in a hard rim against
+the sleeve, which that high up shows the ground under its photograph, and the
+house sat in a green bowl. The section view now runs the lawn out to 132 m into
+a haze taken from the photograph's pale horizon; on foot that far field is
+hidden, because from a window it would lie over the lake. The fabric bump the
+lawn carried is gone: r128 gives every map on a material one UV transform, so the
+bump followed the colour's repeat and drew a checker. Measured from the orbit:
+lawn (139, 186, 87) before and (110, 158, 70) now, against the photograph's
+(95, 136, 59), with the sunlit walls going from 206 to 216.
+
+The floors had pinholes. Each run of a floor or ceiling was cut in its own equal
+steps of up to 0.3 m, so one row's vertices fell where the next row's edge had
+none — a T-junction every few centimetres, each a pinhole a pixel wide that
+flickered under the jitter: green on the boards where the lawn below the house
+showed through, brown on the ceilings. Every run is now cut at the grid's own
+10 cm lines, and rows meet vertex to vertex. Measured on a crop of the
+living-room floor: 34 outlier pixels before, none now. `tests/ground.test.cjs`
+checks the lawn's winding, that it meets the far field without a seam in texture
+or tone, and the range of its wash.

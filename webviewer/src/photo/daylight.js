@@ -86,18 +86,58 @@ export function bakeDaylight(L){
     }
     const idx=(j*nx*ny+k*nx+i)*4;
     // Moments encode signed values in [-2,2]; alpha holds non-directional
-    // bounce only. Direct window light is evaluated against the surface normal,
+    // light only. Direct window light is evaluated against the surface normal,
     // so it cannot light the back of a window wall as an ambient source.
     bytes[idx]=Math.round(127.5+Math.max(-2,Math.min(2,mx))*63.75);
     bytes[idx+1]=Math.round(127.5+Math.max(-2,Math.min(2,my))*63.75);
     bytes[idx+2]=Math.round(127.5+Math.max(-2,Math.min(2,mz))*63.75);
-    const bounce=0.055+Math.pow(Math.max(0,skyAt(L.sky,p[0],p[2])),0.65)*0.65;
-    bytes[idx+3]=Math.round(Math.min(1,(bounce+energy*0.08)/2)*255);
+    // The non-directional part is what a room gives back to itself — the
+    // planar sky bake stands in for it, falling away from the openings as the
+    // light in a real house does — and the share of window light arriving
+    // from so many directions at once that no single normal catches more of
+    // it than another: the gap between the energy and its moment.
+    const sky=Math.max(0,skyAt(L.sky,p[0],p[2])),moment=Math.hypot(mx,my,mz);
+    const ambient=0.03+Math.pow(sky,0.8)*0.5+Math.max(0,energy-moment)*0.45+energy*0.04;
+    bytes[idx+3]=Math.round(Math.min(1,ambient/2)*255);
   }
   const texture=new THREE.DataTexture(bytes,nx*ny,nz,THREE.RGBAFormat);
-  texture.minFilter=texture.magFilter=THREE.LinearFilter;texture.needsUpdate=true;
-  return {texture,origin:new THREE.Vector3(b.x0,L.elevation+0.08,b.z0),nx,nz,ny,g,x:b.x0,z:b.z0,y:L.elevation+0.08,height:L.ceiling-0.16,portals:portals.length};
+  // Nodes are read one at a time and blended in the shader (daylightField).
+  texture.minFilter=texture.magFilter=THREE.NearestFilter;texture.needsUpdate=true;
+  return {texture,bytes,origin:new THREE.Vector3(b.x0,L.elevation+0.08,b.z0),nx,nz,ny,g,x:b.x0,z:b.z0,y:L.elevation+0.08,height:L.ceiling-0.16,portals:portals.length};
 }
+
+// What a light meter held at a point reads: the field's non-directional share
+// plus half the window's moment — a dome turned toward the light, not a wall
+// square to it — in the units the shader lights a surface in (windowLight).
+// It is the light falling on the room, not the light coming back off it, so
+// under the same window a charcoal wall and a white one meter the same; an
+// average of the frame calls the charcoal room dark and opens up until it is
+// grey. Trilinear over the stored bytes; no GPU round trip.
+export function daylightAt(field,x,y,z){
+  const {nx,nz,ny,g,bytes}=field;
+  if(!bytes)return 0;
+  const clamp=(v,hi)=>Math.max(0,Math.min(hi,v));
+  const gx=clamp((x-field.x)/g,nx-1),gz=clamp((z-field.z)/g,nz-1);
+  const gy=clamp((y-field.y)/(field.height/Math.max(ny-1,1)),ny-1);
+  const i0=Math.min(Math.floor(gx),Math.max(nx-2,0)),j0=Math.min(Math.floor(gz),Math.max(nz-2,0)),k0=Math.min(Math.floor(gy),Math.max(ny-2,0));
+  const fx=gx-i0,fz=gz-j0,fy=gy-k0;
+  let a=0,mx=0,my=0,mz=0;
+  for(let c=0;c<8;c++){
+    const oi=c&1,oj=(c>>1)&1,ok=(c>>2)&1;
+    const i=Math.min(i0+oi,nx-1),j=Math.min(j0+oj,nz-1),k=Math.min(k0+ok,ny-1);
+    const w=(oi?fx:1-fx)*(oj?fz:1-fz)*(ok?fy:1-fy);
+    const idx=(j*nx*ny+k*nx+i)*4;
+    mx+=(bytes[idx]-128)/63.75*w;my+=(bytes[idx+1]-128)/63.75*w;mz+=(bytes[idx+2]-128)/63.75*w;
+    a+=bytes[idx+3]/255*2*w;
+  }
+  return DAYLIGHT.gain.value*(a*DAYLIGHT.ambient.value+Math.hypot(mx,my,mz)*DAYLIGHT.window.value*0.5);
+}
+
+// One balance for every storey's daylight materials, shared by reference so
+// it is set in one place: the non-directional share, the window's directional
+// share, the gain on both, and how much of the exterior environment the
+// interior's glossy surfaces reflect.
+export const DAYLIGHT={ambient:{value:1.0},window:{value:1.6},gain:{value:1.0},specular:{value:0.45}};
 
 function daylightMaterial(material,field){
   const m=material.clone();
@@ -105,6 +145,8 @@ function daylightMaterial(material,field){
     Object.assign(shader.uniforms,{
       daylightMap:{value:field.texture},daylightOrigin:{value:field.origin},
       daylightSize:{value:new THREE.Vector4(field.nx,field.nz,field.ny,field.g)},daylightHeight:{value:field.height},
+      daylightAmbient:DAYLIGHT.ambient,daylightWindow:DAYLIGHT.window,
+      daylightGain:DAYLIGHT.gain,daylightSpecular:DAYLIGHT.specular,
     });
     shader.vertexShader='varying vec3 vDaylightPosition;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <project_vertex>',`#include <project_vertex>
@@ -117,32 +159,57 @@ function daylightMaterial(material,field){
       uniform sampler2D daylightMap;
       uniform vec3 daylightOrigin;
       uniform vec4 daylightSize;
-      uniform float daylightHeight;
-      vec4 daylightSlice(vec2 cell,float slice){
-        return texture2D(daylightMap,vec2((cell.x+0.5+slice*daylightSize.x)/(daylightSize.x*daylightSize.z),(cell.y+0.5)/daylightSize.y));
+      uniform float daylightHeight,daylightAmbient,daylightWindow,daylightGain,daylightSpecular;
+      // One node: x runs along the texture with the slices laid side by side,
+      // z runs down it.
+      vec4 daylightNode(vec3 node){
+        return texture2D(daylightMap,vec2((node.x+0.5+node.z*daylightSize.x)/(daylightSize.x*daylightSize.z),(node.y+0.5)/daylightSize.y));
+      }
+      // Trilinear by hand, so each of the eight nodes can be asked which side
+      // of the surface it stands on. A node behind a wall is the room next
+      // door; hardware filtering blended it in, and a wall at thirty degrees
+      // to the grid came out in stripes as it crossed the cells. The lookup is
+      // also taken a little way out along the normal, off the wall's own line.
+      vec4 daylightField(vec3 p,vec3 n){
+        vec3 top=daylightSize.xyz-1.0;
+        float rise=daylightHeight/max(top.z,1.0);
+        vec3 q=p+n*0.12-daylightOrigin;
+        vec3 g=clamp(vec3(q.x/daylightSize.w,q.z/daylightSize.w,q.y/rise),vec3(0.0),top);
+        vec3 base=min(floor(g),max(top-1.0,vec3(0.0)));
+        vec3 f=g-base;
+        vec4 sum=vec4(0.0);
+        float total=0.0;
+        for(int c=0;c<8;c++){
+          vec3 o=vec3(mod(float(c),2.0),mod(floor(float(c)*0.5),2.0),floor(float(c)*0.25));
+          vec3 node=min(base+o,top);
+          vec3 t=mix(1.0-f,f,o);
+          vec3 d=daylightOrigin+vec3(node.x*daylightSize.w,node.z*rise,node.y*daylightSize.w)-p;
+          float side=clamp(dot(d,n)/max(length(d),0.001)*2.5+0.5,0.0,1.0);
+          float w=t.x*t.y*t.z*(side*side+0.002);
+          sum+=daylightNode(node)*w;
+          total+=w;
+        }
+        return sum/max(total,1e-6);
       }
       `+shader.fragmentShader;
     shader.fragmentShader=shader.fragmentShader.replace('#include <lights_fragment_maps>',`#include <lights_fragment_maps>
-      vec3 daylightP=vDaylightPosition-daylightOrigin;
-      vec2 daylightCell=clamp(daylightP.xz/daylightSize.w,vec2(0.0),daylightSize.xy-1.0);
-      float layer=clamp(daylightP.y/daylightHeight,0.0,1.0)*(daylightSize.z-1.0);
-      vec4 field=mix(daylightSlice(daylightCell,floor(layer)),daylightSlice(daylightCell,min(floor(layer)+1.0,daylightSize.z-1.0)),fract(layer));
       vec3 daylightNormal=inverseTransformDirection(normal,viewMatrix);
+      vec4 field=daylightField(vDaylightPosition,inverseTransformDirection(geometryNormal,viewMatrix));
       // Remove the byte encoding's half-step offset before taking the cosine.
       vec3 windowMoment=(field.rgb*255.0-128.0)/63.75;
-      float windowLight=field.a*2.0+max(0.0,dot(daylightNormal,windowMoment))*0.9;
+      float windowLight=field.a*2.0*daylightAmbient+max(0.0,dot(daylightNormal,windowMoment))*daylightWindow;
       // Light in a room comes in at the windows and up off the floor: a face
       // that looks up is lit a little more, a ceiling a little less, and a
       // wall between the two — the gradient every photograph of a room has.
       windowLight*=0.86+0.26*clamp(daylightNormal.y*0.5+0.5,0.0,1.0);
-      irradiance=PI*windowLight*vec3(1.0,0.985,0.955)*2.2;
-      // Exterior environment supplies restrained specular reflections; diffuse
-      // indoor illumination comes from windows rather than an unoccluded sky.
+      irradiance=PI*windowLight*vec3(1.0,0.985,0.955)*daylightGain;
+      // Diffuse indoor illumination comes from the windows rather than an
+      // unoccluded sky; the environment only supplies glossy reflection.
       iblIrradiance*=0.025;
-      radiance*=0.45;
+      radiance*=daylightSpecular;
     `);
   };
-  m.customProgramCacheKey=()=> 'window-daylight-v2';
+  m.customProgramCacheKey=()=> 'window-daylight-v3';
   return m;
 }
 

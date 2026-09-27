@@ -39,6 +39,11 @@ key.shadow.bias = -0.00005;
 key.shadow.normalBias = 0.008;
 scene.add(sky); scene.add(key); scene.add(fill);
 
+// The rig's fog colour. The section view of the dressed house hazes its far
+// ground with its own (loop.js), and walking puts this one back.
+let fogHex = 0x0C0F14;
+export const rigFog = () => fogHex;
+
 export function setLightRig(dressed){
   sky.color.setHex(dressed ? 0xDCE9F6 : 0xC5D8EE);
   sky.groundColor.setHex(dressed ? 0xB7B0A3 : 0x2A303A);
@@ -53,6 +58,7 @@ export function setLightRig(dressed){
   key.castShadow = dressed;
   renderer.shadowMap.enabled = dressed;
   renderer.shadowMap.needsUpdate = true;
-  scene.fog.color.setHex(dressed ? 0x1A1E24 : 0x0C0F14);
-  renderer.setClearColor(dressed ? 0x1A1E24 : 0x0C0F14);
+  fogHex = dressed ? 0x1A1E24 : 0x0C0F14;
+  scene.fog.color.setHex(fogHex);
+  renderer.setClearColor(fogHex);
 }

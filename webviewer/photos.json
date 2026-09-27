@@ -67,7 +67,7 @@
     {
       "level": 0,
       "name": "Entry and stair",
-      "finishes": {"stair": {"riseToward": -1, "railSide": 1, "well": {"to": 1, "width": 1.13, "past": 0.41, "note": "the entry two storeys tall: the upper floor open beside the whole flight on the rail side, out to the office wall and past the foot to the window wall, with a guard across the hall's edge at the top of the stairs (IMG_0689)"}, "closet": {"from": 0.5, "note": "the pantry closet under the upper flight, its door in the end wall under the landing, straight ahead through the kitchen's hall doorway (IMG_0698)"}}},
+      "finishes": {"stair": {"riseToward": -1, "railSide": 1, "well": {"to": 1, "width": 1.13, "past": 0.41, "note": "the entry two storeys tall: the upper floor open beside the whole flight on the rail side, out to the office wall and past the foot to the window wall, with a guard across the hall's edge at the top of the stairs (IMG_0689)"}, "closet": {"from": 0.5, "note": "the pantry closet under the upper flight, its door in the end wall under the landing, straight ahead through the kitchen's hall doorway (IMG_0698)"}, "spandrel": {"finish": "drywall", "note": "under the lower flight on the open side, from where the stringer meets the floor to the pantry: closed in with drywall, one wall with the pantry's side, where the photographs have round oak spindles in a black steel frame (living-room-1, IMG_0693)"}}, "removeWalls": [[0.475, -0.92]], "note": "the scan drew the pantry's side as a wall to the ceiling along the open side of the upper flight, standing up through the treads and the balustrade; it is taken out, and the closet under the flight is walled by the stair's own drywall under the stringer"},
       "floorFrom": "Dining room",
       "at": [2.4, 0.7],
       "anchor": "front door to the stairwell",
@@ -225,6 +225,15 @@
       "photos": [
 
       ]
+    },
+    {
+      "level": 1,
+      "name": "Hall closet",
+      "reach": 0.45,
+      "finishes": {"addWalls": [{"from": [-0.612, 1.67], "to": [-1.376, 1.256], "note": "the closet's front wall, across the strip just past the office doorway, from the office's west wall to the west bedroom's east wall"}, {"from": [-2.543, 5.405], "to": [-3.379, 4.9], "note": "the facade across the closet's far end, between the office's south wall and the west bedroom's, which the scan never recorded — run 2 cm into each, since butted end to end at the slight kink between them the joints showed as hairlines of light"}], "openings": [{"wallAt": [-0.994, 1.463], "along": 0, "width": 0.61, "height": 2.03, "kind": "door", "note": "the closet door, beside the office doorway: straight ahead coming down the landing, on the right facing into the office"}], "closedDoors": [[-0.994, 1.463]], "note": "the 0.87 m strip between the south office and the west bedroom, which the scan left open from the landing out to the lawn, closed off as one closet: a wall and a shut door across the landing end, the facade across the other; the west bedroom's bypass slider opens into it as well"},
+      "at": [-1.98, 3.31],
+      "anchor": "the long closet between the south office and the west bedroom, declared so its floor is its own rather than a strip of the nearest bedroom's; the short reach keeps the rooms either side named up to their walls",
+      "photos": []
     }
   ]
 }

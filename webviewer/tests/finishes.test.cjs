@@ -147,7 +147,7 @@ test('the media room has dark gray walls and other rooms inherit the house paint
 test('the halls are declared, photographless, and named onto their storey\'s wood',()=>{
   const rooms=shipped();
   const halls=rooms.filter(r=>!r.photos||!r.photos.length);
-  assert.equal(halls.length,5,'two halls, the en-suite, the primary closet and the garage are declared without photographs');
+  assert.equal(halls.length,6,'two halls, the en-suite, the primary closet, the hall closet and the garage are declared without photographs');
   for(const hall of halls){
     assert.ok(hall.at&&hall.at.length===2,`${hall.name} needs an anchor above all else`);
     if(/hall/.test(hall.name))assert.match(hall.finishes.floor,/^timber-/,`${hall.name} must name its boards`);

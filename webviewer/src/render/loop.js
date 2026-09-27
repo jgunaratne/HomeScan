@@ -3,12 +3,13 @@ import { HOUSE } from '../core/data.js';
 import { SPEED, SPRINT, BODY_R, REDUCED } from '../core/constants.js';
 import { player, nav, view, orbit, flags, pointer, keys, focus } from '../core/state.js';
 import { onFloor } from '../core/geometry.js';
-import { renderer, scene, camera } from '../scene/stage.js';
+import { renderer, scene, camera, rigFog } from '../scene/stage.js';
 import { levels } from '../scene/levels.js';
 import { pushOut } from '../player/collision.js';
 import { stairsNear } from '../player/movement.js';
 import { ring } from '../player/pointing.js';
 import { shotAt } from '../photo/prints.js';
+import { outdoorWorld } from '../photo/outside.js';
 import { whereAmI } from '../ui/hud.js';
 import { paintShot } from '../ui/modes.js';
 import { paintPlan } from '../ui/plan.js';
@@ -71,6 +72,7 @@ export function frame(now){
     camera.rotation.x = player.pitch;
     scene.fog.near = flags.surfaced ? 12 : 7;
     scene.fog.far  = flags.surfaced ? 62 : 40;
+    scene.fog.color.setHex(rigFog());
 
     if (pointer.lockLook){
       const was = focus.hoverShot;
@@ -101,14 +103,28 @@ export function frame(now){
       orbit.tz + r*Math.cos(orbit.phi)*Math.cos(orbit.theta));
     camera.rotation.order = 'YXZ';
     camera.lookAt(orbit.tx, orbit.ty, orbit.tz);
-    scene.fog.near = 30; scene.fog.far = 130;
+    // Dressed, the ground runs on toward the photograph's horizon, and it pales
+    // on the way there as ground does under a sky; the survey's dark fog had it
+    // fall away into night. Haze at 150 m is a quarter, enough to lose the
+    // field's edge into the sleeve without veiling the house.
+    const world = flags.surfaced ? outdoorWorld() : null;
+    scene.fog.near = world ? 50 : 30; scene.fog.far = world ? 400 : 130;
+    if (world) scene.fog.color.copy(world.haze); else scene.fog.color.setHex(rigFog());
     paintPlan();
   }
+  const outside = outdoorWorld();
+  if (outside) outside.field.visible = view.mode !== 'walk';
 
   levels.forEach((L,i) => {
     L.group.position.y = view.mode === 'view' ? view.explode * i : 0;
     if(L.daylight)L.daylight.origin.y=L.daylight.y+L.group.position.y;
-    L.ceil.visible = view.mode === 'walk' && i === player.level;
+    // The storey you walk has its ceiling, and so does every storey over it:
+    // the stairwell opens the floor above, and with that storey's ceiling
+    // hidden, looking up the flight from the entry showed the sky. The ones
+    // below stay off — nothing sees them but the stairwell, which cuts them.
+    L.ceil.visible = view.mode === 'walk' && i >= player.level;
+    // Every storey keeps its roof while you walk any of them.
+    if (L.lid) L.lid.visible = view.mode === 'walk';
     L.group.visible = true;
   });
 
